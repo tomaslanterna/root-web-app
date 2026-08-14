@@ -1,0 +1,67 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Home, Calendar, Flame, MessageSquare, User } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+const NAV_ITEMS = [
+  { label: "Feed", href: "/feed", icon: Home },
+  { label: "Eventos", href: "/events", icon: Calendar },
+  { label: "Crews", href: "/match", icon: Flame },
+  { label: "Chat", href: "/chat", icon: MessageSquare },
+  { label: "Perfil", href: "/profile", icon: User },
+];
+
+export function BottomNav() {
+  const pathname = usePathname();
+
+  return (
+    <nav className="fixed bottom-4 left-0 right-0 z-50 pointer-events-none">
+      <div className="max-w-md mx-auto px-4 pointer-events-auto">
+        <div className="glass-obsidian rounded-full p-1.5 flex items-center justify-around shadow-2xl backdrop-blur-2xl border border-white/10">
+          {NAV_ITEMS.map((item) => {
+            const isActive = pathname === item.href;
+            const Icon = item.icon;
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "relative flex flex-col items-center justify-center py-1.5 px-3.5 rounded-full transition-all duration-300 group select-none",
+                  isActive
+                    ? "text-neutral-950 font-black"
+                    : "text-neutral-400 hover:text-white"
+                )}
+              >
+                {/* Active Indicator Backdrop Pill */}
+                {isActive && (
+                  <span className="absolute inset-0 bg-[#D4FF00] rounded-full shadow-md shadow-[#D4FF00]/15 animate-fade-in -z-10" />
+                )}
+
+                <Icon
+                  className={cn(
+                    "w-5 h-5 transition-transform duration-200 group-active:scale-90",
+                    isActive ? "stroke-[2.5] text-neutral-950" : "stroke-[1.8]"
+                  )}
+                />
+                <span
+                  className={cn(
+                    "text-[9px] uppercase tracking-wider font-black mt-0.5 transition-colors",
+                    isActive ? "text-neutral-950" : "text-neutral-400"
+                  )}
+                >
+                  {item.label}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+    </nav>
+  );
+}
+
+
+
