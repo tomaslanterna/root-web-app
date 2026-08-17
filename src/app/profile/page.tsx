@@ -67,7 +67,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#0B0D10] text-white pb-28">
+    <div className="flex flex-col min-h-[100dvh] bg-[#0B0D10] text-white">
       {/* Header card with dark glass overlay */}
       <div className="m-4 p-6 rounded-3xl glass-obsidian text-white flex flex-col items-center space-y-4 shadow-xl relative overflow-hidden border border-white/10">
         <div className="absolute -top-12 -right-12 w-40 h-40 bg-[#D4FF00]/10 rounded-full blur-3xl pointer-events-none" />
@@ -88,9 +88,9 @@ export default function ProfilePage() {
         )}
       </div>
 
-      <div className="px-4 space-y-4">
+      <div className="px-4 space-y-4 relative z-10">
         {/* Theme Selector Component */}
-        <Card className="rounded-3xl border-white/10 bg-[#14171F] shadow-lg">
+        <Card className="rounded-3xl border-white/10 bg-[#14171F] shadow-lg relative z-20">
           <CardContent className="p-5 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
@@ -104,9 +104,10 @@ export default function ProfilePage() {
 
             <div className="grid grid-cols-2 gap-2 p-1 bg-[#0B0D10] rounded-2xl border border-white/10">
               <button
+                type="button"
                 onClick={() => setTheme("dark")}
                 className={cn(
-                  "flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all select-none",
+                  "flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all select-none cursor-pointer",
                   theme === "dark"
                     ? "bg-[#D4FF00] text-neutral-950 shadow-md scale-[1.02]"
                     : "text-neutral-400 hover:text-white"
@@ -117,9 +118,10 @@ export default function ProfilePage() {
               </button>
 
               <button
+                type="button"
                 onClick={() => setTheme("light")}
                 className={cn(
-                  "flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all select-none",
+                  "flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all select-none cursor-pointer",
                   theme === "light"
                     ? "bg-[#D4FF00] text-neutral-950 shadow-md scale-[1.02]"
                     : "text-neutral-400 hover:text-white"
@@ -133,7 +135,7 @@ export default function ProfilePage() {
         </Card>
 
         {!user.isKycVerified && (
-          <Card className="rounded-3xl border-white/10 bg-[#14171F] shadow-lg">
+          <Card className="rounded-3xl border-white/10 bg-[#14171F] shadow-lg relative z-20">
             <CardContent className="p-5 space-y-4">
               <div className="flex items-center gap-3">
                 <div className="p-3 rounded-2xl bg-[#D4FF00] text-neutral-950">
@@ -144,7 +146,7 @@ export default function ProfilePage() {
                   <p className="text-[11px] text-neutral-400 font-medium">Requerido para la compraventa segura de entradas en reventa.</p>
                 </div>
               </div>
-              <Button variant="primary" size="sm" className="w-full" onClick={() => setStep("face")}>
+              <Button type="button" variant="primary" size="sm" className="w-full cursor-pointer" onClick={() => setStep("face")}>
                 Comenzar Verificación
               </Button>
             </CardContent>

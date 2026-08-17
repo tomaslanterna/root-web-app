@@ -29,7 +29,7 @@ export default function MatchPage() {
   );
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#0B0D10] text-white">
+    <div className="flex flex-col min-h-[100dvh] bg-[#0B0D10] text-white">
       {/* Sticky Obsidian Header */}
       <header className="sticky top-0 z-40 glass-header-obsidian px-4 py-3 flex items-center justify-between transition-all duration-300">
         <div className="flex items-center gap-2">
@@ -100,7 +100,7 @@ export default function MatchPage() {
 
       {/* Tab 1: Swipe Deck */}
       {activeTab === "deck" && (
-        <div className="flex-1 p-4 pb-28 flex flex-col justify-center">
+        <div className="flex-1 p-4 flex flex-col justify-center">
           <EventSwipeDeck
             events={MOCK_EVENTS}
             vibeProfile={vibeProfile}
@@ -114,7 +114,7 @@ export default function MatchPage() {
 
       {/* Tab 2: User Squads List */}
       {activeTab === "squads" && (
-        <div className="flex-1 p-4 pb-28 space-y-4">
+        <div className="flex-1 p-4 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xs font-black uppercase tracking-widest text-neutral-400">
               Crews Formados para Eventos
