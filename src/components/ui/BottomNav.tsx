@@ -17,10 +17,9 @@ export function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-4 left-0 right-0 z-50 pointer-events-none">
-      <div className="max-w-md mx-auto px-4 pointer-events-auto">
-        <div className="glass-obsidian rounded-full p-1.5 flex items-center justify-around shadow-2xl backdrop-blur-2xl border border-white/10">
-          {NAV_ITEMS.map((item) => {
+    <nav className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-4">
+      <div className="glass-obsidian rounded-full p-1.5 flex items-center justify-around shadow-2xl backdrop-blur-2xl border border-white/10">
+        {NAV_ITEMS.map((item) => {
             const isActive = pathname === item.href;
             const Icon = item.icon;
 
@@ -57,11 +56,7 @@ export function BottomNav() {
               </Link>
             );
           })}
-        </div>
       </div>
     </nav>
   );
 }
-
-
-

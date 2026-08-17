@@ -6,7 +6,7 @@ import Link from "next/link";
 
 export default function CommunitiesPage() {
   return (
-    <div className="flex flex-col min-h-screen bg-[#0B0D10] text-white pb-28">
+    <div className="flex flex-col min-h-[100dvh] bg-[#0B0D10] text-white pb-28">
       <header className="sticky top-0 z-40 glass-header-obsidian px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Users className="w-5 h-5 text-[#D4FF00]" />

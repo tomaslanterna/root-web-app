@@ -28,11 +28,11 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} font-sans min-h-screen bg-[#0B0D10] text-white selection:bg-[#D4FF00] selection:text-neutral-950`}
+        className={`${geistSans.variable} ${geistMono.variable} font-sans min-h-[100dvh] bg-[#0B0D10] text-white selection:bg-[#D4FF00] selection:text-neutral-950`}
       >
         <ThemeProvider>
           <MatchProvider>
-            <main className="max-w-md mx-auto min-h-screen pb-24 border-x border-white/10 shadow-2xl transition-colors duration-300">
+            <main className="max-w-md mx-auto min-h-[100dvh] pb-24 border-x border-white/10 shadow-2xl transition-colors duration-300">
               {children}
             </main>
             <BottomNav />
