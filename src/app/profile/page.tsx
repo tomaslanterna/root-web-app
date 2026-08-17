@@ -10,60 +10,15 @@ import { MOCK_USERS } from "@/lib/mocks";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
 
+import KycFlow from "@/components/kyc/KycFlow";
+
 export default function ProfilePage() {
-  const [step, setStep] = useState<"initial" | "face" | "document" | "success">("initial");
+  const [step, setStep] = useState<"initial" | "kyc">("initial");
   const { theme, setTheme } = useTheme();
   const user = MOCK_USERS[2]; // Santi User (not verified)
 
-  if (step === "face") {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-6 space-y-8 bg-[#0B0D10] text-white">
-        <div className="text-center space-y-2">
-          <h2 className="text-2xl font-black uppercase tracking-tight text-white">Escaner Facial</h2>
-          <p className="text-xs text-neutral-400 font-semibold uppercase tracking-wider">Alinea tu rostro en el centro</p>
-        </div>
-        <div className="relative w-64 h-64 rounded-full border-4 border-[#D4FF00]/40 flex items-center justify-center overflow-hidden bg-white/5 backdrop-blur-xl">
-          <Camera className="w-12 h-12 text-[#D4FF00]" />
-          <div className="absolute inset-0 border-[12px] border-[#D4FF00] rounded-full animate-pulse" />
-        </div>
-        <Button variant="primary" className="w-full" onClick={() => setStep("document")}>Escanear Rostro</Button>
-      </div>
-    );
-  }
-
-  if (step === "document") {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-6 space-y-6 bg-[#0B0D10] text-white">
-        <div className="text-center space-y-2">
-          <h2 className="text-2xl font-black uppercase tracking-tight">Verificación Documental</h2>
-          <p className="text-xs text-neutral-400 font-semibold uppercase tracking-wider">Sube fotos legibles de tu DNI</p>
-        </div>
-        <div className="w-full aspect-[1.586/1] border-2 border-dashed border-white/20 rounded-3xl flex flex-col items-center justify-center bg-[#14171F] gap-2 hover:bg-white/10 transition-colors cursor-pointer">
-          <Upload className="w-8 h-8 text-[#D4FF00]" />
-          <p className="text-xs font-bold uppercase tracking-wider text-neutral-300">Frente del DNI</p>
-        </div>
-        <div className="w-full aspect-[1.586/1] border-2 border-dashed border-white/20 rounded-3xl flex flex-col items-center justify-center bg-[#14171F] gap-2 hover:bg-white/10 transition-colors cursor-pointer">
-          <Upload className="w-8 h-8 text-[#D4FF00]" />
-          <p className="text-xs font-bold uppercase tracking-wider text-neutral-300">Dorso del DNI</p>
-        </div>
-        <Button variant="primary" className="w-full" onClick={() => setStep("success")}>Subir Documentación</Button>
-      </div>
-    );
-  }
-
-  if (step === "success") {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-6 space-y-4 text-center bg-[#0B0D10] text-white">
-        <ShieldCheck className="w-16 h-16 text-[#D4FF00]" />
-        <h2 className="text-2xl font-black uppercase tracking-tight">Verificación Recibida</h2>
-        <p className="text-xs text-neutral-400 font-semibold uppercase tracking-wider max-w-xs">
-          Revisaremos tu documentación en un plazo máximo de 24hs.
-        </p>
-        <Button variant="primary" className="mt-8 text-neutral-950" onClick={() => setStep("initial")}>
-          Volver a Perfil
-        </Button>
-      </div>
-    );
+  if (step === "kyc") {
+    return <KycFlow />;
   }
 
   return (
@@ -146,7 +101,7 @@ export default function ProfilePage() {
                   <p className="text-[11px] text-neutral-400 font-medium">Requerido para la compraventa segura de entradas en reventa.</p>
                 </div>
               </div>
-              <Button type="button" variant="primary" size="sm" className="w-full cursor-pointer" onClick={() => setStep("face")}>
+              <Button type="button" variant="primary" size="sm" className="w-full cursor-pointer" onClick={() => setStep("kyc")}>
                 Comenzar Verificación
               </Button>
             </CardContent>
