@@ -38,12 +38,18 @@ export default function KycFlow() {
       }
       setScanStatus("Solicitando permisos de cámara...");
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
-        setIsCameraActive(true);
-        startFakeScanning();
-      }
+      
+      // Activamos el estado para que React monte el elemento <video>
+      setIsCameraActive(true);
+      
+      // Esperamos un instante para que el ref se conecte al DOM
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play();
+          startFakeScanning();
+        }
+      }, 100);
     } catch (err) {
       console.error("Error accessing camera:", err);
       setScanStatus("Cámara bloqueada o denegada");
