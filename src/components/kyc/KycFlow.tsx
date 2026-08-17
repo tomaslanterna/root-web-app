@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
-import { Camera, Upload, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Camera, Upload, CheckCircle2, XCircle, Loader2, ScanFace } from 'lucide-react';
 
 type Step = 'INTRO' | 'FACE' | 'DOC_FRONT' | 'DOC_BACK' | 'PROCESSING' | 'RESULT';
 
@@ -10,12 +10,14 @@ export default function KycFlow() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
   const [isCameraActive, setIsCameraActive] = useState(false);
+  const [scanProgress, setScanProgress] = useState(0);
+  const [scanStatus, setScanStatus] = useState("Alinea tu rostro en el óvalo...");
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const scanningRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Helper to convert base64 dataURI to Blob
   const dataURItoBlob = (dataURI: string) => {
     const byteString = atob(dataURI.split(',')[1]);
     const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
@@ -31,13 +33,14 @@ export default function KycFlow() {
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         console.warn("getUserMedia is not supported on this browser/connection.");
-        return; // UI will show fallback natively
+        return;
       }
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.play();
         setIsCameraActive(true);
+        startFakeScanning();
       }
     } catch (err) {
       console.error("Error accessing camera:", err);
@@ -50,7 +53,42 @@ export default function KycFlow() {
       stream.getTracks().forEach(track => track.stop());
       setIsCameraActive(false);
     }
+    if (scanningRef.current) {
+      clearInterval(scanningRef.current);
+    }
   };
+
+  const startFakeScanning = () => {
+    setScanProgress(0);
+    setScanStatus("Alinea tu rostro en el óvalo...");
+    
+    // Simulate real-time scanning feedback
+    let progress = 0;
+    scanningRef.current = setInterval(() => {
+      progress += 2;
+      setScanProgress(progress);
+      
+      if (progress === 20) {
+        setScanStatus("Rostro detectado, mantente quieto...");
+      } else if (progress === 60) {
+        setScanStatus("Analizando rasgos faciales...");
+      } else if (progress === 90) {
+        setScanStatus("Finalizando captura...");
+      } else if (progress >= 100) {
+        if (scanningRef.current) clearInterval(scanningRef.current);
+        setScanStatus("¡Escaneo exitoso!");
+        setTimeout(() => {
+          captureFace();
+        }, 800);
+      }
+    }, 100);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (scanningRef.current) clearInterval(scanningRef.current);
+    };
+  }, []);
 
   const captureFace = async () => {
     if (videoRef.current && canvasRef.current) {
@@ -93,7 +131,6 @@ export default function KycFlow() {
       startCamera();
     } catch (err) {
       console.error(err);
-      // Fallback for UI testing if backend is down
       setSessionId("mock_session_" + Date.now());
       setStep('FACE');
       startCamera();
@@ -137,7 +174,6 @@ export default function KycFlow() {
          setResult({ status: 'REJECTED', message: data.reason || 'Tu identidad no pudo ser verificada.' });
       }
     } catch (err) {
-      // Mock success for testing without backend
       setTimeout(() => {
         setResult({ status: 'APPROVED', message: 'Identidad verificada con éxito (Modo Prueba)' });
         setStep('RESULT');
@@ -145,12 +181,6 @@ export default function KycFlow() {
       return;
     }
     setStep('RESULT');
-  };
-
-  const triggerFileInput = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
   };
 
   return (
@@ -179,17 +209,52 @@ export default function KycFlow() {
         )}
 
         {step === 'FACE' && (
-          <div className="relative flex flex-col items-center bg-black aspect-[3/4] w-full">
+          <div className="relative flex flex-col items-center justify-center bg-[#0B0D10] py-12 px-4 min-h-[400px] w-full">
+            
+            {/* Header Text */}
+            <div className="absolute top-6 inset-x-0 flex flex-col items-center z-10 px-4 space-y-1">
+              <h3 className="text-sm font-black uppercase tracking-wider text-white">Escaneo Facial</h3>
+              <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest">{scanStatus}</p>
+            </div>
+
             {isCameraActive ? (
-              <video 
-                ref={videoRef} 
-                className="w-full h-full object-cover" 
-                playsInline 
-                muted 
-              />
+              <div className="relative flex flex-col items-center mt-6">
+                {/* The Masked Video Oval */}
+                <div 
+                  className="w-48 h-64 rounded-[50%] overflow-hidden relative bg-black shadow-[0_0_40px_rgba(212,255,0,0.15)] z-10"
+                  style={{
+                    boxShadow: `0 0 0 4px rgba(212,255,0,${scanProgress / 100})`,
+                    transition: 'box-shadow 0.2s ease-out'
+                  }}
+                >
+                  <video 
+                    ref={videoRef} 
+                    className="absolute inset-0 w-full h-full object-cover scale-[1.3] transform -scale-x-100" 
+                    playsInline 
+                    muted 
+                  />
+                  
+                  {/* Scanning Laser Line */}
+                  <div 
+                    className="absolute inset-x-0 h-1 bg-[#D4FF00] shadow-[0_0_15px_#D4FF00] opacity-60 z-20"
+                    style={{ 
+                      top: `${scanProgress}%`, 
+                      transition: 'top 0.1s linear'
+                    }}
+                  />
+                </div>
+
+                {/* Progress Bar Container below */}
+                <div className="w-32 h-1.5 bg-white/10 rounded-full mt-8 overflow-hidden">
+                  <div 
+                    className="h-full bg-[#D4FF00] rounded-full transition-all duration-100" 
+                    style={{ width: `${scanProgress}%` }}
+                  />
+                </div>
+              </div>
             ) : (
-              <div className="w-full h-full bg-[#14171F] flex flex-col items-center justify-center space-y-4 px-6 text-center">
-                <Camera className="w-12 h-12 text-neutral-600 mb-2" />
+              <div className="w-full flex flex-col items-center justify-center space-y-4 px-6 text-center mt-8">
+                <ScanFace className="w-12 h-12 text-neutral-600 mb-2" />
                 <p className="text-xs text-neutral-400 font-medium">
                   Al estar conectado mediante una IP local (HTTP), iOS bloquea el acceso directo a la cámara web.
                 </p>
@@ -200,7 +265,6 @@ export default function KycFlow() {
                   capture="user"
                   ref={fileInputRef}
                   onChange={(e) => {
-                    // Si toma la foto nativa, simulamos el avance
                     if (e.target.files?.[0]) setStep('DOC_FRONT');
                   }}
                   className="hidden" 
@@ -208,7 +272,7 @@ export default function KycFlow() {
                 
                 <button 
                   type="button"
-                  onClick={triggerFileInput}
+                  onClick={() => fileInputRef.current?.click()}
                   className="bg-[#D4FF00] text-neutral-950 px-6 py-3 rounded-full text-xs font-black uppercase tracking-wider"
                 >
                   Abrir Cámara Nativa
@@ -217,30 +281,6 @@ export default function KycFlow() {
             )}
             
             <canvas ref={canvasRef} className="hidden" />
-            
-            <div className="absolute top-6 inset-x-0 flex justify-center z-10 px-4 pointer-events-none">
-              <div className="bg-neutral-950/80 backdrop-blur-md border border-white/10 text-white px-4 py-2 rounded-2xl text-xs font-bold uppercase tracking-wider shadow-2xl">
-                Escaneo Facial
-              </div>
-            </div>
-
-            {isCameraActive && (
-              <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                <div className="w-48 h-64 border-2 border-[#D4FF00] rounded-[50%] shadow-[0_0_0_9999px_rgba(0,0,0,0.85)] transition-all duration-500" />
-              </div>
-            )}
-
-            {isCameraActive && (
-              <div className="absolute bottom-8 inset-x-0 flex justify-center z-10">
-                <button 
-                  type="button"
-                  onClick={captureFace}
-                  className="w-16 h-16 bg-[#D4FF00] rounded-full border-4 border-neutral-900 shadow-[0_0_20px_rgba(212,255,0,0.3)] active:scale-90 transition-transform flex items-center justify-center"
-                >
-                  <Camera className="w-6 h-6 text-neutral-950" />
-                </button>
-              </div>
-            )}
           </div>
         )}
 
