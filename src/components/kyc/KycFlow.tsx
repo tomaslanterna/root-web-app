@@ -33,8 +33,10 @@ export default function KycFlow() {
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         console.warn("getUserMedia is not supported on this browser/connection.");
+        setScanStatus("Error de conexión");
         return;
       }
+      setScanStatus("Solicitando permisos de cámara...");
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -44,6 +46,7 @@ export default function KycFlow() {
       }
     } catch (err) {
       console.error("Error accessing camera:", err);
+      setScanStatus("Cámara bloqueada o denegada");
     }
   };
 
@@ -252,11 +255,16 @@ export default function KycFlow() {
                   />
                 </div>
               </div>
+            ) : scanStatus === "Solicitando permisos de cámara..." ? (
+              <div className="w-full flex flex-col items-center justify-center space-y-4 px-6 text-center mt-8">
+                 <Loader2 className="w-12 h-12 text-[#D4FF00] animate-spin mb-2" />
+                 <p className="text-xs text-neutral-400 font-medium">Acepta los permisos de cámara en tu navegador para continuar.</p>
+              </div>
             ) : (
               <div className="w-full flex flex-col items-center justify-center space-y-4 px-6 text-center mt-8">
                 <ScanFace className="w-12 h-12 text-neutral-600 mb-2" />
                 <p className="text-xs text-neutral-400 font-medium">
-                  Al estar conectado mediante una IP local (HTTP), iOS bloquea el acceso directo a la cámara web.
+                  El navegador bloqueó el escáner en vivo. Puede deberse a falta de permisos o abrir el link desde Instagram/WhatsApp.
                 </p>
                 
                 <input 
@@ -275,7 +283,7 @@ export default function KycFlow() {
                   onClick={() => fileInputRef.current?.click()}
                   className="bg-[#D4FF00] text-neutral-950 px-6 py-3 rounded-full text-xs font-black uppercase tracking-wider"
                 >
-                  Abrir Cámara Nativa
+                  Continuar con Cámara Nativa
                 </button>
               </div>
             )}
