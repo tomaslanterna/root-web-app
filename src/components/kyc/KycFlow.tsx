@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Upload, CheckCircle2, XCircle, Loader2, ScanFace } from 'lucide-react';
+import { Camera, Upload, CheckCircle2, XCircle, Loader2, ScanFace, ArrowRight, RefreshCcw } from 'lucide-react';
 
 import { api } from '@/lib/api';
 import { useMutation } from '@/hooks/useMutation';
@@ -12,37 +12,37 @@ export default function KycFlow() {
   const [step, setStep] = useState<Step>('INTRO');
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
+  
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
   const [scanStatus, setScanStatus] = useState("Alinea tu rostro en el óvalo...");
   
+  // Previews
+  const [facePreview, setFacePreview] = useState<string | null>(null);
+  const [docFrontPreview, setDocFrontPreview] = useState<string | null>(null);
+  const [docBackPreview, setDocBackPreview] = useState<string | null>(null);
+  const [currentBlob, setCurrentBlob] = useState<Blob | null>(null);
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const scanningRef = useRef<NodeJS.Timeout | null>(null);
 
   // --- Mutations ---
-  const { mutate: createSession, isLoading: isCreatingSession } = useMutation(
+  const { mutate: createSession } = useMutation(
     async () => {
       const { data } = await api.post('/v1/kyc/sessions');
       return data;
     },
     {
-      onSuccess: (data) => {
-        setSessionId(data.sessionId);
-        setStep('FACE');
-        startCamera();
-      },
+      onSuccess: (data) => setSessionId(data.sessionId),
       onError: (err) => {
         console.error("Session creation failed, falling back to mock", err);
         setSessionId("mock_session_" + Date.now());
-        setStep('FACE');
-        startCamera();
       }
     }
   );
 
-  const { mutate: uploadFace } = useMutation(
+  const { mutate: uploadFace, isLoading: isUploadingFace } = useMutation(
     async ({ id, blob }: { id: string; blob: Blob }) => {
       const formData = new FormData();
       formData.append('faceMedia', blob, 'face.jpg');
@@ -51,7 +51,7 @@ export default function KycFlow() {
     }
   );
 
-  const { mutate: uploadDoc } = useMutation(
+  const { mutate: uploadDoc, isLoading: isUploadingDoc } = useMutation(
     async ({ id, docStep, file }: { id: string; docStep: Step; file: File }) => {
       const formData = new FormData();
       formData.append(docStep === 'DOC_FRONT' ? 'frontImage' : 'backImage', file);
@@ -94,42 +94,23 @@ export default function KycFlow() {
     return new Blob([ab], { type: mimeString });
   };
 
-  const startCamera = async () => {
+  const startCamera = async (facingMode: 'user' | 'environment') => {
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        console.warn("getUserMedia is not supported on this browser/connection.");
         setScanStatus("Error de conexión");
         return;
       }
-      setScanStatus("Solicitando permisos de cámara...");
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+      setScanStatus(facingMode === 'user' ? "Solicitando permisos de cámara..." : "Iniciando cámara trasera...");
       
-      setIsCameraActive(true);
-      
-      setTimeout(() => {
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.play();
-          startFakeScanning();
-        }
-      }, 100);
-    } catch (err) {
-      console.error("Error accessing camera:", err);
-      setScanStatus("Cámara bloqueada o denegada");
-    }
-  };
+      const constraints = facingMode === 'environment' 
+        ? { video: { facingMode: { exact: "environment" } } }
+        : { video: { facingMode: 'user' } };
 
-  const startRearCamera = async () => {
-    try {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        setScanStatus("Error de conexión");
-        return;
-      }
-      setScanStatus("Iniciando cámara trasera...");
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: { exact: "environment" } } 
-      }).catch(async () => {
-        return await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      const stream = await navigator.mediaDevices.getUserMedia(constraints).catch(async (e) => {
+        if (facingMode === 'environment') {
+          return await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        }
+        throw e;
       });
       
       setIsCameraActive(true);
@@ -138,10 +119,13 @@ export default function KycFlow() {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           videoRef.current.play();
+          if (facingMode === 'user') {
+            startFakeScanning();
+          }
         }
       }, 100);
     } catch (err) {
-      console.error("Error accessing rear camera:", err);
+      console.error("Error accessing camera:", err);
       setScanStatus("Cámara bloqueada o denegada");
     }
   };
@@ -185,10 +169,11 @@ export default function KycFlow() {
   useEffect(() => {
     return () => {
       if (scanningRef.current) clearInterval(scanningRef.current);
+      stopCamera();
     };
   }, []);
 
-  const captureFace = async () => {
+  const captureFace = () => {
     if (videoRef.current && canvasRef.current) {
       const context = canvasRef.current.getContext('2d');
       if (context) {
@@ -198,20 +183,10 @@ export default function KycFlow() {
         const imgData = canvasRef.current.toDataURL('image/jpeg');
         
         stopCamera();
-        
-        if (sessionId) {
-          const blob = dataURItoBlob(imgData);
-          uploadFace({ id: sessionId, blob }).catch(console.error);
-        }
-        
-        setStep('DOC_FRONT');
-        setTimeout(() => startRearCamera(), 500); // Small delay to let UI transition
+        setFacePreview(imgData);
+        setCurrentBlob(dataURItoBlob(imgData));
       }
     }
-  };
-
-  const handleStart = () => {
-    createSession({});
   };
 
   const captureDocument = () => {
@@ -222,24 +197,74 @@ export default function KycFlow() {
         canvasRef.current.height = videoRef.current.videoHeight;
         context.drawImage(videoRef.current, 0, 0);
         
+        const imgData = canvasRef.current.toDataURL('image/jpeg', 0.85);
+        stopCamera();
+        
+        if (step === 'DOC_FRONT') {
+          setDocFrontPreview(imgData);
+        } else {
+          setDocBackPreview(imgData);
+        }
+        
         canvasRef.current.toBlob((blob) => {
-          if (!blob) return;
-          stopCamera();
-          
-          if (sessionId) {
-            const optimizedFile = new File([blob], 'document.jpg', { type: 'image/jpeg' });
-            uploadDoc({ id: sessionId, docStep: step, file: optimizedFile }).catch(console.error);
-          }
-          
-          if (step === 'DOC_FRONT') {
-            setStep('DOC_BACK');
-            setTimeout(() => startRearCamera(), 500);
-          } else {
-            setStep('PROCESSING');
-            if (sessionId) submitSession(sessionId);
-          }
+          if (blob) setCurrentBlob(blob);
         }, 'image/jpeg', 0.85);
       }
+    }
+  };
+
+  const handleStart = () => {
+    setStep('FACE');
+    startCamera('user');
+    createSession({}); // Runs in background while UI asks for permissions
+  };
+
+  const handleContinueFace = async () => {
+    if (sessionId && currentBlob) {
+      try {
+        await uploadFace({ id: sessionId, blob: currentBlob });
+        setFacePreview(null);
+        setCurrentBlob(null);
+        setStep('DOC_FRONT');
+        startCamera('environment');
+      } catch (err) {
+        console.error("Failed to upload face:", err);
+      }
+    }
+  };
+
+  const handleContinueDoc = async () => {
+    if (sessionId && currentBlob) {
+      const optimizedFile = new File([currentBlob], 'document.jpg', { type: 'image/jpeg' });
+      const currentStep = step;
+      
+      try {
+        await uploadDoc({ id: sessionId, docStep: currentStep, file: optimizedFile });
+        setCurrentBlob(null);
+        if (currentStep === 'DOC_FRONT') {
+          setStep('DOC_BACK');
+          startCamera('environment');
+        } else {
+          setStep('PROCESSING');
+          submitSession(sessionId);
+        }
+      } catch (err) {
+        console.error("Failed to upload document:", err);
+      }
+    }
+  };
+
+  const retakePhoto = () => {
+    setCurrentBlob(null);
+    if (step === 'FACE') {
+      setFacePreview(null);
+      startCamera('user');
+    } else if (step === 'DOC_FRONT') {
+      setDocFrontPreview(null);
+      startCamera('environment');
+    } else if (step === 'DOC_BACK') {
+      setDocBackPreview(null);
+      startCamera('environment');
     }
   };
 
@@ -270,16 +295,27 @@ export default function KycFlow() {
 
         {step === 'FACE' && (
           <div className="relative flex flex-col items-center justify-center bg-[#0B0D10] py-12 px-4 min-h-[400px] w-full">
-            
-            {/* Header Text */}
             <div className="absolute top-6 inset-x-0 flex flex-col items-center z-10 px-4 space-y-1">
               <h3 className="text-sm font-black uppercase tracking-wider text-white">Escaneo Facial</h3>
-              <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest">{scanStatus}</p>
+              <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest">{facePreview ? "Revisa tu foto" : scanStatus}</p>
             </div>
 
-            {isCameraActive ? (
+            {facePreview ? (
+              <div className="relative flex flex-col items-center mt-6 w-full">
+                <div className="w-48 h-64 rounded-[50%] overflow-hidden relative bg-black shadow-[0_0_40px_rgba(212,255,0,0.15)] z-10 border-4 border-[#D4FF00]">
+                  <img src={facePreview} alt="Selfie" className="absolute inset-0 w-full h-full object-cover scale-[1.3]" />
+                </div>
+                <div className="flex gap-4 mt-10 w-full px-4">
+                  <button onClick={retakePhoto} className="flex-1 bg-white/10 text-white py-3.5 rounded-xl font-bold text-xs uppercase flex items-center justify-center gap-2 transition-colors hover:bg-white/20">
+                    <RefreshCcw className="w-4 h-4" /> Repetir
+                  </button>
+                  <button onClick={handleContinueFace} disabled={isUploadingFace} className="flex-1 bg-[#D4FF00] text-black py-3.5 rounded-xl font-bold text-xs uppercase flex items-center justify-center gap-2 disabled:opacity-50">
+                    {isUploadingFace ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Continuar'} {!isUploadingFace && <ArrowRight className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            ) : isCameraActive ? (
               <div className="relative flex flex-col items-center mt-6">
-                {/* The Masked Video Oval */}
                 <div 
                   className="w-48 h-64 rounded-[50%] overflow-hidden relative bg-black shadow-[0_0_40px_rgba(212,255,0,0.15)] z-10"
                   style={{
@@ -293,23 +329,13 @@ export default function KycFlow() {
                     playsInline 
                     muted 
                   />
-                  
-                  {/* Scanning Laser Line */}
                   <div 
                     className="absolute inset-x-0 h-1 bg-[#D4FF00] shadow-[0_0_15px_#D4FF00] opacity-60 z-20"
-                    style={{ 
-                      top: `${scanProgress}%`, 
-                      transition: 'top 0.1s linear'
-                    }}
+                    style={{ top: `${scanProgress}%`, transition: 'top 0.1s linear' }}
                   />
                 </div>
-
-                {/* Progress Bar Container below */}
                 <div className="w-32 h-1.5 bg-white/10 rounded-full mt-8 overflow-hidden">
-                  <div 
-                    className="h-full bg-[#D4FF00] rounded-full transition-all duration-100" 
-                    style={{ width: `${scanProgress}%` }}
-                  />
+                  <div className="h-full bg-[#D4FF00] rounded-full transition-all duration-100" style={{ width: `${scanProgress}%` }} />
                 </div>
               </div>
             ) : scanStatus === "Solicitando permisos de cámara..." ? (
@@ -320,31 +346,12 @@ export default function KycFlow() {
             ) : (
               <div className="w-full flex flex-col items-center justify-center space-y-4 px-6 text-center mt-8">
                 <ScanFace className="w-12 h-12 text-neutral-600 mb-2" />
-                <p className="text-xs text-neutral-400 font-medium">
-                  El navegador bloqueó el escáner en vivo. Puede deberse a falta de permisos o abrir el link desde Instagram/WhatsApp.
-                </p>
-                
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  capture="user"
-                  ref={fileInputRef}
-                  onChange={(e) => {
-                    if (e.target.files?.[0]) setStep('DOC_FRONT');
-                  }}
-                  className="hidden" 
-                />
-                
-                <button 
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="bg-[#D4FF00] text-neutral-950 px-6 py-3 rounded-full text-xs font-black uppercase tracking-wider"
-                >
-                  Continuar con Cámara Nativa
+                <p className="text-xs text-neutral-400 font-medium">El navegador bloqueó la cámara. Verifica los permisos.</p>
+                <button onClick={() => startCamera('user')} className="bg-[#D4FF00] text-neutral-950 px-6 py-3 rounded-full text-xs font-black uppercase tracking-wider">
+                  Reintentar
                 </button>
               </div>
             )}
-            
             <canvas ref={canvasRef} className="hidden" />
           </div>
         )}
@@ -356,11 +363,25 @@ export default function KycFlow() {
                 {step === 'DOC_FRONT' ? 'Frente del Documento' : 'Dorso del Documento'}
               </h3>
               <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest text-center">
-                Centra tu cédula en el rectángulo
+                {(step === 'DOC_FRONT' && docFrontPreview) || (step === 'DOC_BACK' && docBackPreview) ? "Revisa tu foto" : "Centra tu cédula en el rectángulo"}
               </p>
             </div>
 
-            {isCameraActive ? (
+            {(step === 'DOC_FRONT' && docFrontPreview) || (step === 'DOC_BACK' && docBackPreview) ? (
+              <div className="relative flex flex-col items-center mt-6 w-full">
+                <div className="w-full max-w-[320px] aspect-[1.58/1] rounded-2xl overflow-hidden relative bg-black shadow-[0_0_40px_rgba(212,255,0,0.1)] z-10 border-2 border-[#D4FF00]">
+                  <img src={step === 'DOC_FRONT' ? docFrontPreview! : docBackPreview!} alt="Documento" className="absolute inset-0 w-full h-full object-cover" />
+                </div>
+                <div className="flex gap-4 mt-10 w-full px-2">
+                  <button onClick={retakePhoto} className="flex-1 bg-white/10 text-white py-3.5 rounded-xl font-bold text-xs uppercase flex items-center justify-center gap-2 transition-colors hover:bg-white/20">
+                    <RefreshCcw className="w-4 h-4" /> Repetir
+                  </button>
+                  <button onClick={handleContinueDoc} disabled={isUploadingDoc} className="flex-1 bg-[#D4FF00] text-black py-3.5 rounded-xl font-bold text-xs uppercase flex items-center justify-center gap-2 disabled:opacity-50">
+                    {isUploadingDoc ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Continuar'} {!isUploadingDoc && <ArrowRight className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            ) : isCameraActive ? (
               <div className="relative flex flex-col items-center mt-6 w-full">
                 <div className="w-full max-w-[320px] aspect-[1.58/1] rounded-2xl overflow-hidden relative bg-black shadow-[0_0_40px_rgba(212,255,0,0.1)] z-10 border-2 border-[#D4FF00]/50">
                   <video 
@@ -371,7 +392,6 @@ export default function KycFlow() {
                   />
                   <div className="absolute inset-0 border-[4px] border-transparent opacity-50 z-20 pointer-events-none" />
                 </div>
-
                 <button 
                   type="button"
                   onClick={captureDocument}
@@ -391,11 +411,7 @@ export default function KycFlow() {
                 <p className="text-xs text-neutral-400 font-medium">
                   No se pudo acceder a la cámara trasera. Revisa los permisos e intenta nuevamente.
                 </p>
-                <button 
-                  type="button"
-                  onClick={startRearCamera}
-                  className="bg-[#D4FF00] text-neutral-950 px-6 py-3 rounded-full text-xs font-black uppercase tracking-wider"
-                >
+                <button onClick={() => startCamera('environment')} className="bg-[#D4FF00] text-neutral-950 px-6 py-3 rounded-full text-xs font-black uppercase tracking-wider">
                   Reintentar
                 </button>
               </div>
@@ -437,13 +453,35 @@ export default function KycFlow() {
               <p className="text-xs text-neutral-400 font-medium">{result?.message}</p>
             </div>
 
-            <button 
-              type="button"
-              onClick={() => window.location.reload()}
-              className={`w-full text-neutral-950 text-sm font-black uppercase tracking-wider py-3.5 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-transform ${result?.status === 'APPROVED' ? 'bg-[#D4FF00] shadow-lg shadow-[#D4FF00]/20' : 'bg-rose-500 shadow-lg shadow-rose-500/20 text-white'}`}
-            >
-              Continuar
-            </button>
+            {result?.status === 'APPROVED' ? (
+              <button 
+                type="button"
+                onClick={() => window.location.href = '/profile'}
+                className="w-full bg-[#D4FF00] text-neutral-950 shadow-lg shadow-[#D4FF00]/20 text-sm font-black uppercase tracking-wider py-3.5 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-transform"
+              >
+                Ir a mi Perfil
+              </button>
+            ) : (
+              <div className="flex flex-col gap-3 w-full">
+                <button 
+                  type="button"
+                  onClick={() => {
+                    setResult(null);
+                    setStep('INTRO');
+                  }}
+                  className="w-full bg-[#D4FF00] text-neutral-950 shadow-lg shadow-[#D4FF00]/20 text-sm font-black uppercase tracking-wider py-3.5 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-transform"
+                >
+                  Intentar Nuevamente
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => window.location.href = '/profile'}
+                  className="w-full bg-white/10 text-white text-sm font-black uppercase tracking-wider py-3.5 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-transform"
+                >
+                  Volver al Perfil
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
