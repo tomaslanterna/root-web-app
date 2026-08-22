@@ -16,6 +16,7 @@ export interface Event {
   producerId: string;
   date: string;
   location: string;
+  country?: string;
   cinematicBannerUrl: string;
   description: string;
   lineup?: string[];

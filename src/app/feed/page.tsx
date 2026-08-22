@@ -5,9 +5,10 @@ import { PostCard } from "@/components/ui/PostCard";
 import { EventCard } from "@/components/ui/EventCard";
 import { QuickActionMenu } from "@/components/ui/QuickActionMenu";
 import { CommunityList } from "@/components/communities/CommunityList";
-import { MOCK_POSTS, MOCK_EVENTS, MOCK_COMMUNITIES } from "@/lib/mocks";
+import { MOCK_POSTS, MOCK_COMMUNITIES, type Event } from "@/lib/mocks";
 import { Plus, Sparkles, Compass, ChevronUp, Globe, Flame, UserCheck, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { api } from "@/lib/api";
 
 type FilterType = "all" | "featured" | "following" | "communities";
 
@@ -22,7 +23,23 @@ export default function FeedPage() {
   const [filter, setFilter] = useState<FilterType>("all");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSwimlaneHidden, setIsSwimlaneHidden] = useState(false);
+  const [featuredEvents, setFeaturedEvents] = useState<Event[]>([]);
   const swimlaneRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const fetchFeaturedEvents = async () => {
+      try {
+        const userCountry = "Uruguay"; // TODO: Reemplazar con mecanismo real
+        const response = await api.get(`/v1/events/featured?country=${userCountry}`);
+        if (response.data && response.data.data) {
+          setFeaturedEvents(response.data.data);
+        }
+      } catch (error: any) {
+        console.error("Error fetching featured events:", error?.message, error?.config?.url, error?.config?.baseURL);
+      }
+    };
+    fetchFeaturedEvents();
+  }, []);
 
   const filterOptions: FilterOption[] = [
     { id: "all", label: "Todos", icon: Globe, count: MOCK_POSTS.length },
@@ -117,7 +134,7 @@ export default function FeedPage() {
             </div>
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-[#D4FF00]/15 text-[#D4FF00] border border-[#D4FF00]/20">
-                {MOCK_EVENTS.length} EVENTOS
+                {featuredEvents.length} EVENTOS
               </span>
               <span className="text-neutral-400 group-hover:text-white flex items-center gap-0.5 text-[10px] font-bold">
                 <span>Ver</span>
@@ -137,12 +154,12 @@ export default function FeedPage() {
               <Sparkles className="w-3.5 h-3.5 text-[#D4FF00]" /> Eventos Destacados
             </h2>
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#D4FF00]">
-              {MOCK_EVENTS.length} EVENTOS
+              {featuredEvents.length} EVENTOS
             </span>
           </div>
 
           <div className="flex overflow-x-auto snap-x snap-mandatory hide-scrollbar gap-3.5 px-4 pb-2 scroll-px-4">
-            {MOCK_EVENTS.map((event) => (
+            {featuredEvents.map((event) => (
               <EventCard key={event.id} event={event} />
             ))}
           </div>
