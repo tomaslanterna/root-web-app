@@ -4,9 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { useMutation } from '@tanstack/react-query';
-import api from '@/lib/axios';
+import { useMutation } from '@/hooks/useMutation';
+import { api } from '@/lib/api';
 import { Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { TopNav } from '@/components/ui/TopNav';
 
@@ -128,16 +127,16 @@ export default function CompleteProfilePage() {
             <div className="space-y-1">
               <label className="text-[10px] font-extrabold uppercase tracking-widest text-neutral-400 ml-1">Alias (Username)</label>
               <div className="relative flex gap-2">
-                <Input
+                <input
                   type="text"
                   name="username"
                   placeholder="Tu alias"
                   value={formData.username}
                   onChange={handleChange}
-                  className={`bg-[#14171F] flex-1 text-white transition-colors ${
+                  className={`w-full bg-[#14171F]/80 backdrop-blur-md rounded-2xl py-3.5 px-4 flex-1 text-white placeholder:text-neutral-500 focus:outline-none transition-colors border ${
                     aliasStatus === 'invalid' 
-                      ? 'border-red-500 focus:border-red-500' 
-                      : 'border-white/5 focus:border-[#D4FF00]/50'
+                      ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500/50' 
+                      : 'border-white/10 focus:border-[#D4FF00]/50 focus:ring-1 focus:ring-[#D4FF00]/50'
                   }`}
                 />
                 <Button 
@@ -168,24 +167,24 @@ export default function CompleteProfilePage() {
 
             <div className="space-y-1">
               <label className="text-[10px] font-extrabold uppercase tracking-widest text-neutral-400 ml-1">Cédula de Identidad</label>
-              <Input
+              <input
                 type="text"
                 name="documentId"
                 placeholder="Ej. 12345678"
                 value={formData.documentId}
                 onChange={handleChange}
-                className="bg-[#14171F] border-white/5 focus:border-[#D4FF00]/50 text-white"
+                className="w-full bg-[#14171F]/80 backdrop-blur-md rounded-2xl py-3.5 px-4 text-white placeholder:text-neutral-500 focus:outline-none border border-white/10 focus:border-[#D4FF00]/50 focus:ring-1 focus:ring-[#D4FF00]/50 transition-colors"
               />
             </div>
 
             <div className="space-y-1">
               <label className="text-[10px] font-extrabold uppercase tracking-widest text-neutral-400 ml-1">Fecha de Nacimiento</label>
-              <Input
+              <input
                 type="date"
                 name="dob"
                 value={formData.dob}
                 onChange={handleChange}
-                className="bg-[#14171F] border-white/5 focus:border-[#D4FF00]/50 text-white"
+                className="w-full bg-[#14171F]/80 backdrop-blur-md rounded-2xl py-3.5 px-4 text-white placeholder:text-neutral-500 focus:outline-none border border-white/10 focus:border-[#D4FF00]/50 focus:ring-1 focus:ring-[#D4FF00]/50 transition-colors"
               />
             </div>
 
