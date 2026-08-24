@@ -5,10 +5,12 @@ import { Camera, Upload, CheckCircle2, XCircle, Loader2, ScanFace, ArrowRight, R
 
 import { api } from '@/lib/api';
 import { useMutation } from '@/hooks/useMutation';
+import { useAuth } from '@/context/AuthContext';
 
 type Step = 'INTRO' | 'FACE' | 'DOC_FRONT' | 'DOC_BACK' | 'PROCESSING' | 'RESULT';
 
 export default function KycFlow() {
+  const { user } = useAuth();
   const [step, setStep] = useState<Step>('INTRO');
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
@@ -30,7 +32,8 @@ export default function KycFlow() {
   // --- Mutations ---
   const { mutate: createSession } = useMutation(
     async () => {
-      const { data } = await api.post('/v1/kyc/sessions');
+      // Send the logged-in user's ID
+      const { data } = await api.post('/v1/kyc/sessions', { userId: user?.id });
       return data;
     },
     {
@@ -303,7 +306,12 @@ export default function KycFlow() {
             {facePreview ? (
               <div className="relative flex flex-col items-center mt-6 w-full">
                 <div className="w-48 h-64 rounded-[50%] overflow-hidden relative bg-black shadow-[0_0_40px_rgba(212,255,0,0.15)] z-10 border-4 border-[#D4FF00]">
-                  <img src={facePreview} alt="Selfie" className="absolute inset-0 w-full h-full object-cover scale-[1.3]" />
+                  <img 
+                    src={facePreview} 
+                    alt="Selfie" 
+                    className="absolute inset-0 w-full h-full object-cover" 
+                    style={{ transform: 'scale(1.3) scaleX(-1)' }}
+                  />
                 </div>
                 <div className="flex gap-4 mt-10 w-full px-4">
                   <button onClick={retakePhoto} className="flex-1 bg-white/10 text-white py-3.5 rounded-xl font-bold text-xs uppercase flex items-center justify-center gap-2 transition-colors hover:bg-white/20">
@@ -325,7 +333,8 @@ export default function KycFlow() {
                 >
                   <video 
                     ref={videoRef} 
-                    className="absolute inset-0 w-full h-full object-cover scale-[1.3]" 
+                    className="absolute inset-0 w-full h-full object-cover" 
+                    style={{ transform: 'scale(1.3) scaleX(-1)' }}
                     playsInline 
                     muted 
                   />

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { PostCard } from "@/components/ui/PostCard";
 import { EventCard } from "@/components/ui/EventCard";
 import { QuickActionMenu } from "@/components/ui/QuickActionMenu";
@@ -19,6 +20,7 @@ interface FilterOption {
 }
 
 export default function FeedPage() {
+  const router = useRouter();
   const [filter, setFilter] = useState<FilterType>("all");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSwimlaneHidden, setIsSwimlaneHidden] = useState(false);
@@ -130,6 +132,17 @@ export default function FeedPage() {
 
       {/* Main Content Area */}
       <div className="flex-1 pb-28 space-y-4">
+        {/* Search Bar Visual */}
+        <div className="px-4 pt-4">
+          <div 
+            onClick={() => router.push('/search')}
+            className="w-full bg-[#14171F] border border-white/10 rounded-xl px-4 py-3 flex items-center gap-3 text-neutral-400 hover:bg-[#1A1F2B] transition-colors cursor-text"
+          >
+            <Sparkles className="w-4 h-4 text-[#D4FF00]" />
+            <span className="text-sm font-semibold tracking-wide">Buscar usuarios, eventos o posteos...</span>
+          </div>
+        </div>
+
         {/* Featured Events Swimlane Section */}
         <section ref={swimlaneRef} className="pt-4 pb-1">
           <div className="px-4 flex items-center justify-between mb-3">

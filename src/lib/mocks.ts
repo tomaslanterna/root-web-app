@@ -145,7 +145,7 @@ export const MOCK_USERS: User[] = [
     username: 'alex_rrpp',
     role: 'RRPP',
     avatarUrl: 'https://i.pravatar.cc/150?u=alex',
-    isKycVerified: true,
+    isKycVerified: false,
   },
   {
     id: '3',
