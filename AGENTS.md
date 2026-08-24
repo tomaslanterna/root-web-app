@@ -32,3 +32,12 @@ The application is built with **Next.js** (App Router) and **TypeScript**.
 - **Media Uploads:** Compress and convert all user-uploaded images to JPEG via HTML5 Canvas before sending them to the backend to save bandwidth and ensure format compatibility with AI models.
 - **Typing:** Strictly type all components using interfaces such as `UserVibeProfile`, `EventSwipeAction`, `EventSquad`, and `SquadMember`.
 - **Aesthetics:** Adhere to "Function-Driven Design", prioritize visual excellence, avoid dashboard-overuse and cliché tropes (no purple on dark, no grid backgrounds). Keep it minimal but premium.
+
+## Recent Changes & Known Behaviors
+- **Onboarding Flow:** Implemented forced profile completion for Google Auth users via `/complete-profile`. Includes real-time alias validation (`CheckUsername`).
+- **Registration:** Normal registration and profile completion now require selecting a "Country" (`ISO alpha-2`).
+- **Navigation (BottomNav):** 
+  - Hidden completely on `/register`, `/search` and when navigating to a profile from search (`?from=search`).
+  - Visible on `/login`.
+  - Unauthenticated users can only see "Feed", "Eventos", and "Perfil" tabs. "Chat" and "Crews" are dynamically hidden. Clicking "Perfil" unauthenticated redirects safely to `/login`.
+- **Settings:** Added a `/settings` page accessible via gear icon on the user's profile, containing a functional logout button.

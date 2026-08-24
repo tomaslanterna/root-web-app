@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Card, CardContent, CardHeader, CardFooter } from "./Card";
 import { Avatar } from "./Avatar";
-import { Heart, MessageCircle, Share2, Sparkles, Calendar, Users } from "lucide-react";
+import { Heart, MessageCircle, Share2, Sparkles, Calendar, Users, BadgeCheck, ShieldAlert } from "lucide-react";
 import { MOCK_USERS, MOCK_EVENTS, MOCK_COMMUNITIES, Post } from "@/lib/mocks";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -82,8 +82,13 @@ export function PostCard({ post, variant = "light" }: PostCardProps) {
             className={cn("ring-2", isElectronic ? "ring-[#D4FF00]/40" : "ring-neutral-900/10")}
           />
           <div>
-            <p className={cn("text-xs font-black uppercase tracking-wider", isElectronic ? "text-white" : "text-neutral-950")}>
+            <p className={cn("flex items-center gap-1 text-xs font-black uppercase tracking-wider", isElectronic ? "text-white" : "text-neutral-950")}>
               {author?.name}
+              {author?.isKycVerified ? (
+                <BadgeCheck className="w-3.5 h-3.5 text-[#0B0D10] fill-[#D4FF00]" />
+              ) : (
+                <ShieldAlert className="w-3.5 h-3.5 text-amber-500" />
+              )}
             </p>
             <p className={cn("text-[10px] font-semibold uppercase tracking-wider", isElectronic ? "text-neutral-400" : "text-neutral-400")}>
               {new Date(post.timestamp).toLocaleDateString("es-AR", { day: "numeric", month: "short" })}
