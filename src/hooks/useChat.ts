@@ -131,6 +131,7 @@ export function useChat(chatId: string | undefined) {
     messages,
     isLoading,
     sendMessage,
-    setMessages, // exposed just in case it's needed for other optimistic updates
+    setMessages,
+    refreshMessages: fetchMessages,
   };
 }

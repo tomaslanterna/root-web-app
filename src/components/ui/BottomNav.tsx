@@ -22,6 +22,7 @@ export function BottomNav() {
   if (
     pathname === "/register" ||
     pathname === "/search" ||
+    pathname.startsWith("/transfers/") ||
     searchParams.get("from") === "search"
   ) return null;
 

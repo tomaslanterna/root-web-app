@@ -39,8 +39,28 @@ export default function TransferDealRoomPage({ params }: { params: Promise<{ id:
   }, [transferId]);
 
   // 2. Conectar el chat (Short Polling)
-  const { messages, isLoading: isLoadingChat, sendMessage } = useChat(transfer?.chat_id);
+  const { messages, isLoading: isLoadingChat, sendMessage, refreshMessages } = useChat(transfer?.chat_id);
 
+  // 3. Sincronizar estado del trato basado en el último mensaje de sistema
+  useEffect(() => {
+    if (messages.length > 0 && transfer) {
+      // Buscar el último mensaje de sistema en todo el historial cargado
+      const systemMessages = messages.filter(m => m.type === "system");
+      if (systemMessages.length > 0) {
+        const latestSystemMsg = systemMessages[systemMessages.length - 1];
+        
+        if (latestSystemMsg.content === "TICKET_SENT" && transfer.status !== "TICKET_SENT") {
+          setTransfer((prev: any) => ({ ...prev, status: "TICKET_SENT" }));
+        } else if (latestSystemMsg.content === "COMPLETED" && transfer.status !== "COMPLETED") {
+          setTransfer((prev: any) => ({ ...prev, status: "COMPLETED" }));
+        } else if (latestSystemMsg.content === "CANCELLED" && transfer.status !== "CANCELLED") {
+          setTransfer((prev: any) => ({ ...prev, status: "CANCELLED" }));
+        } else if (latestSystemMsg.content === "DISPUTED" && transfer.status !== "DISPUTED") {
+          setTransfer((prev: any) => ({ ...prev, status: "DISPUTED" }));
+        }
+      }
+    }
+  }, [messages]);
   const formatTime = (dateStr: string) => {
     if (!dateStr) return "";
     return new Intl.DateTimeFormat('es-AR', { hour: '2-digit', minute: '2-digit' }).format(new Date(dateStr));

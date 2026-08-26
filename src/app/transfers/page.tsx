@@ -25,9 +25,9 @@ export default function TransfersPage() {
   const [isCreating, setIsCreating] = useState(false);
   // Modal States
   const [alertConfig, setAlertConfig] = useState({ isOpen: false, title: "", message: "" });
-  const [confirmConfig, setConfirmConfig] = useState({ isOpen: false, title: "", message: "", isLoading: false, onConfirm: () => {} });
 
-  const showAlert = (title, message) => setAlertConfig({ isOpen: true, title, message });
+
+  const showAlert = (title: string, message: string) => setAlertConfig({ isOpen: true, title, message });
 
 
   const fetchTransfers = async () => {
@@ -78,38 +78,36 @@ export default function TransfersPage() {
     (t.event_name || t.event_id || "").toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleTransferClick = async (transfer: any) => {
+  const [selectedTransfer, setSelectedTransfer] = useState<any>(null);
+  const [isStartingDeal, setIsStartingDeal] = useState(false);
+
+  const handleTransferClick = (transfer: any) => {
     if (transfer.seller_id === user?.id || transfer.buyer_id === user?.id) {
       router.push(`/transfers/${transfer.id}`);
       return;
     }
 
-    console.log("Clicked transfer:", transfer.id, "Status:", transfer.status);
-    
-    if (transfer.status === 'AVAILABLE' || transfer.status === 'Available') {
-      console.log("Opening modal!");
-      setConfirmConfig({
-        isOpen: true,
-        title: "Iniciar Trato",
-        message: `¿Quieres iniciar trato con ${transfer.seller?.name || "este usuario"} por $${transfer.price || transfer.price_agreed}?`,
-        isLoading: false,
-        onConfirm: async () => {
-          setConfirmConfig(prev => ({ ...prev, isLoading: true }));
-          try {
-            await api.post(`/v1/transfers/${transfer.id}/start-deal`);
-            router.push(`/transfers/${transfer.id}`);
-            setConfirmConfig(prev => ({ ...prev, isOpen: false, isLoading: false }));
-          } catch (error: any) {
-            setConfirmConfig(prev => ({ ...prev, isOpen: false, isLoading: false }));
-            if (error.response?.status === 409) {
-              showAlert("Aviso", "Lo siento, alguien más ya inició el trato por esta entrada.");
-            } else {
-              showAlert("Error", "Error al intentar iniciar trato.");
-            }
-            fetchTransfers();
-          }
-        }
-      });
+    if (transfer.status?.toUpperCase() === 'AVAILABLE') {
+      setSelectedTransfer(transfer);
+    }
+  };
+
+  const confirmStartDeal = async () => {
+    if (!selectedTransfer) return;
+    setIsStartingDeal(true);
+    try {
+      await api.post(`/v1/transfers/${selectedTransfer.id}/start-deal`);
+      router.push(`/transfers/${selectedTransfer.id}`);
+      setSelectedTransfer(null);
+    } catch (error: any) {
+      if (error.response?.status === 409) {
+        showAlert("Aviso", "Lo siento, alguien más ya inició el trato por esta entrada.");
+      } else {
+        showAlert("Error", "Error al intentar iniciar trato.");
+      }
+      fetchTransfers();
+    } finally {
+      setIsStartingDeal(false);
     }
   };
 
@@ -164,12 +162,12 @@ export default function TransfersPage() {
       />
 
       <ConfirmModal 
-        isOpen={confirmConfig.isOpen}
-        onClose={() => setConfirmConfig(prev => ({...prev, isOpen: false}))}
-        title={confirmConfig.title}
-        message={confirmConfig.message}
-        onConfirm={confirmConfig.onConfirm}
-        isLoading={confirmConfig.isLoading}
+        isOpen={selectedTransfer !== null}
+        onClose={() => setSelectedTransfer(null)}
+        title="Iniciar Trato"
+        message={selectedTransfer ? `¿Quieres iniciar trato con ${selectedTransfer.seller?.name || "este usuario"} por $${selectedTransfer.price || selectedTransfer.price_agreed}?` : ""}
+        onConfirm={confirmStartDeal}
+        isLoading={isStartingDeal}
       />
 
       {/* Header */}
