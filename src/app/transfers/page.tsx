@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Ticket, Search, Plus, Filter, ShieldCheck, ChevronRight, Loader2, X } from "lucide-react";
 import { api } from "@/lib/api";
+import { Modal, AlertModal, ConfirmModal } from "@/components/ui/Modal";
+import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 
@@ -21,6 +23,12 @@ export default function TransfersPage() {
   const [newEventId, setNewEventId] = useState("");
   const [newPrice, setNewPrice] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+  // Modal States
+  const [alertConfig, setAlertConfig] = useState({ isOpen: false, title: "", message: "" });
+  const [confirmConfig, setConfirmConfig] = useState({ isOpen: false, title: "", message: "", isLoading: false, onConfirm: () => {} });
+
+  const showAlert = (title, message) => setAlertConfig({ isOpen: true, title, message });
+
 
   const fetchTransfers = async () => {
     setIsLoading(true);
@@ -60,7 +68,7 @@ export default function TransfersPage() {
       fetchTransfers(); // recargar
     } catch (error) {
       console.error("Error creating transfer", error);
-      alert("Hubo un error al crear el transfer");
+      showAlert("Error", "Hubo un error al crear el transfer");
     } finally {
       setIsCreating(false);
     }
@@ -71,75 +79,98 @@ export default function TransfersPage() {
   );
 
   const handleTransferClick = async (transfer: any) => {
-    // Si la oferta es mía o ya estoy en el trato, ir a la sala
     if (transfer.seller_id === user?.id || transfer.buyer_id === user?.id) {
       router.push(`/transfers/${transfer.id}`);
       return;
     }
 
-    // Si está disponible y yo no soy el dueño, intentar iniciar trato
-    if (transfer.status === 'AVAILABLE') {
-      const confirmMsg = `¿Quieres iniciar trato con ${transfer.seller?.name || "este usuario"} por $${transfer.price_agreed}?`;
-      if (!window.confirm(confirmMsg)) return;
-
-      try {
-        await api.post(`/v1/transfers/${transfer.id}/start-deal`);
-        router.push(`/transfers/${transfer.id}`);
-      } catch (error: any) {
-        if (error.response?.status === 409) {
-          alert("Lo siento, alguien más ya inició el trato por esta entrada.");
-        } else {
-          alert("Error al intentar iniciar trato.");
+    console.log("Clicked transfer:", transfer.id, "Status:", transfer.status);
+    
+    if (transfer.status === 'AVAILABLE' || transfer.status === 'Available') {
+      console.log("Opening modal!");
+      setConfirmConfig({
+        isOpen: true,
+        title: "Iniciar Trato",
+        message: `¿Quieres iniciar trato con ${transfer.seller?.name || "este usuario"} por $${transfer.price || transfer.price_agreed}?`,
+        isLoading: false,
+        onConfirm: async () => {
+          setConfirmConfig(prev => ({ ...prev, isLoading: true }));
+          try {
+            await api.post(`/v1/transfers/${transfer.id}/start-deal`);
+            router.push(`/transfers/${transfer.id}`);
+            setConfirmConfig(prev => ({ ...prev, isOpen: false, isLoading: false }));
+          } catch (error: any) {
+            setConfirmConfig(prev => ({ ...prev, isOpen: false, isLoading: false }));
+            if (error.response?.status === 409) {
+              showAlert("Aviso", "Lo siento, alguien más ya inició el trato por esta entrada.");
+            } else {
+              showAlert("Error", "Error al intentar iniciar trato.");
+            }
+            fetchTransfers();
+          }
         }
-        fetchTransfers();
-      }
+      });
     }
   };
 
   return (
     <div className="flex flex-col min-h-screen bg-[#0B0D10] text-white pb-24">
       {/* Create Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-[#14171F] border border-white/10 rounded-2xl p-6 w-full max-w-sm relative">
-            <button onClick={() => setIsModalOpen(false)} className="absolute top-4 right-4 text-neutral-400 hover:text-white">
-              <X className="w-5 h-5" />
-            </button>
-            <h2 className="text-xl font-bold mb-4">Crear Transfer</h2>
-            <form onSubmit={handleCreateTransfer} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-neutral-400 mb-1">ID del Evento</label>
-                <input 
-                  type="text" 
-                  required
-                  value={newEventId}
-                  onChange={(e) => setNewEventId(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-indigo-500" 
-                  placeholder="ej. e1"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-neutral-400 mb-1">Precio Acordado</label>
-                <input 
-                  type="number" 
-                  required
-                  value={newPrice}
-                  onChange={(e) => setNewPrice(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-indigo-500" 
-                  placeholder="ej. 45000"
-                />
-              </div>
-              <button 
-                type="submit" 
-                disabled={isCreating}
-                className="w-full bg-[#D4FF00] text-black font-black uppercase tracking-widest py-3 rounded-xl disabled:opacity-50 mt-2"
-              >
-                {isCreating ? "Creando..." : "Publicar Transfer"}
-              </button>
-            </form>
+            <Modal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)}
+        title="Crear Transfer"
+        footer={
+          <Button 
+            onClick={handleCreateTransfer} 
+            disabled={isCreating} 
+            className="w-full text-xs font-black uppercase bg-[#D4FF00] text-black hover:bg-[#b3d600]"
+          >
+            {isCreating ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Crear Oferta"}
+          </Button>
+        }
+      >
+        <form onSubmit={handleCreateTransfer} className="space-y-4">
+          <div>
+            <label className="block text-[10px] font-black uppercase tracking-wider text-neutral-400 mb-1.5">ID del Evento</label>
+            <input 
+              type="text" 
+              required
+              value={newEventId}
+              onChange={(e) => setNewEventId(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#D4FF00]/50 transition-colors" 
+              placeholder="ej. e1"
+            />
           </div>
-        </div>
-      )}
+          <div>
+            <label className="block text-[10px] font-black uppercase tracking-wider text-neutral-400 mb-1.5">Precio Acordado</label>
+            <input 
+              type="number" 
+              required
+              value={newPrice}
+              onChange={(e) => setNewPrice(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#D4FF00]/50 transition-colors" 
+              placeholder="ej. 45000"
+            />
+          </div>
+        </form>
+      </Modal>
+
+      <AlertModal 
+        isOpen={alertConfig.isOpen} 
+        onClose={() => setAlertConfig(prev => ({...prev, isOpen: false}))}
+        title={alertConfig.title}
+        message={alertConfig.message}
+      />
+
+      <ConfirmModal 
+        isOpen={confirmConfig.isOpen}
+        onClose={() => setConfirmConfig(prev => ({...prev, isOpen: false}))}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        onConfirm={confirmConfig.onConfirm}
+        isLoading={confirmConfig.isLoading}
+      />
 
       {/* Header */}
       <header className="sticky top-0 z-40 glass-header-obsidian">
