@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Home, Calendar, Flame, MessageSquare, User } from "lucide-react";
+import { Home, Calendar, Ticket, MessageSquare, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 
 const NAV_ITEMS = [
   { label: "Feed", href: "/feed", icon: Home },
   { label: "Eventos", href: "/events", icon: Calendar },
-  { label: "Crews", href: "/match", icon: Flame },
+  { label: "Transfer", href: "/transfers", icon: Ticket },
   { label: "Chat", href: "/chat", icon: MessageSquare },
   { label: "Perfil", href: "/profile", icon: User },
 ];
@@ -31,8 +31,8 @@ export function BottomNav() {
     }
     return item;
   }).filter((item) => {
-    // Esconder Chat y Crews (Match) si no hay usuario logueado
-    if ((item.href === "/chat" || item.href === "/match") && !user) return false;
+    // Esconder Chat y Transfer si no hay usuario logueado
+    if ((item.href === "/chat" || item.href === "/transfers") && !user) return false;
     return true;
   });
 
