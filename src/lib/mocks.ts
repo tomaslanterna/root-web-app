@@ -157,56 +157,7 @@ export const MOCK_USERS: User[] = [
   },
 ];
 
-export const MOCK_EVENTS: Event[] = [
-  {
-    id: 'e1',
-    title: 'AFTERLIFE BUENOS AIRES',
-    producerId: 'p1',
-    date: '2024-03-08',
-    location: 'Mandarine Park',
-    cinematicBannerUrl: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=2070&auto=format&fit=crop',
-    description: 'Una odisea visual y sonora única en el ámbito de la conciencia. Afterlife regresa a Buenos Aires con su impresionante montaje visual de pantallas LED gigantes, paisajes sonoros cinemáticos y los DJs melódicos más destacados del panorama mundial.\n\nContaremos con un despliegue técnico de luces de última generación y una puesta en escena inmersiva diseñada especialmente para transformar Mandarine Park en una catedral del techno melódico.',
-    lineup: ['Tale Of Us', 'Anyma', 'Mrak', 'Adriatique', 'KAS:ST'],
-    goingCount: 184,
-    notGoingCount: 46,
-  },
-  {
-    id: 'e2',
-    title: 'TIME WARP 2024',
-    producerId: 'p2',
-    date: '2024-04-05',
-    location: 'Costa Salguero',
-    cinematicBannerUrl: 'https://images.unsplash.com/photo-1514525253344-93168e974686?q=80&w=1974&auto=format&fit=crop',
-    description: 'La experiencia absoluta del techno alemán en dos noches inolvidables. Time Warp celebra 30 años de historia global con dos escenarios simultáneos diseñados con acústica de alta precisión y un sistema de sonido Funktion-One de máxima potencia.',
-    lineup: ['Sven Väth', 'Nina Kraviz', 'Joseph Capriati', 'Amelie Lens', 'Richie Hawtin'],
-    goingCount: 152,
-    notGoingCount: 28,
-  },
-  {
-    id: 'e3',
-    title: 'ZAMNA BUENOS AIRES',
-    producerId: 'p3',
-    date: '2024-05-12',
-    location: 'Paseo Victorica',
-    cinematicBannerUrl: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=80&w=1974&auto=format&fit=crop',
-    description: 'La mística de Tulum llega a Buenos Aires. Zamna presenta su concepto inmersivo rodeado de naturaleza y producción de escenario con esculturas de madera, fuegos artificiales y sonido envolvente.',
-    lineup: ['Black Coffee', 'Adam Port', 'Rampa', 'ANOTR'],
-    goingCount: 96,
-    notGoingCount: 24,
-  },
-  {
-    id: 'e4',
-    title: 'CROBAR UNDERGROUND NIGHT',
-    producerId: 'p1',
-    date: '2024-05-24',
-    location: 'Crobar Club',
-    cinematicBannerUrl: 'https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=2029&auto=format&fit=crop',
-    description: 'Noche especial de club techno en el corazón de Palermo. Sonido crudo, pista a oscuras y visuales minimalistas en un formato exclusivo para 1.500 personas.',
-    lineup: ['I Hate Models', '999999999', 'Hector Oaks'],
-    goingCount: 88,
-    notGoingCount: 22,
-  },
-];
+export const MOCK_EVENTS: Event[] = [];
 
 
 export const MOCK_COMMUNITIES: Community[] = [

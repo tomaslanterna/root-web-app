@@ -1,13 +1,32 @@
-import { MOCK_EVENTS, MOCK_POSTS } from "@/lib/mocks";
+import { MOCK_EVENTS, Event } from "@/lib/mocks";
 import { Button } from "@/components/ui/Button";
 import { CommentSection } from "@/components/ui/CommentSection";
 import { EventAttendanceVote } from "@/components/ui/EventAttendanceVote";
-import { Ticket, Calendar, MapPin, ArrowLeft, Disc3, Sparkles, Flame } from "lucide-react";
+import { Calendar, MapPin, ArrowLeft, Disc3, Sparkles, Flame } from "lucide-react";
 import Link from "next/link";
+
+async function getEventData(id: string): Promise<Event | null> {
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.BACKEND_PUBLIC_API_URL || "http://localhost:8080";
+  try {
+    const res = await fetch(`${backendUrl}/v1/events/${id}`, {
+      cache: "no-store",
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data;
+    }
+  } catch (err) {
+    console.error("Error fetching event by id from API:", err);
+  }
+
+  // Fallback to mock data
+  const fallback = MOCK_EVENTS.find((e) => e.id === id);
+  return fallback || null;
+}
 
 export default async function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const event = MOCK_EVENTS.find((e) => e.id === id);
+  const event = await getEventData(id);
 
   if (!event) {
     return (
@@ -24,6 +43,11 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
   const formattedDate = !isNaN(dateObj.getTime())
     ? dateObj.toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" })
     : event.date;
+
+  const bannerImage =
+    event.cinematicBannerUrl && event.cinematicBannerUrl.trim() !== ""
+      ? event.cinematicBannerUrl
+      : "https://images.unsplash.com/photo-1514525253344-93168e974686?q=80&w=1974&auto=format&fit=crop";
 
   return (
     <div className="flex flex-col min-h-screen bg-[#0B0D10] text-white pb-28">
@@ -43,7 +67,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
         {/* 1º Movie Poster (Vertical 2:3) */}
         <div className="relative w-full aspect-[2/3] max-w-sm mx-auto rounded-3xl overflow-hidden shadow-2xl border border-white/15 bg-neutral-950 group">
           <img
-            src={event.cinematicBannerUrl}
+            src={bannerImage}
             alt={event.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
           />
@@ -131,6 +155,3 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
     </div>
   );
 }
-
-
-
