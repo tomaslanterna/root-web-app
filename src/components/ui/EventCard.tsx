@@ -18,6 +18,10 @@ export function EventCard({ event, variant = "swimlane", className }: EventCardP
     : event.date;
 
   const isSwimlane = variant === "swimlane";
+  const bannerImage =
+    event.cinematicBannerUrl && event.cinematicBannerUrl.trim() !== ""
+      ? event.cinematicBannerUrl
+      : "https://images.unsplash.com/photo-1514525253344-93168e974686?q=80&w=1974&auto=format&fit=crop";
 
   return (
     <Link
@@ -36,7 +40,7 @@ export function EventCard({ event, variant = "swimlane", className }: EventCardP
       >
         {/* Movie Poster Image Background */}
         <img
-          src={event.cinematicBannerUrl}
+          src={bannerImage}
           alt={event.title}
           className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
         />
