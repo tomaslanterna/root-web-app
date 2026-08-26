@@ -173,14 +173,30 @@ export default function UserProfilePage() {
         </div>
         
         {!isMyProfile ? (
-          <Button 
-            onClick={toggleFollow}
-            disabled={isFollowingLoading || isUnfollowingLoading}
-            variant={isFollowing ? "outline" : "primary"} 
-            className="rounded-full px-6 font-bold uppercase tracking-wider text-xs"
-          >
-            {isFollowing ? 'Siguiendo' : 'Seguir'}
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={toggleFollow}
+              disabled={isFollowingLoading || isUnfollowingLoading}
+              variant={isFollowing ? "outline" : "primary"} 
+              className="rounded-full px-6 font-bold uppercase tracking-wider text-xs"
+            >
+              {isFollowing ? 'Siguiendo' : 'Seguir'}
+            </Button>
+            <Button 
+              onClick={async () => {
+                try {
+                  const res = await api.post("/v1/chats/direct", { target_user_id: profileUser.id });
+                  router.push(`/chat/${res.data.id}`);
+                } catch (err) {
+                  console.error("Error creating chat", err);
+                }
+              }}
+              variant="outline" 
+              className="rounded-full px-6 font-bold uppercase tracking-wider text-xs border-white/20"
+            >
+              Mensaje
+            </Button>
+          </div>
         ) : (
           <Button variant="outline" className="rounded-full px-6 font-bold uppercase tracking-wider text-xs border-white/20">
             Editar

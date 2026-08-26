@@ -51,10 +51,17 @@ export default function SearchPage() {
 
     const fetchSearch = async () => {
       setIsLoading(true);
+      
+      const typeMap: Record<TabType, string> = {
+        "usuarios": "USER",
+        "eventos": "EVENT",
+        "posteos": "POST"
+      };
+
       try {
         const response = await api.post("/v1/search", {
           query: debouncedQuery,
-          type: activeTab,
+          type: typeMap[activeTab],
           country: "AR"
         });
         setResults(response.data.results || []);

@@ -95,6 +95,29 @@ export default function CompleteProfilePage() {
       return;
     }
 
+    if (!/^\d{7,}$/.test(formData.documentId)) {
+      setError('El documento debe contener solo números y tener más de 6 cifras.');
+      return;
+    }
+
+    const today = new Date();
+    const dobDate = new Date(formData.dob);
+    let age = today.getFullYear() - dobDate.getFullYear();
+    const m = today.getMonth() - dobDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < dobDate.getDate())) {
+      age--;
+    }
+
+    if (dobDate > today) {
+      setError('La fecha de nacimiento no puede ser en el futuro.');
+      return;
+    }
+    
+    if (age < 18) {
+      setError('Debes ser mayor de 18 años para registrarte.');
+      return;
+    }
+
     if (aliasStatus === 'invalid') {
       setError('Por favor elige un alias válido.');
       return;
