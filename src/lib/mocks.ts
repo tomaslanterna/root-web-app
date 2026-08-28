@@ -1,3 +1,6 @@
+import type { Event } from '@/types/events';
+export type { Event } from '@/types/events';
+
 export type UserRole = 'USER' | 'RRPP' | 'ADMIN';
 export type TicketStatus = 'AVAILABLE' | 'PENDING_CONFIRMATION' | 'COMPLETED' | 'DISPUTED' | 'CANCELLED';
 
@@ -8,19 +11,6 @@ export interface User {
   role: UserRole;
   avatarUrl: string;
   isKycVerified: boolean;
-}
-
-export interface Event {
-  id: string;
-  title: string;
-  producerId: string;
-  date: string;
-  location: string;
-  cinematicBannerUrl: string;
-  description: string;
-  lineup?: string[];
-  goingCount?: number;
-  notGoingCount?: number;
 }
 
 export interface Post {
