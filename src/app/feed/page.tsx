@@ -26,6 +26,21 @@ export default function FeedPage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSwimlaneHidden, setIsSwimlaneHidden] = useState(false);
   const [featuredEvents, setFeaturedEvents] = useState<Event[]>([]);
+  const swimlaneRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const fetchFeaturedEvents = async () => {
+      try {
+        const userCountry = "Uruguay"; // TODO: Reemplazar con mecanismo real
+        const response = await api.get(`/v1/events/featured?country=${userCountry}`);
+        if (response.data && response.data.data) {
+          setFeaturedEvents(response.data.data);
+        }
+      } catch (error: any) {
+        console.error("Error fetching featured events:", error?.message, error?.config?.url, error?.config?.baseURL);
+      }
+    };
+    fetchFeaturedEvents();
   const [isLoadingEvents, setIsLoadingEvents] = useState(true);
   const swimlaneRef = useRef<HTMLElement | null>(null);
 
@@ -150,6 +165,7 @@ export default function FeedPage() {
             </div>
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-[#D4FF00]/15 text-[#D4FF00] border border-[#D4FF00]/20">
+                {featuredEvents.length} EVENTOS
                 {isLoadingEvents ? "..." : `${featuredEvents.length} EVENTOS`}
               </span>
               <span className="text-neutral-400 group-hover:text-white flex items-center gap-0.5 text-[10px] font-bold">
@@ -181,11 +197,15 @@ export default function FeedPage() {
               <Sparkles className="w-3.5 h-3.5 text-[#D4FF00]" /> Eventos Destacados
             </h2>
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#D4FF00]">
+              {featuredEvents.length} EVENTOS
               {isLoadingEvents ? "..." : `${featuredEvents.length} EVENTOS`}
             </span>
           </div>
 
           <div className="flex overflow-x-auto snap-x snap-mandatory hide-scrollbar gap-3.5 px-4 pb-2 scroll-px-4">
+            {featuredEvents.map((event) => (
+              <EventCard key={event.id} event={event} />
+            ))}
             {isLoadingEvents ? (
               // Skeletons
               [1, 2, 3].map((i) => (

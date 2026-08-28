@@ -13,6 +13,20 @@ export interface User {
   isKycVerified: boolean;
 }
 
+export interface Event {
+  id: string;
+  title: string;
+  producerId: string;
+  date: string;
+  location: string;
+  country?: string;
+  cinematicBannerUrl: string;
+  description: string;
+  lineup?: string[];
+  goingCount?: number;
+  notGoingCount?: number;
+}
+
 export interface Post {
   id: string;
   authorId: string;

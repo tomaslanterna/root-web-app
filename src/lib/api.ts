@@ -9,6 +9,7 @@ export const api = axios.create({
   baseURL: API_BASE_URL,
 });
 
+console.log("Axios baseURL configured as:", api.defaults.baseURL);
 api.interceptors.request.use(
   (config) => {
     if (typeof window !== "undefined") {
