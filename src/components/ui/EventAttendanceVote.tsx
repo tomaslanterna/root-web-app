@@ -1,124 +1,105 @@
 "use client";
 
-import * as React from "react";
 import { useState } from "react";
-import { Check, X, Users } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { CheckCircle2, LogIn, XCircle } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { useMutation } from "@/hooks/useMutation";
+import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import type { EventRSVPStatus, RSVPResponse } from "@/types/events";
 
 interface EventAttendanceVoteProps {
   eventId: string;
-  initialGoing?: number;
-  initialNotGoing?: number;
-  className?: string;
+  initialGoing: number;
+  initialNotGoing: number;
+  initialStatus?: EventRSVPStatus | null;
+  onChange?: (response: RSVPResponse) => void;
 }
 
 export function EventAttendanceVote({
   eventId,
-  initialGoing = 142,
-  initialNotGoing = 28,
-  className,
+  initialGoing,
+  initialNotGoing,
+  initialStatus = null,
+  onChange,
 }: EventAttendanceVoteProps) {
-  // Deterministic mock seed based on eventId
-  const seed = eventId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const baseGoing = initialGoing + (seed % 60);
-  const baseNotGoing = Math.max(12, initialNotGoing + (seed % 25));
+  const router = useRouter();
+  const { user } = useAuth();
+  const [goingCount, setGoingCount] = useState(initialGoing);
+  const [notGoingCount, setNotGoingCount] = useState(initialNotGoing);
+  const [status, setStatus] = useState<EventRSVPStatus | null>(initialStatus);
+  const [showLogin, setShowLogin] = useState(false);
 
-  const [vote, setVote] = useState<"going" | "not-going" | null>(null);
+  const rsvp = useMutation<RSVPResponse, EventRSVPStatus>(async (nextStatus) => {
+    const response = await api.post<RSVPResponse>(`/v1/events/${eventId}/rsvp`, {
+      status: nextStatus,
+    });
+    return response.data;
+  }, {
+    onSuccess: (response) => {
+      setGoingCount(response.goingCount);
+      setNotGoingCount(response.notGoingCount);
+      setStatus(response.userRsvp);
+      onChange?.(response);
+    },
+  });
 
-  const goingCount = baseGoing + (vote === "going" ? 1 : 0);
-  const notGoingCount = baseNotGoing + (vote === "not-going" ? 1 : 0);
-  const totalVotes = goingCount + notGoingCount;
-
-  const goingPercentage = Math.round((goingCount / totalVotes) * 100);
-  const notGoingPercentage = 100 - goingPercentage;
-
-  const handleVote = (selected: "going" | "not-going") => {
-    if (vote === selected) {
-      setVote(null); // toggle off
-    } else {
-      setVote(selected);
+  const selectStatus = (nextStatus: EventRSVPStatus) => {
+    if (!user) {
+      setShowLogin(true);
+      return;
+    }
+    if (!rsvp.isLoading && status !== nextStatus) {
+      void rsvp.mutate(nextStatus).catch(() => undefined);
     }
   };
 
   return (
-    <div className={cn("space-y-2", className)}>
-      {/* 2 Compact Attendance Action Buttons */}
-      <div className="grid grid-cols-2 gap-2.5">
-        {/* Voy Button */}
+    <div className="space-y-3 rounded-3xl border border-white/10 bg-[#14171F] p-4 shadow-lg">
+      <div className="grid grid-cols-2 gap-3">
         <button
           type="button"
-          onClick={() => handleVote("going")}
+          onClick={() => selectStatus("going")}
+          disabled={rsvp.isLoading}
           className={cn(
-            "flex items-center justify-center gap-2 py-2 px-3.5 rounded-full text-xs font-black uppercase tracking-wider transition-all duration-200 active:scale-95 select-none cursor-pointer border shadow-sm",
-            vote === "going"
-              ? "bg-[#D4FF00] text-neutral-950 border-[#D4FF00] shadow-md shadow-[#D4FF00]/20 scale-[1.02]"
-              : "bg-[#14171F] text-white border-white/15 hover:border-white/30 hover:bg-[#1B202B]"
+            "flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-xs font-black uppercase tracking-wider transition-all",
+            status === "going"
+              ? "border-[#D4FF00] bg-[#D4FF00] text-neutral-950 ring-2 ring-[#D4FF00]/30"
+              : "border-white/10 bg-[#0B0D10] text-neutral-300 hover:border-[#D4FF00]/50 hover:text-white",
           )}
         >
-          <Check
-            className={cn(
-              "w-4 h-4 stroke-[3] transition-transform duration-200",
-              vote === "going" ? "text-neutral-950 scale-110" : "text-[#D4FF00]"
-            )}
-          />
-          <span>Voy</span>
+          <CheckCircle2 className="h-4 w-4" /> Voy ({goingCount})
         </button>
-
-        {/* No voy Button */}
         <button
           type="button"
-          onClick={() => handleVote("not-going")}
+          onClick={() => selectStatus("not_going")}
+          disabled={rsvp.isLoading}
           className={cn(
-            "flex items-center justify-center gap-2 py-2 px-3.5 rounded-full text-xs font-black uppercase tracking-wider transition-all duration-200 active:scale-95 select-none cursor-pointer border shadow-sm",
-            vote === "not-going"
-              ? "bg-white/20 text-white border-white/40 shadow-md scale-[1.02]"
-              : "bg-[#14171F] text-neutral-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-[#1B202B]"
+            "flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-xs font-black uppercase tracking-wider transition-all",
+            status === "not_going"
+              ? "border-rose-500 bg-rose-500 text-white ring-2 ring-rose-500/30"
+              : "border-white/10 bg-[#0B0D10] text-neutral-300 hover:border-rose-500/50 hover:text-white",
           )}
         >
-          <X
-            className={cn(
-              "w-4 h-4 stroke-[3] transition-transform duration-200",
-              vote === "not-going" ? "text-white scale-110" : "text-neutral-400"
-            )}
-          />
-          <span>No voy</span>
+          <XCircle className="h-4 w-4" /> No voy ({notGoingCount})
         </button>
       </div>
 
-      {/* Comparative Percentage Progress Bar & Stats (Compact & Sleek) */}
-      <div className="bg-[#14171F]/90 backdrop-blur-md rounded-2xl p-2 px-3 border border-white/10 space-y-1.5 shadow-sm">
-        {/* Visual Dual-color Bar */}
-        <div className="w-full h-2 rounded-full overflow-hidden bg-neutral-800 flex items-center p-0.5 border border-white/5">
-          <div
-            className="h-full bg-[#D4FF00] rounded-full transition-all duration-500 ease-out shadow-xs"
-            style={{ width: `${goingPercentage}%` }}
-          />
-          <div
-            className="h-full bg-neutral-600/70 rounded-full transition-all duration-500 ease-out ml-0.5"
-            style={{ width: `${notGoingPercentage}%` }}
-          />
-        </div>
-
-        {/* Labels and Percentage Badges */}
-        <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider">
-          <span className="flex items-center gap-1 text-[#D4FF00]">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#D4FF00]" />
-            <span>{goingPercentage}% Voy</span>
-            <span className="text-neutral-500 font-semibold">({goingCount})</span>
-          </span>
-
-          <span className="text-neutral-500 font-bold flex items-center gap-1 text-[9px]">
-            <Users className="w-3 h-3 text-neutral-400" />
-            <span>{totalVotes} votos</span>
-          </span>
-
-          <span className="flex items-center gap-1 text-neutral-400">
-            <span className="text-neutral-500 font-semibold">({notGoingCount})</span>
-            <span>{notGoingPercentage}% No voy</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-neutral-500" />
-          </span>
-        </div>
-      </div>
+      {showLogin && !user && (
+        <button
+          type="button"
+          onClick={() => router.push("/login")}
+          className="flex w-full items-center justify-center gap-2 rounded-2xl border border-[#D4FF00]/30 bg-[#D4FF00]/10 px-3 py-2 text-[11px] font-black uppercase tracking-wider text-[#D4FF00]"
+        >
+          <LogIn className="h-3.5 w-3.5" /> Iniciá sesión para responder
+        </button>
+      )}
+      {rsvp.error && (
+        <p className="text-center text-[11px] font-semibold text-rose-400">
+          No pudimos guardar tu respuesta. Intentá nuevamente.
+        </p>
+      )}
     </div>
   );
 }

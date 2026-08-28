@@ -43,15 +43,32 @@ Se estiman entre **20 y 25 endpoints principales** para cubrir la funcionalidad 
 
 ### Eventos y Entradas
 
-- `GET /v1/events?featured=true` (Traer la lista de eventos, si es featured true que traiga solo featured si es false que traiga todos).
-  - **Response (200 OK)**: `{ "data": [ { "id": "e1", "title": "AFTERLIFE BUENOS AIRES", "producerId": "p1", "date": "2024-03-08", "location": "Mandarine Park", "cinematicBannerUrl": "https://...", "description": "Una odisea visual...", "lineup": ["Tale Of Us", "Anyma"], "goingCount": 184, "notGoingCount": 46 } ], "meta": { "total": 15 } }`
+- `GET /v1/events` (Listado público de próximos eventos, con autenticación opcional para incluir `userRsvp`).
+  - **Query params combinables**: `featured`, `genre`, `location`, `minPrice`, `maxPrice`, `isFree`, `startDate`, `endDate`, `query`, `limit`, `offset`.
+  - `startDate` y `endDate` aceptan RFC3339 o `YYYY-MM-DD`; el frontend envía instantes UTC RFC3339.
+  - `isFree=true` incluye únicamente precio explícito `0`; `isFree=false` únicamente precios mayores a `0`. Precio desconocido (`null`) no se considera gratis.
+  - Solo devuelve eventos con `date >= NOW()`, ordenados por `date ASC, id ASC`. `limit` predeterminado: 12; máximo: 50.
+  - **Response (200 OK)**: `{ "data": [ { "id": "e1", "title": "AFTERLIFE BUENOS AIRES", "date": "2026-09-08T23:00:00Z", "location": "Mandarine Park", "cinematicBannerUrl": "https://...", "description": "Una odisea visual...", "lineup": ["Tale Of Us"], "genre": "Electrónica", "price": 45000, "isFree": false, "goingCount": 184, "notGoingCount": 46, "userRsvp": "going" } ], "meta": { "total": 15, "limit": 12, "offset": 0, "hasMore": true } }`
+  - Parámetros inválidos devuelven `400 Bad Request`.
 
 - `GET /v1/events/:id` (Obtener detalles de un evento particular).
   - **Response (200 OK)**: `{ "id": "e1", "title": "AFTERLIFE BUENOS AIRES", "producerId": "p1", "date": "2024-03-08", "location": "Mandarine Park", "cinematicBannerUrl": "https://...", "description": "Una odisea visual...", "lineup": ["Tale Of Us", "Anyma"], "goingCount": 184, "notGoingCount": 46 }`
 
 - `POST /v1/events/:id/rsvp` (Acción de Voy / No Voy).
   - **Request Body**: `{ "status": "going" | "not_going" }`
-  - **Response (200 OK)**: `{ "success": true, "goingCount": 185, "notGoingCount": 46 }`
+  - El usuario se obtiene exclusivamente del JWT. Campos adicionales como `userId` son rechazados.
+  - **Response (200 OK)**: `{ "success": true, "goingCount": 185, "notGoingCount": 46, "userRsvp": "going" }`
+
+- `GET /v1/events/:id/attendees/followed?limit=20&offset=0` (Personas que el usuario autenticado sigue y marcaron `going`).
+  - La restricción se aplica en PostgreSQL mediante `users.following`; nunca devuelve asistentes no seguidos.
+  - **Response (200 OK)**: `{ "data": [ { "id": "u2", "name": "Alex", "username": "alex", "avatarUrl": "https://...", "isKycVerified": true } ], "meta": { "total": 1, "limit": 20, "offset": 0, "hasMore": false } }`
+
+- `GET /v1/events/:id/comments?limit=20&offset=0` (Comentarios públicos, del más reciente al más antiguo).
+  - **Response (200 OK)**: `{ "data": [ { "id": "c1", "targetId": "e1", "authorId": "u2", "authorName": "Alex", "authorUsername": "alex", "content": "Nos vemos ahí", "timestamp": "2026-09-01T18:00:00Z" } ], "meta": { "total": 1, "limit": 20, "offset": 0, "hasMore": false } }`
+
+- `POST /v1/events/:id/comments` (Crear comentario autenticado).
+  - **Request Body**: `{ "content": "Nos vemos ahí" }` (1 a 1000 caracteres después de recortar espacios).
+  - **Response (201 Created)**: comentario creado con datos públicos del autor.
 
 - `GET /v1/events/:id/tickets` (Ver entradas de reventa disponibles).
   - **Response (200 OK)**: `{ "data": [ { "id": "t1", "eventId": "e1", "sellerId": "2", "price": 45000, "status": "AVAILABLE" } ] }`

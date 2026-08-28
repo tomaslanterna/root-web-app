@@ -1,134 +1,221 @@
 "use client";
 
-import * as React from "react";
-import { useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Loader2, LogIn, MessageSquare, Send, Sparkles } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { useMutation } from "@/hooks/useMutation";
+import { api } from "@/lib/api";
+import type { EventComment, PaginatedResponse } from "@/types/events";
 import { Avatar } from "./Avatar";
 import { Button } from "./Button";
-import { MOCK_USERS, MOCK_COMMENTS, Comment } from "@/lib/mocks";
-import { MessageSquare, Send, Sparkles } from "lucide-react";
 
 interface CommentSectionProps {
   targetId: string;
   title?: string;
 }
 
-export function CommentSection({ targetId, title = "Comentarios de la Comunidad" }: CommentSectionProps) {
-  const currentUser = MOCK_USERS[2]; // Santi User
-  const initialComments = MOCK_COMMENTS.filter((c) => c.targetId === targetId);
+const pageSize = 20;
 
-  const [comments, setComments] = useState<Comment[]>(initialComments);
-  const [newCommentText, setNewCommentText] = useState("");
+export function CommentSection({
+  targetId,
+  title = "Comentarios de la comunidad",
+}: CommentSectionProps) {
+  const router = useRouter();
+  const { user } = useAuth();
+  const [comments, setComments] = useState<EventComment[]>([]);
+  const [total, setTotal] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const [content, setContent] = useState("");
 
-  const handleAddComment = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newCommentText.trim()) return;
+  const {
+    mutate: fetchComments,
+    isLoading: isLoadingComments,
+    error: commentsError,
+  } = useMutation<PaginatedResponse<EventComment>, number>(
+    async (offset) => {
+      const response = await api.get<PaginatedResponse<EventComment>>(
+        `/v1/events/${targetId}/comments`,
+        { params: { limit: pageSize, offset } },
+      );
+      return response.data;
+    },
+    {
+      onSuccess: (response, offset) => {
+        setComments((current) => (offset === 0 ? response.data : [...current, ...response.data]));
+        setTotal(response.meta.total);
+        setHasMore(response.meta.hasMore);
+        setHasLoaded(true);
+      },
+      onError: () => setHasLoaded(true),
+    },
+  );
 
-    const createdComment: Comment = {
-      id: `cm_${Date.now()}`,
-      targetId,
-      authorId: currentUser.id,
-      content: newCommentText.trim(),
-      timestamp: new Date().toISOString(),
-    };
+  const {
+    mutate: postComment,
+    isLoading: isPostingComment,
+    error: createCommentError,
+  } = useMutation<EventComment, string>(
+    async (text) => {
+      const response = await api.post<EventComment>(`/v1/events/${targetId}/comments`, {
+        content: text,
+      });
+      return response.data;
+    },
+    {
+      onSuccess: (comment) => {
+        setComments((current) => [comment, ...current]);
+        setTotal((current) => current + 1);
+        setContent("");
+      },
+    },
+  );
 
-    setComments((prev) => [createdComment, ...prev]);
-    setNewCommentText("");
+  useEffect(() => {
+    void fetchComments(0).catch(() => undefined);
+  }, [fetchComments, targetId]);
+
+  const submitComment = (event: FormEvent) => {
+    event.preventDefault();
+    const trimmed = content.trim();
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+    if (trimmed && trimmed.length <= 1000 && !isPostingComment) {
+      void postComment(trimmed).catch(() => undefined);
+    }
   };
 
   return (
-    <div className="space-y-6 pt-6 border-t border-white/10 text-white">
-      {/* Section Header */}
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-black uppercase tracking-wider text-white flex items-center gap-2">
-          <MessageSquare className="w-4 h-4 text-[#D4FF00]" />
-          {title}
+    <section className="space-y-4 rounded-3xl border border-white/10 bg-[#14171F] p-5 shadow-md">
+      <div className="flex items-center justify-between border-b border-white/10 pb-3">
+        <h3 className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-neutral-300">
+          <MessageSquare className="h-4 w-4 text-[#D4FF00]" /> {title}
         </h3>
-        <span className="text-[11px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-full bg-[#14171F] text-[#D4FF00] border border-white/10">
-          {comments.length} COMENTARIOS
+        <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#D4FF00]">
+          {total} comentarios
         </span>
       </div>
 
-      {/* Write New Comment Input Form */}
-      <form onSubmit={handleAddComment} className="space-y-3 bg-[#14171F] p-4 rounded-3xl border border-white/10 shadow-lg">
-        <div className="flex items-start gap-3">
-          <Avatar
-            src={currentUser.avatarUrl}
-            fallback={currentUser.name}
-            size="sm"
-            className="ring-2 ring-[#D4FF00]/40 shrink-0"
-          />
-          <div className="flex-1 space-y-2">
+      {user ? (
+        <form onSubmit={submitComment} className="space-y-2">
+          <div className="flex items-start gap-2">
             <textarea
-              value={newCommentText}
-              onChange={(e) => setNewCommentText(e.target.value)}
-              placeholder="Escribe tu opinión o pregunta aquí..."
+              value={content}
+              onChange={(event) => setContent(event.target.value)}
+              maxLength={1000}
               rows={2}
-              className="w-full text-xs sm:text-sm p-3 rounded-2xl bg-[#0B0D10] border border-white/10 focus:outline-none focus:border-[#D4FF00] transition-all resize-none text-white placeholder:text-neutral-500 font-medium"
+              placeholder="Escribí un comentario sobre el evento..."
+              className="min-h-20 flex-1 resize-none rounded-2xl border border-white/10 bg-[#0B0D10] px-4 py-3 text-xs text-white placeholder-neutral-500 focus:border-[#D4FF00] focus:outline-none"
             />
-            <div className="flex justify-end">
-              <Button
-                type="submit"
-                variant="primary"
-                size="sm"
-                disabled={!newCommentText.trim()}
-                className="gap-1.5 px-4"
-              >
-                <span>Comentar</span>
-                <Send className="w-3.5 h-3.5" />
-              </Button>
-            </div>
+            <Button
+              type="submit"
+              size="icon"
+              aria-label="Publicar comentario"
+              disabled={!content.trim() || isPostingComment}
+              className="h-10 w-10 shrink-0"
+            >
+              {isPostingComment ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+            </Button>
           </div>
-        </div>
-      </form>
+          <p className="text-right text-[10px] font-semibold text-neutral-500">
+            {content.length}/1000
+          </p>
+        </form>
+      ) : (
+        <button
+          type="button"
+          onClick={() => router.push("/login")}
+          className="flex w-full items-center justify-center gap-2 rounded-2xl border border-[#D4FF00]/25 bg-[#D4FF00]/10 px-4 py-3 text-[11px] font-black uppercase tracking-wider text-[#D4FF00]"
+        >
+          <LogIn className="h-4 w-4" /> Iniciá sesión para comentar
+        </button>
+      )}
 
-      {/* Comments List Feed */}
-      <div className="space-y-3">
-        {comments.length > 0 ? (
+      {createCommentError && (
+        <p className="text-center text-[11px] font-semibold text-rose-400">
+          No pudimos publicar el comentario. Intentá nuevamente.
+        </p>
+      )}
+
+      <div className="space-y-3 pt-1">
+        {!hasLoaded && isLoadingComments ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="h-5 w-5 animate-spin text-[#D4FF00]" />
+          </div>
+        ) : commentsError && comments.length === 0 ? (
+          <div className="space-y-3 py-8 text-center">
+            <p className="text-xs font-semibold text-rose-400">No pudimos cargar los comentarios.</p>
+            <Button size="sm" variant="outline" onClick={() => void fetchComments(0)}>
+              Reintentar
+            </Button>
+          </div>
+        ) : comments.length === 0 ? (
+          <div className="space-y-2 py-8 text-center text-neutral-500">
+            <Sparkles className="mx-auto h-5 w-5 text-[#D4FF00]" />
+            <p className="text-xs font-semibold">Sé la primera persona en comentar.</p>
+          </div>
+        ) : (
           comments.map((comment) => {
-            const author = MOCK_USERS.find((u) => u.id === comment.authorId) || currentUser;
+            const timestamp = new Date(comment.timestamp);
+            const formattedTime = Number.isNaN(timestamp.getTime())
+              ? comment.timestamp
+              : new Intl.DateTimeFormat("es-AR", {
+                  day: "numeric",
+                  month: "short",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                }).format(timestamp);
             return (
-              <div
+              <article
                 key={comment.id}
-                className="p-4 rounded-2xl bg-[#14171F] border border-white/10 shadow-md space-y-2 animate-fade-in"
+                className="space-y-2 rounded-2xl border border-white/5 bg-[#0B0D10]/60 p-3.5"
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-2">
                     <Avatar
-                      src={author.avatarUrl}
-                      fallback={author.name}
+                      src={comment.authorAvatar}
+                      fallback={comment.authorName}
                       size="sm"
-                      className="ring-1 ring-white/20"
+                      className="h-7 w-7 border-white/10"
                     />
-                    <div>
-                      <p className="text-xs font-black uppercase tracking-wider text-white">{author.name}</p>
-                      <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">
-                        {new Date(comment.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    <div className="min-w-0">
+                      <p className="truncate text-xs font-black text-white">{comment.authorName}</p>
+                      <p className="truncate text-[10px] font-semibold text-neutral-500">
+                        @{comment.authorUsername}
                       </p>
                     </div>
                   </div>
-                  {author.isKycVerified && (
-                    <span className="text-[9px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded-full bg-[#D4FF00]/15 text-[#D4FF00] border border-[#D4FF00]/30">
-                      Verificado
-                    </span>
-                  )}
+                  <time className="shrink-0 text-[10px] font-semibold text-neutral-500">
+                    {formattedTime}
+                  </time>
                 </div>
-
-                <p className="text-xs text-neutral-300 leading-relaxed font-medium pl-10">
+                <p className="whitespace-pre-wrap break-words pl-9 text-xs leading-relaxed text-neutral-300">
                   {comment.content}
                 </p>
-              </div>
+              </article>
             );
           })
-        ) : (
-          <div className="py-8 text-center bg-[#14171F] rounded-3xl border border-white/10 p-6 space-y-1">
-            <Sparkles className="w-6 h-6 text-[#D4FF00] mx-auto" />
-            <p className="text-xs text-neutral-400 font-bold uppercase tracking-wider">
-              Aún no hay comentarios. ¡Sé el primero en aportar a la conversación!
-            </p>
-          </div>
         )}
       </div>
-    </div>
+
+      {hasMore && (
+        <Button
+          type="button"
+          variant="outline"
+          size="full"
+          disabled={isLoadingComments}
+          onClick={() => void fetchComments(comments.length)}
+        >
+          {isLoadingComments ? "Cargando..." : "Cargar más comentarios"}
+        </Button>
+      )}
+    </section>
   );
 }
-
