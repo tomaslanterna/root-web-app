@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { PostCard } from "@/components/ui/PostCard";
 import { EventCard } from "@/components/ui/EventCard";
 import { QuickActionMenu } from "@/components/ui/QuickActionMenu";
 import { CommunityList } from "@/components/communities/CommunityList";
-import { MOCK_POSTS, MOCK_COMMUNITIES, type Event } from "@/lib/mocks";
-import { Plus, Sparkles, Compass, ChevronUp, Globe, Flame, UserCheck, Users } from "lucide-react";
+import { MOCK_POSTS, MOCK_EVENTS, MOCK_COMMUNITIES, Event } from "@/lib/mocks";
+import { Plus, Sparkles, Compass, ChevronUp, Globe, Flame, UserCheck, Users, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 
@@ -20,6 +21,7 @@ interface FilterOption {
 }
 
 export default function FeedPage() {
+  const router = useRouter();
   const [filter, setFilter] = useState<FilterType>("all");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSwimlaneHidden, setIsSwimlaneHidden] = useState(false);
@@ -39,6 +41,35 @@ export default function FeedPage() {
       }
     };
     fetchFeaturedEvents();
+  const [isLoadingEvents, setIsLoadingEvents] = useState(true);
+  const swimlaneRef = useRef<HTMLElement | null>(null);
+
+  // Fetch featured events from the live backend database
+  useEffect(() => {
+    let isMounted = true;
+    const fetchFeaturedEvents = async () => {
+      try {
+        const res = await api.get("/v1/events/featured");
+        const list = res.data?.data || (Array.isArray(res.data) ? res.data : []);
+        if (isMounted) {
+          setFeaturedEvents(list);
+        }
+      } catch (err) {
+        console.error("Error fetching featured events from live backend:", err);
+        if (isMounted) {
+          setFeaturedEvents([]);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingEvents(false);
+        }
+      }
+    };
+
+    fetchFeaturedEvents();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const filterOptions: FilterOption[] = [
@@ -135,6 +166,7 @@ export default function FeedPage() {
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-[#D4FF00]/15 text-[#D4FF00] border border-[#D4FF00]/20">
                 {featuredEvents.length} EVENTOS
+                {isLoadingEvents ? "..." : `${featuredEvents.length} EVENTOS`}
               </span>
               <span className="text-neutral-400 group-hover:text-white flex items-center gap-0.5 text-[10px] font-bold">
                 <span>Ver</span>
@@ -147,6 +179,17 @@ export default function FeedPage() {
 
       {/* Main Content Area */}
       <div className="flex-1 pb-28 space-y-4">
+        {/* Search Bar Visual */}
+        <div className="px-4 pt-4">
+          <div 
+            onClick={() => router.push('/search')}
+            className="w-full bg-[#14171F] border border-white/10 rounded-xl px-4 py-3 flex items-center gap-3 text-neutral-400 hover:bg-[#1A1F2B] transition-colors cursor-text"
+          >
+            <Sparkles className="w-4 h-4 text-[#D4FF00]" />
+            <span className="text-sm font-semibold tracking-wide">Buscar usuarios, eventos o posteos...</span>
+          </div>
+        </div>
+
         {/* Featured Events Swimlane Section */}
         <section ref={swimlaneRef} className="pt-4 pb-1">
           <div className="px-4 flex items-center justify-between mb-3">
@@ -155,6 +198,7 @@ export default function FeedPage() {
             </h2>
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#D4FF00]">
               {featuredEvents.length} EVENTOS
+              {isLoadingEvents ? "..." : `${featuredEvents.length} EVENTOS`}
             </span>
           </div>
 
@@ -162,6 +206,27 @@ export default function FeedPage() {
             {featuredEvents.map((event) => (
               <EventCard key={event.id} event={event} />
             ))}
+            {isLoadingEvents ? (
+              // Skeletons
+              [1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="w-44 sm:w-48 shrink-0 snap-start aspect-[2/3] rounded-3xl bg-[#14171F] border border-white/5 animate-pulse relative overflow-hidden flex flex-col justify-end p-4 space-y-2"
+                >
+                  <div className="w-16 h-4 rounded-full bg-white/10" />
+                  <div className="w-3/4 h-5 rounded-md bg-white/10" />
+                  <div className="w-1/2 h-3 rounded-md bg-white/10" />
+                </div>
+              ))
+            ) : featuredEvents.length > 0 ? (
+              featuredEvents.map((event) => (
+                <EventCard key={event.id} event={event} />
+              ))
+            ) : (
+              <div className="px-4 py-8 text-neutral-500 text-xs italic">
+                No hay eventos destacados en este momento.
+              </div>
+            )}
           </div>
         </section>
 

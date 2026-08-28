@@ -1,26 +1,47 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Home, Calendar, Flame, MessageSquare, User } from "lucide-react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { Home, Calendar, Ticket, MessageSquare, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext";
 
 const NAV_ITEMS = [
   { label: "Feed", href: "/feed", icon: Home },
   { label: "Eventos", href: "/events", icon: Calendar },
-  { label: "Crews", href: "/match", icon: Flame },
+  { label: "Transfer", href: "/transfers", icon: Ticket },
   { label: "Chat", href: "/chat", icon: MessageSquare },
   { label: "Perfil", href: "/profile", icon: User },
 ];
 
 export function BottomNav() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const { user } = useAuth();
+  
+  if (
+    pathname === "/register" ||
+    pathname === "/search" ||
+    pathname.startsWith("/transfers/") ||
+    searchParams.get("from") === "search"
+  ) return null;
+
+  const visibleItems = NAV_ITEMS.map((item) => {
+    if (item.label === "Perfil" && user?.username) {
+      return { ...item, href: `/profile/${user.username}` };
+    }
+    return item;
+  }).filter((item) => {
+    // Esconder Chat y Transfer si no hay usuario logueado
+    if ((item.href === "/chat" || item.href === "/transfers") && !user) return false;
+    return true;
+  });
 
   return (
     <nav className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-4">
       <div className="glass-obsidian rounded-full p-1.5 flex items-center justify-around shadow-2xl backdrop-blur-2xl border border-white/10">
-        {NAV_ITEMS.map((item) => {
-            const isActive = pathname === item.href;
+        {visibleItems.map((item) => {
+            const isActive = pathname === item.href || (item.label === "Perfil" && pathname.startsWith("/profile/"));
             const Icon = item.icon;
 
             return (
