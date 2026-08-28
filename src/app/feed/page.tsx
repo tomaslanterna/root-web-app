@@ -6,10 +6,12 @@ import { PostCard } from "@/components/ui/PostCard";
 import { EventCard } from "@/components/ui/EventCard";
 import { QuickActionMenu } from "@/components/ui/QuickActionMenu";
 import { CommunityList } from "@/components/communities/CommunityList";
-import { MOCK_POSTS, MOCK_EVENTS, MOCK_COMMUNITIES, Event } from "@/lib/mocks";
+import { MOCK_POSTS, MOCK_EVENTS, MOCK_COMMUNITIES } from "@/lib/mocks";
+import type { Event } from "@/types/events";
 import { Plus, Sparkles, Compass, ChevronUp, Globe, Flame, UserCheck, Users, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
+import { useMutation } from "@/hooks/useMutation";
 
 type FilterType = "all" | "featured" | "following" | "communities";
 
@@ -28,49 +30,23 @@ export default function FeedPage() {
   const [featuredEvents, setFeaturedEvents] = useState<Event[]>([]);
   const swimlaneRef = useRef<HTMLElement | null>(null);
 
-  useEffect(() => {
-    const fetchFeaturedEvents = async () => {
-      try {
-        const userCountry = "Uruguay"; // TODO: Reemplazar con mecanismo real
-        const response = await api.get(`/v1/events/featured?country=${userCountry}`);
-        if (response.data && response.data.data) {
-          setFeaturedEvents(response.data.data);
-        }
-      } catch (error: any) {
-        console.error("Error fetching featured events:", error?.message, error?.config?.url, error?.config?.baseURL);
-      }
-    };
-    fetchFeaturedEvents();
-  const [isLoadingEvents, setIsLoadingEvents] = useState(true);
-  const swimlaneRef = useRef<HTMLElement | null>(null);
-
-  // Fetch featured events from the live backend database
-  useEffect(() => {
-    let isMounted = true;
-    const fetchFeaturedEvents = async () => {
-      try {
-        const res = await api.get("/v1/events/featured");
-        const list = res.data?.data || (Array.isArray(res.data) ? res.data : []);
-        if (isMounted) {
-          setFeaturedEvents(list);
-        }
-      } catch (err) {
+  const { mutate: fetchFeaturedEvents, isLoading: isLoadingEvents } = useMutation<Event[], void>(
+    async () => {
+      const res = await api.get("/v1/events/featured");
+      return res.data?.data || (Array.isArray(res.data) ? res.data : []);
+    },
+    {
+      onSuccess: (data) => setFeaturedEvents(data),
+      onError: (err) => {
         console.error("Error fetching featured events from live backend:", err);
-        if (isMounted) {
-          setFeaturedEvents([]);
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoadingEvents(false);
-        }
-      }
-    };
+        setFeaturedEvents([]);
+      },
+    }
+  );
 
-    fetchFeaturedEvents();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  useEffect(() => {
+    void fetchFeaturedEvents().catch(() => undefined);
+  }, [fetchFeaturedEvents]);
 
   const filterOptions: FilterOption[] = [
     { id: "all", label: "Todos", icon: Globe, count: MOCK_POSTS.length },
