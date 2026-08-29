@@ -20,6 +20,7 @@ import { EventCard } from "@/components/ui/EventCard";
 import { Button } from "@/components/ui/Button";
 import { useMutation } from "@/hooks/useMutation";
 import { api } from "@/lib/api";
+import { eventsApi } from "@/services/events";
 import { cn } from "@/lib/utils";
 import type { Event, EventFilters, EventListResponse } from "@/types/events";
 
@@ -90,10 +91,8 @@ export default function EventsPage() {
     error: eventsError,
   } = useMutation<EventListResponse, LoadVariables>(
     async ({ filters, offset }) => {
-      const response = await api.get<EventListResponse>("/v1/events", {
-        params: toQueryParams(filters, offset),
-      });
-      return response.data;
+      const response = await eventsApi.getEvents(toQueryParams(filters, offset));
+      return response;
     },
     {
       onSuccess: (response, variables) => {

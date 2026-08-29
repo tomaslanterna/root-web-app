@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Loader2, Mail, Lock, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
-import { api } from '@/lib/api';
+import { authApi } from '@/services/auth';
 import { useMutation } from '@/hooks/useMutation';
 
 export default function LoginPage() {
@@ -31,7 +31,7 @@ export default function LoginPage() {
 
   const { mutate: loginMutate } = useMutation(
     async (credentials: any) => {
-      const response = await api.post('/v1/auth/login', credentials);
+      const response = await authApi.login(credentials);
       return response.data;
     },
     {
@@ -62,7 +62,7 @@ export default function LoginPage() {
 
   const { mutate: googleAuthMutate } = useMutation(
     async (idToken: string) => {
-      const response = await api.post('/v1/auth/google', { idToken });
+      const response = await authApi.googleLogin(idToken);
       return response.data;
     },
     {

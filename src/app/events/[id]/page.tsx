@@ -17,6 +17,7 @@ import { EventAttendanceVote } from "@/components/ui/EventAttendanceVote";
 import { Button } from "@/components/ui/Button";
 import { useMutation } from "@/hooks/useMutation";
 import { api } from "@/lib/api";
+import { eventsApi } from "@/services/events";
 import type { Event, RSVPResponse } from "@/types/events";
 
 const fallbackBanner =
@@ -33,8 +34,8 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     isLoading: isLoadingEvent,
   } = useMutation<Event, string>(
     async (id) => {
-      const response = await api.get<Event>(`/v1/events/${id}`);
-      return response.data;
+      const response = await eventsApi.getEventById(id);
+      return response;
     },
     {
       onSuccess: (response) => {

@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Ticket, Search, Plus, Filter, ShieldCheck, ChevronRight, Loader2, X } from "lucide-react";
-import { api } from "@/lib/api";
+import { transfersApi } from "@/services/transfers";
 import { Modal, AlertModal, ConfirmModal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
+import { useTransfers } from "@/hooks/useTransfers";
 
 export default function TransfersPage() {
   const router = useRouter();
@@ -15,62 +16,32 @@ export default function TransfersPage() {
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<"explorar" | "mis-ofertas">("explorar");
   
-  const [transfers, setTransfers] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { transfers, isLoading, createTransfer, isCreating, startDeal, isStartingDeal } = useTransfers(activeTab);
   
   // Create Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newEventId, setNewEventId] = useState("");
   const [newPrice, setNewPrice] = useState("");
-  const [isCreating, setIsCreating] = useState(false);
   // Modal States
   const [alertConfig, setAlertConfig] = useState({ isOpen: false, title: "", message: "" });
 
 
   const showAlert = (title: string, message: string) => setAlertConfig({ isOpen: true, title, message });
 
-
-  const fetchTransfers = async () => {
-    setIsLoading(true);
-    try {
-      const url = activeTab === "explorar" ? "/v1/transfers?status=AVAILABLE" : "/v1/transfers";
-      const res = await api.get(url);
-      
-      let data = res.data || [];
-      // Si es mis-ofertas, filtrar por el usuario
-      if (activeTab === "mis-ofertas" && user) {
-        data = data.filter((t: any) => t.seller_id === user.id || t.buyer_id === user.id);
-      }
-      setTransfers(data);
-    } catch (error) {
-      console.error("Error fetching transfers:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchTransfers();
-  }, [activeTab, user]);
-
   const handleCreateTransfer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newEventId || !newPrice) return;
-    setIsCreating(true);
     try {
-      await api.post("/v1/transfers", {
+      await createTransfer({
         event_id: newEventId,
         price: parseFloat(newPrice),
       });
       setIsModalOpen(false);
       setNewEventId("");
       setNewPrice("");
-      fetchTransfers(); // recargar
     } catch (error) {
       console.error("Error creating transfer", error);
       showAlert("Error", "Hubo un error al crear el transfer");
-    } finally {
-      setIsCreating(false);
     }
   };
 
@@ -79,7 +50,6 @@ export default function TransfersPage() {
   );
 
   const [selectedTransfer, setSelectedTransfer] = useState<any>(null);
-  const [isStartingDeal, setIsStartingDeal] = useState(false);
 
   const handleTransferClick = (transfer: any) => {
     if (transfer.seller_id === user?.id || transfer.buyer_id === user?.id) {
@@ -94,9 +64,8 @@ export default function TransfersPage() {
 
   const confirmStartDeal = async () => {
     if (!selectedTransfer) return;
-    setIsStartingDeal(true);
     try {
-      await api.post(`/v1/transfers/${selectedTransfer.id}/start-deal`);
+      await startDeal(selectedTransfer.id);
       router.push(`/transfers/${selectedTransfer.id}`);
       setSelectedTransfer(null);
     } catch (error: any) {
@@ -105,9 +74,6 @@ export default function TransfersPage() {
       } else {
         showAlert("Error", "Error al intentar iniciar trato.");
       }
-      fetchTransfers();
-    } finally {
-      setIsStartingDeal(false);
     }
   };
 

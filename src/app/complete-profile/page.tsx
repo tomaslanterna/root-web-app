@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { useMutation } from '@/hooks/useMutation';
-import { api } from '@/lib/api';
+import { usersApi } from '@/services/users';
 import { Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { TopNav } from '@/components/ui/TopNav';
 
@@ -52,8 +52,8 @@ export default function CompleteProfilePage() {
          setAliasStatus('valid');
          return;
       }
-      const res = await api.get(`/v1/users/check-username?username=${formData.username}`);
-      if (res.data.available) {
+      const res = await usersApi.checkUsername(formData.username);
+      if (res.available) {
         setAliasStatus('valid');
       } else {
         setAliasStatus('invalid');
@@ -65,8 +65,8 @@ export default function CompleteProfilePage() {
 
   const { mutate: updateProfile, isLoading } = useMutation(
     async (data: typeof formData) => {
-      const response = await api.put('/v1/users/me', data);
-      return response.data;
+      const response = await usersApi.updateMe(data);
+      return response;
     },
     {
       onSuccess: (updatedUser) => {

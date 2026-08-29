@@ -20,7 +20,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
-import { api } from '@/lib/api';
+import { authApi } from '@/services/auth';
+import { usersApi } from '@/services/users';
 import { useMutation } from '@/hooks/useMutation';
 import { useAuth } from '@/context/AuthContext';
 
@@ -60,8 +61,8 @@ export default function RegisterPage() {
     setAliasStatus('loading');
     
     try {
-      const res = await api.get(`/v1/users/check-username?username=${formData.alias}`);
-      if (res.data.available) {
+      const res = await usersApi.checkUsername(formData.alias);
+      if (res.available) {
         setAliasStatus('valid');
       } else {
         setAliasStatus('invalid');
@@ -73,8 +74,8 @@ export default function RegisterPage() {
 
   const { mutate: googleAuthMutate } = useMutation(
     async (idToken: string) => {
-      const response = await api.post('/v1/auth/google', { idToken });
-      return response.data;
+      const response = await authApi.googleLogin(idToken);
+      return response;
     },
     {
       onSuccess: (data) => {
@@ -102,8 +103,8 @@ export default function RegisterPage() {
 
   const { mutate: registerMutate } = useMutation(
     async (registerData: any) => {
-      const response = await api.post('/v1/auth/register', registerData);
-      return response.data;
+      const response = await authApi.register(registerData);
+      return response;
     },
     {
       onSuccess: () => {

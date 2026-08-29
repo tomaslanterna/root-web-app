@@ -28,7 +28,10 @@ The application is built with **Next.js** (App Router) and **TypeScript**.
 
 ## AI Agent Instructions
 - **Architecture:** Keep UI components under `src/components/match/` or `src/components/kyc/` and pages under `src/app/match/`, `src/app/chat/`, or `src/app/kyc/`.
-- **API Requests:** Always use the custom `useMutation` hook (`src/hooks/useMutation.ts`) and the `api` Axios instance (`src/lib/api.ts`) for all network requests. Do not use raw `fetch()`.
+- **API Requests & Data Fetching (Services Architecture):** 
+  - **Services:** All raw API requests must be defined as pure asynchronous functions inside domain-specific service files in `src/services/` (e.g., `transfers.ts`, `auth.ts`, `chat.ts`). Do NOT use `api.get` or `api.post` directly inside React components.
+  - **Hooks:** Create and use domain-specific custom hooks in `src/hooks/` (e.g., `useTransfers.ts`, `useChat.ts`) to encapsulate state management, polling, and data fetching logic.
+  - **Mutations:** Inside these hooks (or components when applicable), use the custom `useMutation` hook (`src/hooks/useMutation.ts`) wrapping the service methods. Components should only consume data and mutation triggers from custom hooks, staying completely agnostic of HTTP details.
 - **Media Uploads:** Compress and convert all user-uploaded images to JPEG via HTML5 Canvas before sending them to the backend to save bandwidth and ensure format compatibility with AI models.
 - **Typing:** Strictly type all components using interfaces such as `UserVibeProfile`, `EventSwipeAction`, `EventSquad`, and `SquadMember`.
 - **Aesthetics:** Adhere to "Function-Driven Design", prioritize visual excellence, avoid dashboard-overuse and cliché tropes (no purple on dark, no grid backgrounds). Keep it minimal but premium.

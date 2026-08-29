@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Camera, Upload, CheckCircle2, XCircle, Loader2, ScanFace, ArrowRight, RefreshCcw } from 'lucide-react';
 
-import { api } from '@/lib/api';
+import { kycApi } from '@/services/kyc';
 import { useMutation } from '@/hooks/useMutation';
 import { useAuth } from '@/context/AuthContext';
 
@@ -32,8 +32,7 @@ export default function KycFlow() {
   // --- Mutations ---
   const { mutate: createSession } = useMutation(
     async () => {
-      // Send the logged-in user's ID
-      const { data } = await api.post('/v1/kyc/sessions', { userId: user?.id });
+      const data = await kycApi.createSession(user?.id as string);
       return data;
     },
     {
@@ -49,7 +48,7 @@ export default function KycFlow() {
     async ({ id, blob }: { id: string; blob: Blob }) => {
       const formData = new FormData();
       formData.append('faceMedia', blob, 'face.jpg');
-      const { data } = await api.post(`/v1/kyc/sessions/${id}/face`, formData);
+      const data = await kycApi.uploadFace(id, formData);
       return data;
     }
   );
@@ -58,14 +57,14 @@ export default function KycFlow() {
     async ({ id, docStep, file }: { id: string; docStep: Step; file: File }) => {
       const formData = new FormData();
       formData.append(docStep === 'DOC_FRONT' ? 'frontImage' : 'backImage', file);
-      const { data } = await api.post(`/v1/kyc/sessions/${id}/document`, formData);
+      const data = await kycApi.uploadDocument(id, formData);
       return data;
     }
   );
 
   const { mutate: submitSession } = useMutation(
     async (id: string) => {
-      const { data } = await api.post(`/v1/kyc/sessions/${id}/submit`);
+      const data = await kycApi.submitSession(id);
       return data;
     },
     {

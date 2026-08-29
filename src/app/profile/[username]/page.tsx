@@ -12,7 +12,7 @@ import { PostCard } from "@/components/ui/PostCard";
 import { EventCard } from "@/components/ui/EventCard";
 import { CommunityList } from "@/components/communities/CommunityList";
 import { cn } from "@/lib/utils";
-import { api } from "@/lib/api";
+import { usersApi } from "@/services/users";
 import { useMutation } from "@/hooks/useMutation";
 
 export default function UserProfilePage() {
@@ -37,10 +37,10 @@ export default function UserProfilePage() {
     const fetchProfile = async () => {
       try {
         setIsLoadingProfile(true);
-        const res = await api.get(`/v1/users/${username}`);
-        setProfileUser(res.data.user);
-        setIsFollowing(res.data.isFollowing);
-        if (res.data.user.role === 'RRPP') {
+        const data = await usersApi.getUserProfile(username);
+        setProfileUser(data.user);
+        setIsFollowing(data.isFollowing);
+        if (data.user.role === 'RRPP') {
           setActiveTab("Posts"); // Default to Posts for RRPP
         }
       } catch (err) {
@@ -56,7 +56,7 @@ export default function UserProfilePage() {
 
   const { mutate: followMutate, isLoading: isFollowingLoading } = useMutation(
     async () => {
-      await api.post(`/v1/users/${username}/follow`);
+      await usersApi.followUser(username);
     },
     {
       onSuccess: () => {
@@ -68,7 +68,7 @@ export default function UserProfilePage() {
 
   const { mutate: unfollowMutate, isLoading: isUnfollowingLoading } = useMutation(
     async () => {
-      await api.delete(`/v1/users/${username}/follow`);
+      await usersApi.unfollowUser(username);
     },
     {
       onSuccess: () => {
@@ -185,8 +185,8 @@ export default function UserProfilePage() {
             <Button 
               onClick={async () => {
                 try {
-                  const res = await api.post("/v1/chats/direct", { target_user_id: profileUser.id });
-                  router.push(`/chat/${res.data.id}`);
+                  const data = await usersApi.createDirectChat(profileUser.id);
+                  router.push(`/chat/${data.id}`);
                 } catch (err) {
                   console.error("Error creating chat", err);
                 }

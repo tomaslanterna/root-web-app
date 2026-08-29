@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { api } from '@/lib/api';
+import { chatApi } from '@/services/chat';
 
 export type MessageType = 'text' | 'image' | 'system';
 
@@ -24,13 +24,7 @@ export function useChat(chatId: string | undefined) {
     if (!chatId) return;
 
     try {
-      let url = `/v1/chats/${chatId}/messages`;
-      if (lastTimestampRef.current) {
-        url += `?after_timestamp=${encodeURIComponent(lastTimestampRef.current)}`;
-      }
-
-      const res = await api.get(url);
-      const newMessages: ChatMessage[] = res.data;
+      const newMessages: ChatMessage[] = await chatApi.getMessages(chatId, lastTimestampRef.current);
 
       if (newMessages.length > 0) {
         // Update the last timestamp
@@ -101,12 +95,10 @@ export function useChat(chatId: string | undefined) {
     setMessages((prev) => [...prev, optimisticMsg]);
 
     try {
-      const res = await api.post(`/v1/chats/${chatId}/messages`, {
+      const realMsg: ChatMessage = await chatApi.sendMessage(chatId, {
         content,
         type,
       });
-      
-      const realMsg: ChatMessage = res.data;
       
       // Update lastTimestamp if this is the newest message
       if (!lastTimestampRef.current || realMsg.timestamp > lastTimestampRef.current) {

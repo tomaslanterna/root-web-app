@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ChevronLeft, ShieldCheck, Ticket, Send, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
+import { transfersApi } from "@/services/transfers";
 import { useAuth } from "@/context/AuthContext";
 import { useChat } from "@/hooks/useChat";
 
@@ -25,8 +26,8 @@ export default function TransferDealRoomPage({ params }: { params: Promise<{ id:
   useEffect(() => {
     const fetchTransfer = async () => {
       try {
-        const res = await api.get(`/v1/transfers/${transferId}`);
-        setTransfer(res.data);
+        const data = await transfersApi.getTransferById(transferId);
+        setTransfer(data);
       } catch (err) {
         console.error("Error fetching deal", err);
       } finally {
@@ -83,7 +84,7 @@ export default function TransferDealRoomPage({ params }: { params: Promise<{ id:
 
   const updateStatus = async (status: string) => {
     try {
-      await api.patch(`/v1/transfers/${transferId}/status`, { status });
+      await transfersApi.updateTransferStatus(transferId, status);
       setTransfer((prev: any) => ({ ...prev, status }));
       setIsConfirming(false);
       // Force refresh messages to show the new system message immediately
