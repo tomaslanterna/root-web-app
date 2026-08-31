@@ -32,7 +32,7 @@ export default function LoginPage() {
   const { mutate: loginMutate } = useMutation(
     async (credentials: any) => {
       const response = await authApi.login(credentials);
-      return response.data;
+      return response;
     },
     {
       onSuccess: handleLoginSuccess,
@@ -63,7 +63,7 @@ export default function LoginPage() {
   const { mutate: googleAuthMutate } = useMutation(
     async (idToken: string) => {
       const response = await authApi.googleLogin(idToken);
-      return response.data;
+      return response;
     },
     {
       onSuccess: handleLoginSuccess,

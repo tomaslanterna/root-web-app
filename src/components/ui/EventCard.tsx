@@ -33,7 +33,7 @@ export function EventCard({ event, variant = "swimlane", className }: EventCardP
       href={`/events/${event.id}`}
       className={cn(
         "block select-none transition-all duration-300 active:scale-[0.98]",
-        isSwimlane ? "w-44 shrink-0 snap-start sm:w-48" : "w-full",
+        isSwimlane ? "w-[260px] sm:w-[280px] shrink-0 snap-start" : "w-full",
         className,
       )}
     >
