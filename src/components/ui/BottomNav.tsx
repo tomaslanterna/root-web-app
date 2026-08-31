@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Home, Calendar, Ticket, MessageSquare, User } from "lucide-react";
@@ -19,7 +20,14 @@ export function BottomNav() {
   const searchParams = useSearchParams();
   const { user } = useAuth();
   
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   if (
+    !mounted ||
     pathname === "/register" ||
     pathname === "/search" ||
     pathname.startsWith("/transfers/") ||

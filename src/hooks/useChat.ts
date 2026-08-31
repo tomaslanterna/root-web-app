@@ -26,7 +26,7 @@ export function useChat(chatId: string | undefined) {
     try {
       const newMessages: ChatMessage[] = await chatApi.getMessages(chatId, lastTimestampRef.current);
 
-      if (newMessages.length > 0) {
+      if (newMessages && newMessages.length > 0) {
         // Update the last timestamp
         const latestMsg = newMessages[newMessages.length - 1];
         lastTimestampRef.current = latestMsg.timestamp;
