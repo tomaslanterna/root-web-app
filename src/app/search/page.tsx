@@ -1,125 +1,117 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
-import { ChevronLeft, Search, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { api } from "@/lib/api";
-import { PostCard } from "@/components/ui/PostCard";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ChevronLeft, Loader2, Search } from "lucide-react";
+import { Avatar } from "@/components/ui/Avatar";
 import { EventCard } from "@/components/ui/EventCard";
-import { MOCK_POSTS, MOCK_EVENTS } from "@/lib/mocks"; // fallback
+import { PostCard } from "@/components/ui/PostCard";
+import { useSearch, type SearchTab } from "@/hooks/useSearch";
+import type { Post } from "@/lib/mocks";
+import { cn } from "@/lib/utils";
+import type { SearchUser } from "@/services/search";
+import type { Event } from "@/types/events";
 
-type TabType = "usuarios" | "eventos" | "posteos";
+const tabs: { id: SearchTab; label: string }[] = [
+  { id: "usuarios", label: "Usuarios" },
+  { id: "eventos", label: "Eventos" },
+  { id: "posteos", label: "Posteos" },
+];
 
-export default function SearchPage() {
+function parseTab(value: string | null): SearchTab {
+  return tabs.some((tab) => tab.id === value) ? (value as SearchTab) : "usuarios";
+}
+
+function updateSearchUrl(query: string, tab: SearchTab) {
+  const params = new URLSearchParams(window.location.search);
+  if (query.trim()) {
+    params.set("q", query);
+  } else {
+    params.delete("q");
+  }
+
+  if (tab === "usuarios") {
+    params.delete("tab");
+  } else {
+    params.set("tab", tab);
+  }
+
+  const nextUrl = params.size > 0 ? `/search?${params.toString()}` : "/search";
+  window.history.replaceState(null, "", nextUrl);
+}
+
+function SearchPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const inputRef = useRef<HTMLInputElement>(null);
-  
-  const [query, setQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<TabType>("usuarios");
-  const [results, setResults] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [query, setQuery] = useState(() => searchParams.get("q") ?? "");
+  const [activeTab, setActiveTab] = useState<SearchTab>(() => parseTab(searchParams.get("tab")));
+  const { results, isLoading } = useSearch(query, activeTab);
 
-  const tabs: { id: TabType; label: string }[] = [
-    { id: "usuarios", label: "Usuarios" },
-    { id: "eventos", label: "Eventos" },
-    { id: "posteos", label: "Posteos" },
-  ];
-
-  // Auto focus input on mount
   useEffect(() => {
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
+    inputRef.current?.focus();
   }, []);
 
-  // Debounce the query
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedQuery(query);
-    }, 500);
-    return () => clearTimeout(handler);
-  }, [query]);
+  const changeQuery = (nextQuery: string) => {
+    setQuery(nextQuery);
+    updateSearchUrl(nextQuery, activeTab);
+  };
 
-  // Perform search
-  useEffect(() => {
-    if (!debouncedQuery.trim()) {
-      setResults([]);
-      return;
-    }
+  const changeTab = (nextTab: SearchTab) => {
+    setActiveTab(nextTab);
+    updateSearchUrl(query, nextTab);
+  };
 
-    const fetchSearch = async () => {
-      setIsLoading(true);
-      
-      const typeMap: Record<TabType, string> = {
-        "usuarios": "USER",
-        "eventos": "EVENT",
-        "posteos": "POST"
-      };
-
-      try {
-        const response = await api.post("/v1/search", {
-          query: debouncedQuery,
-          type: typeMap[activeTab],
-          country: "AR"
-        });
-        setResults(response.data.results || []);
-      } catch (err) {
-        console.error("Search error", err);
-        // Fallback for mocked view until backend is ready
-        setResults([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchSearch();
-  }, [debouncedQuery, activeTab]);
+  const hasQuery = query.trim().length > 0;
 
   return (
-    <div className="flex flex-col min-h-[100dvh] bg-[#0B0D10] text-white">
-      {/* Search Header */}
-      <header className="sticky top-0 z-40 bg-[#0B0D10]/95 backdrop-blur-xl border-b border-white/10 px-4 py-3">
+    <div className="flex min-h-[100dvh] flex-col bg-[#0B0D10] text-white">
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#0B0D10]/95 px-4 py-3 backdrop-blur-xl">
         <div className="flex items-center gap-3">
-          <button 
+          <button
+            type="button"
+            aria-label="Volver"
             onClick={() => router.back()}
-            className="p-2 rounded-full hover:bg-white/10 transition-colors"
+            className="rounded-full p-2 transition-colors hover:bg-white/10"
           >
-            <ChevronLeft className="w-5 h-5 text-neutral-300" />
+            <ChevronLeft className="h-5 w-5 text-neutral-300" />
           </button>
-          
-          <div className="flex-1 bg-[#14171F] rounded-xl flex items-center px-3 py-2.5 border border-white/5 focus-within:border-[#D4FF00]/50 transition-colors">
-            <Search className="w-4 h-4 text-neutral-500 mr-2" />
+
+          <div className="flex flex-1 items-center rounded-xl border border-white/5 bg-[#14171F] px-3 py-2.5 transition-colors focus-within:border-[#D4FF00]/50">
+            <Search className="mr-2 h-4 w-4 text-neutral-500" />
             <input
               ref={inputRef}
-              type="text"
+              type="search"
               placeholder="Buscar..."
-              className="bg-transparent border-none outline-none w-full text-sm font-semibold text-white placeholder-neutral-500"
+              className="w-full border-none bg-transparent text-sm font-semibold text-white outline-none placeholder:text-neutral-500"
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(event) => changeQuery(event.target.value)}
             />
             {query && (
-              <button onClick={() => setQuery("")} className="p-1 rounded-full hover:bg-white/10 ml-2">
-                <span className="text-xs text-neutral-400 font-bold uppercase">Limpiar</span>
+              <button
+                type="button"
+                onClick={() => changeQuery("")}
+                className="ml-2 rounded-full p-1 hover:bg-white/10"
+              >
+                <span className="text-xs font-bold uppercase text-neutral-400">Limpiar</span>
               </button>
             )}
           </div>
         </div>
       </header>
 
-      {/* Tabs */}
-      <div className="sticky top-[68px] z-30 bg-[#0B0D10]/95 backdrop-blur-xl border-b border-white/10 px-4">
+      <div className="sticky top-[68px] z-30 border-b border-white/10 bg-[#0B0D10]/95 px-4 backdrop-blur-xl">
         <div className="flex space-x-1 p-1">
           {tabs.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              type="button"
+              onClick={() => changeTab(tab.id)}
               className={cn(
-                "flex-1 py-3 text-xs font-black uppercase tracking-wider transition-all border-b-2 rounded-t-lg hover:bg-white/5",
+                "flex-1 rounded-t-lg border-b-2 py-3 text-xs font-black uppercase tracking-wider transition-all hover:bg-white/5",
                 activeTab === tab.id
                   ? "border-[#D4FF00] text-[#D4FF00]"
-                  : "border-transparent text-neutral-500 hover:text-neutral-300"
+                  : "border-transparent text-neutral-500 hover:text-neutral-300",
               )}
             >
               {tab.label}
@@ -128,59 +120,72 @@ export default function SearchPage() {
         </div>
       </div>
 
-      {/* Results Content */}
-      <div className="flex-1 p-4 space-y-4">
+      <div className="flex-1 space-y-4 p-4">
         {isLoading && (
           <div className="flex justify-center p-8">
-            <Loader2 className="w-6 h-6 animate-spin text-[#D4FF00]" />
+            <Loader2 className="h-6 w-6 animate-spin text-[#D4FF00]" />
           </div>
         )}
 
-        {!isLoading && debouncedQuery && results.length === 0 && (
-          <div className="text-center p-8 text-neutral-500">
+        {!isLoading && hasQuery && results.length === 0 && (
+          <div className="p-8 text-center text-neutral-500">
             <p className="text-sm font-bold uppercase tracking-wider">No se encontraron resultados</p>
           </div>
         )}
 
-        {!isLoading && debouncedQuery && results.length > 0 && (
+        {!isLoading && hasQuery && results.length > 0 && (
           <div className="space-y-4 pb-20">
-            {activeTab === "usuarios" && results.map((user: any) => (
-              <div 
-                key={user.id} 
-                onClick={() => router.push(`/profile/${user.username}?from=search`)}
-                className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors cursor-pointer border border-transparent hover:border-white/10"
-              >
-                <div className="w-12 h-12 rounded-full overflow-hidden bg-neutral-800">
-                  {user.avatarUrl ? (
-                    <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-lg font-bold">{user.name?.charAt(0)}</div>
-                  )}
-                </div>
-                <div>
-                  <h3 className="font-bold text-white leading-tight">{user.name}</h3>
-                  <p className="text-xs text-neutral-400 font-semibold tracking-wide">@{user.username}</p>
-                </div>
-              </div>
-            ))}
+            {activeTab === "usuarios" &&
+              (results as SearchUser[]).map((user) => (
+                <button
+                  type="button"
+                  key={user.id}
+                  onClick={() => router.push(`/profile/${user.username}?from=search`)}
+                  className="flex w-full cursor-pointer items-center gap-3 rounded-xl border border-transparent p-3 text-left transition-colors hover:border-white/10 hover:bg-white/5"
+                >
+                  <Avatar src={user.avatarUrl} fallback={user.name} size="md" />
+                  <span>
+                    <span className="block font-bold leading-tight text-white">{user.name}</span>
+                    <span className="block text-xs font-semibold tracking-wide text-neutral-400">
+                      @{user.username}
+                    </span>
+                  </span>
+                </button>
+              ))}
 
-            {activeTab === "eventos" && results.map((event: any) => (
-              <EventCard key={event.id} event={event} variant="full" />
-            ))}
+            {activeTab === "eventos" &&
+              (results as Event[]).map((event) => (
+                <EventCard key={event.id} event={event} variant="full" />
+              ))}
 
-            {activeTab === "posteos" && results.map((post: any) => (
-              <PostCard key={post.id} post={post} variant="electronic" />
-            ))}
+            {activeTab === "posteos" &&
+              (results as Post[]).map((post) => (
+                <PostCard key={post.id} post={post} variant="electronic" />
+              ))}
           </div>
         )}
 
-        {!debouncedQuery && (
-          <div className="text-center p-8 text-neutral-600">
-            <Search className="w-10 h-10 mx-auto mb-3 opacity-20" />
+        {!hasQuery && (
+          <div className="p-8 text-center text-neutral-600">
+            <Search className="mx-auto mb-3 h-10 w-10 opacity-20" />
             <p className="text-xs font-bold uppercase tracking-wider">Empieza a escribir para buscar</p>
           </div>
         )}
       </div>
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-[100dvh] items-center justify-center bg-[#0B0D10]">
+          <Loader2 className="h-6 w-6 animate-spin text-[#D4FF00]" />
+        </div>
+      }
+    >
+      <SearchPageContent />
+    </Suspense>
   );
 }

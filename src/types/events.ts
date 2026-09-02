@@ -56,7 +56,7 @@ export interface RSVPResponse {
   success: boolean;
   goingCount: number;
   notGoingCount: number;
-  userRsvp: EventRSVPStatus;
+  userRsvp: EventRSVPStatus | null;
 }
 
 export interface EventFilters {

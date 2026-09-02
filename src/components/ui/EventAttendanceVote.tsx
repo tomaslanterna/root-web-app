@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { CheckCircle2, LogIn, XCircle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useMutation } from "@/hooks/useMutation";
-import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { eventsApi } from "@/services/events";
 import type { EventRSVPStatus, RSVPResponse } from "@/types/events";
 
 interface EventAttendanceVoteProps {
@@ -31,11 +31,11 @@ export function EventAttendanceVote({
   const [status, setStatus] = useState<EventRSVPStatus | null>(initialStatus);
   const [showLogin, setShowLogin] = useState(false);
 
-  const rsvp = useMutation<RSVPResponse, EventRSVPStatus>(async (nextStatus) => {
-    const response = await api.post<RSVPResponse>(`/v1/events/${eventId}/rsvp`, {
-      status: nextStatus,
-    });
-    return response.data;
+  const rsvp = useMutation<RSVPResponse, EventRSVPStatus | null>(async (nextStatus) => {
+    if (nextStatus === null) {
+      return eventsApi.clearEventRsvp(eventId);
+    }
+    return eventsApi.rsvpEvent(eventId, nextStatus);
   }, {
     onSuccess: (response) => {
       setGoingCount(response.goingCount);
@@ -50,8 +50,8 @@ export function EventAttendanceVote({
       setShowLogin(true);
       return;
     }
-    if (!rsvp.isLoading && status !== nextStatus) {
-      void rsvp.mutate(nextStatus).catch(() => undefined);
+    if (!rsvp.isLoading) {
+      void rsvp.mutate(status === nextStatus ? null : nextStatus).catch(() => undefined);
     }
   };
 
@@ -62,6 +62,7 @@ export function EventAttendanceVote({
           type="button"
           onClick={() => selectStatus("going")}
           disabled={rsvp.isLoading}
+          aria-pressed={status === "going"}
           className={cn(
             "flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-xs font-black uppercase tracking-wider transition-all",
             status === "going"
@@ -75,6 +76,7 @@ export function EventAttendanceVote({
           type="button"
           onClick={() => selectStatus("not_going")}
           disabled={rsvp.isLoading}
+          aria-pressed={status === "not_going"}
           className={cn(
             "flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-xs font-black uppercase tracking-wider transition-all",
             status === "not_going"

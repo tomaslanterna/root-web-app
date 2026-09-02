@@ -59,6 +59,10 @@ Se estiman entre **20 y 25 endpoints principales** para cubrir la funcionalidad 
   - El usuario se obtiene exclusivamente del JWT. Campos adicionales como `userId` son rechazados.
   - **Response (200 OK)**: `{ "success": true, "goingCount": 185, "notGoingCount": 46, "userRsvp": "going" }`
 
+- `DELETE /v1/events/:id/rsvp` (Quitar la respuesta activa del usuario autenticado).
+  - No requiere body y es idempotente: si no había selección, los contadores no cambian.
+  - **Response (200 OK)**: `{ "success": true, "goingCount": 184, "notGoingCount": 46, "userRsvp": null }`
+
 - `GET /v1/events/:id/attendees/followed?limit=20&offset=0` (Personas que el usuario autenticado sigue y marcaron `going`).
   - La restricción se aplica en PostgreSQL mediante `users.following`; nunca devuelve asistentes no seguidos.
   - **Response (200 OK)**: `{ "data": [ { "id": "u2", "name": "Alex", "username": "alex", "avatarUrl": "https://...", "isKycVerified": true } ], "meta": { "total": 1, "limit": 20, "offset": 0, "hasMore": false } }`

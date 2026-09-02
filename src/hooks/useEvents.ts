@@ -1,75 +1,66 @@
-import { useState, useCallback, useEffect } from "react";
-import { eventsApi } from "@/services/events";
-import { useMutation } from "@/hooks/useMutation";
+import { useCallback, useEffect, useMemo } from "react";
+import { eventsApi, type EventQueryParams } from "@/services/events";
+import type { Event, EventListResponse } from "@/types/events";
+import { useMutation } from "./useMutation";
 
-export function useEvents(params?: Record<string, any>) {
-  const [events, setEvents] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+export function useEvents(params?: EventQueryParams) {
+  const serializedParams = JSON.stringify(params ?? {});
+  const stableParams = useMemo<EventQueryParams>(
+    () => JSON.parse(serializedParams) as EventQueryParams,
+    [serializedParams],
+  );
+  const { mutate, data, error, isLoading } = useMutation<EventListResponse, EventQueryParams>(
+    eventsApi.getEvents,
+  );
 
-  const fetchEvents = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const data = await eventsApi.getEvents(params);
-      setEvents(data.events || []);
-    } catch (error) {
-      console.error("Error fetching events:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [JSON.stringify(params)]);
+  const fetchEvents = useCallback(() => mutate(stableParams), [mutate, stableParams]);
 
   useEffect(() => {
-    fetchEvents();
-  }, [fetchEvents]);
+    void mutate(stableParams).catch(() => undefined);
+  }, [mutate, stableParams]);
 
-  return { events, isLoading, fetchEvents };
+  return {
+    events: data?.data ?? [],
+    isLoading: isLoading || (data === undefined && error === null),
+    error,
+    fetchEvents,
+  };
 }
 
 export function useEvent(id: string) {
-  const [event, setEvent] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const { mutate, data, error, isLoading } = useMutation<Event, string>(eventsApi.getEventById);
 
-  const fetchEvent = useCallback(async () => {
-    if (!id) return;
-    setIsLoading(true);
-    try {
-      const data = await eventsApi.getEventById(id);
-      setEvent(data);
-    } catch (err: any) {
-      setError(err);
-      console.error("Error fetching event:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [id]);
+  const fetchEvent = useCallback(() => mutate(id), [id, mutate]);
 
   useEffect(() => {
-    fetchEvent();
-  }, [fetchEvent]);
+    if (id) {
+      void mutate(id).catch(() => undefined);
+    }
+  }, [id, mutate]);
 
-  return { event, isLoading, error, fetchEvent, setEvent };
+  return {
+    event: data ?? null,
+    isLoading: isLoading || (Boolean(id) && data === undefined && error === null),
+    error,
+    fetchEvent,
+  };
 }
 
 export function useFeaturedEvents() {
-  const [events, setEvents] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { mutate, data, error, isLoading } = useMutation<Event[], void>(() =>
+    eventsApi.getFeaturedEvents(),
+  );
 
-  const fetchFeaturedEvents = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const data = await eventsApi.getFeaturedEvents();
-      setEvents(data);
-    } catch (error) {
-      console.error("Error fetching featured events:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const fetchFeaturedEvents = useCallback(() => mutate(), [mutate]);
 
   useEffect(() => {
-    fetchFeaturedEvents();
-  }, [fetchFeaturedEvents]);
+    void mutate().catch(() => undefined);
+  }, [mutate]);
 
-  return { events, isLoading, fetchFeaturedEvents };
+  return {
+    events: data ?? [],
+    isLoading: isLoading || (data === undefined && error === null),
+    error,
+    fetchFeaturedEvents,
+  };
 }
