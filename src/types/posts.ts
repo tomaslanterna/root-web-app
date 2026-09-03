@@ -8,9 +8,10 @@ export interface Post {
   longContent?: string;
   headerImageUrl?: string;
   timestamp: string;
-  isFeatured: boolean;
+  isFeatured?: boolean;
   authorName?: string;
   authorAvatar?: string;
+  isVerified?: boolean;
   likesCount?: number;
 }
 

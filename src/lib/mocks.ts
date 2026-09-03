@@ -25,7 +25,7 @@ export interface Post {
   longContent?: string;
   headerImageUrl?: string;
   timestamp: string;
-  isFeatured: boolean;
+  isFeatured?: boolean;
   likesCount: number;
   authorName?: string;
   authorAvatar?: string;
