@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Disc3,
@@ -11,6 +12,7 @@ import {
   Sparkles,
   UserCheck,
 } from "lucide-react";
+import { DetailHeader } from "@/components/ui/DetailHeader";
 import { FollowedAttendeesModal } from "@/components/events/FollowedAttendeesModal";
 import { CommentSection } from "@/components/ui/CommentSection";
 import { EventAttendanceVote } from "@/components/ui/EventAttendanceVote";
@@ -24,6 +26,7 @@ const fallbackBanner =
   "https://images.unsplash.com/photo-1514525253344-93168e974686?q=80&w=1200&auto=format&fit=crop";
 
 export default function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const router = useRouter();
   const { id: eventId } = use(params);
   const [event, setEvent] = useState<Event | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
@@ -114,19 +117,9 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
   return (
     <div className="min-h-screen bg-[#0B0D10] pb-28 text-white">
-      <header className="glass-header-obsidian sticky top-0 z-40 flex items-center justify-between px-4 py-3">
-        <Link
-          href="/events"
-          className="flex items-center gap-1 rounded-full border border-white/15 bg-white/10 p-2 text-xs font-bold uppercase text-white transition-all hover:bg-white/20"
-        >
-          <ArrowLeft className="h-4 w-4" /> Eventos
-        </Link>
-        <span className="text-[10px] font-black uppercase tracking-widest text-[#D4FF00]">
-          Cartelera oficial
-        </span>
-      </header>
+      <DetailHeader onBack={() => router.push('/events')} />
 
-      <main className="space-y-6 p-4">
+      <main className="space-y-6 p-4 pt-20">
         <div className="relative mx-auto aspect-[2/3] w-full max-w-sm overflow-hidden rounded-3xl border border-white/15 bg-neutral-950 shadow-2xl">
           <div
             role="img"

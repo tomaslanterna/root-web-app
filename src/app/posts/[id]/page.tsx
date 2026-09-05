@@ -1,123 +1,166 @@
-import { MOCK_POSTS, MOCK_USERS, MOCK_COMMUNITIES, MOCK_EVENTS } from "@/lib/mocks";
+"use client";
+
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, Share2, Heart, Bookmark, MessageCircle, MoreHorizontal } from "lucide-react";
+import { MOCK_POSTS, MOCK_USERS, MOCK_COMMENTS } from "@/lib/mocks";
 import { Avatar } from "@/components/ui/Avatar";
-import { Button } from "@/components/ui/Button";
+import { DetailHeader } from "@/components/ui/DetailHeader";
 import { CommentSection } from "@/components/ui/CommentSection";
-import { ArrowLeft, Sparkles, Users, Calendar } from "lucide-react";
-import Link from "next/link";
+import { cn } from "@/lib/utils";
 
-export default async function PostDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const post = MOCK_POSTS.find((p) => p.id === id);
+import { useMutation } from "@/hooks/useMutation";
 
-  if (!post) {
+export default function PostDetailPage({ params }: { params: Promise<{ id: string }> | { id: string } }) {
+  const router = useRouter();
+  
+  // React.use() to unwrap params if it is a Promise (Next.js 15+)
+  const unwrappedParams = params instanceof Promise ? React.use(params) : params;
+  const id = unwrappedParams.id;
+  
+  const [post, setPost] = useState<any>(null);
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const [liked, setLiked] = useState(false);
+  const [likesCount, setLikesCount] = useState(0);
+
+  const {
+    mutate: fetchPost,
+    isLoading: isLoadingPost,
+  } = useMutation<any, string>(
+    async (postId) => {
+      const { api } = await import("@/lib/api");
+      const response = await api.get(`/v1/posts/${postId}`);
+      return response.data;
+    },
+    {
+      onSuccess: (response) => {
+        setPost(response);
+        setLikesCount(response.likesCount || 0);
+        setHasLoaded(true);
+      },
+      onError: () => setHasLoaded(true),
+    }
+  );
+
+  React.useEffect(() => {
+    void fetchPost(id).catch(() => undefined);
+  }, [id, fetchPost]);
+
+  const handleLike = () => {
+    setLiked(!liked);
+    setLikesCount(liked ? likesCount - 1 : likesCount + 1);
+  };
+
+  if (!hasLoaded && isLoadingPost) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center bg-[#0B0D10] text-white">
-        <p className="text-sm font-bold uppercase text-neutral-400">Publicación no encontrada</p>
-        <Link href="/feed" className="mt-4">
-          <Button variant="outline" size="sm">Volver al Feed</Button>
-        </Link>
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-[#0B0D10] p-6 text-white">
+        <div className="w-8 h-8 border-4 border-[#D4FF00] border-t-transparent rounded-full animate-spin" />
+        <p className="text-xs font-black uppercase tracking-wider text-neutral-400">Cargando post...</p>
       </div>
     );
   }
 
-  const author = MOCK_USERS.find((u) => u.id === post.authorId);
-  const community = MOCK_COMMUNITIES.find((c) => c.id === post.communityId);
-  const relatedEvent = MOCK_EVENTS.find((e) => e.id === post.eventId);
+  if (!post) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#0B0D10] p-6 text-center text-white">
+        <p className="text-sm font-bold uppercase text-neutral-300">No pudimos encontrar el post</p>
+      </div>
+    );
+  }
+
+  // Separa el primer párrafo del resto para la letra capital
+  const paragraphs = post.longContent?.split('\n').filter((p: string) => p.trim() !== '') || [post.content];
+  const firstParagraph = paragraphs[0];
+  const restParagraphs = paragraphs.slice(1);
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#0B0D10] text-white pb-28">
-      {/* Top sticky navigation */}
-      <div className="sticky top-0 z-40 glass-header-obsidian px-4 py-3 flex items-center justify-between">
-        <Link
-          href="/feed"
-          className="p-2 rounded-full bg-white/10 backdrop-blur-md border border-white/15 hover:bg-white/20 active:scale-95 transition-all text-white flex items-center gap-1 text-xs font-bold uppercase"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Volver</span>
-        </Link>
-        
-        {community ? (
-          <Link
-            href={`/communities/${community.id}`}
-            className="text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-[#D4FF00]/15 text-[#D4FF00] border border-[#D4FF00]/30 flex items-center gap-1.5 shadow-sm"
-          >
-            <Users className="w-3 h-3 text-[#D4FF00]" /> {community.name}
-          </Link>
-        ) : (
-          <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400">
-            Artículo General
-          </span>
+    <div className="min-h-screen bg-[#0B0D10] text-white pb-24">
+      {/* 1. Header Fijo/Transparente */}
+      <DetailHeader />
+
+      {/* 2. Hero Section Editorial */}
+      <div className="relative w-full h-[55vh] sm:h-[65vh] bg-neutral-900 overflow-hidden">
+        {post.headerImageUrl && (
+          <img 
+            src={post.headerImageUrl} 
+            alt="Hero cover" 
+            className="w-full h-full object-cover opacity-85"
+          />
         )}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0B0D10] via-[#0B0D10]/40 to-transparent pointer-events-none" />
+        
+        <div className="absolute bottom-0 inset-x-0 px-4 pb-8 max-w-3xl mx-auto">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black uppercase tracking-tight text-white mb-6 leading-[1.1] shadow-black/50 drop-shadow-lg">
+            {post.title || "Sin Título"}
+          </h1>
+          
+          <div className="flex items-center gap-3">
+            <Avatar src={post.authorAvatar} fallback={post.authorName?.charAt(0) || "U"} size="md" className="ring-2 ring-[#D4FF00]/40 shadow-xl" />
+            <div>
+              <p className="text-sm font-bold text-white flex items-center gap-1 drop-shadow-md">
+                {post.authorName || "Autor Desconocido"}
+                {post.isVerified && (
+                  <span className="w-3.5 h-3.5 bg-[#D4FF00] rounded-full flex items-center justify-center">
+                    <svg className="w-2.5 h-2.5 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" /></svg>
+                  </span>
+                )}
+              </p>
+              <p className="text-xs text-neutral-300 font-semibold tracking-wide uppercase drop-shadow-md">
+                {new Date(post.timestamp).toLocaleDateString('es-AR', { year: 'numeric', month: 'long', day: 'numeric' })}
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <article className="p-4 space-y-6 max-w-xl mx-auto w-full">
-        {/* Article Header Image */}
-        {post.headerImageUrl && (
-          <div className="relative w-full aspect-[16/10] sm:aspect-[2/1] rounded-3xl overflow-hidden shadow-lg border border-white/10 bg-neutral-900">
-            <img
-              src={post.headerImageUrl}
-              alt={post.title || "Header image"}
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-neutral-950/80 via-transparent to-transparent" />
-            
-            {relatedEvent && (
-              <Link
-                href={`/events/${relatedEvent.id}`}
-                className="absolute top-4 left-4 px-3 py-1.5 rounded-full bg-neutral-950/80 backdrop-blur-md text-white text-[11px] font-extrabold uppercase tracking-widest border border-white/20 shadow-sm flex items-center gap-1.5"
-              >
-                <Calendar className="w-3.5 h-3.5 text-[#D4FF00]" />
-                <span>{relatedEvent.title}</span>
-              </Link>
-            )}
-          </div>
-        )}
-
-        {/* Title & Metadata */}
-        <div className="space-y-4">
-          <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-white leading-snug">
-            {post.title || post.content.substring(0, 40) + "..."}
-          </h1>
-
-          <div className="flex items-center justify-between pb-4 border-b border-white/10">
-            <div className="flex items-center gap-3">
-              <Avatar
-                src={author?.avatarUrl}
-                fallback={author?.name || "A"}
-                size="md"
-                className="ring-2 ring-[#D4FF00]/40"
-              />
-              <div>
-                <p className="text-xs font-black uppercase tracking-wider text-white">{author?.name}</p>
-                <p className="text-[10px] text-neutral-400 font-semibold uppercase tracking-wider">
-                  {new Date(post.timestamp).toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric" })}
-                </p>
-              </div>
-            </div>
-
-            <span className="text-[10px] font-extrabold uppercase tracking-widest px-3 py-1 rounded-full bg-white/10 text-[#D4FF00] border border-white/10 flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5 text-[#D4FF00]" /> Artículo
-            </span>
-          </div>
-        </div>
-
-        {/* Article Long Body */}
-        <div className="p-5 sm:p-6 rounded-3xl bg-[#14171F] border border-white/10 shadow-lg space-y-4 text-neutral-200 leading-relaxed font-medium text-xs sm:text-sm">
-          <p className="text-sm sm:text-base font-bold text-white leading-relaxed">
-            {post.content}
-          </p>
-
-          {post.longContent && (
-            <div className="space-y-4 pt-2 border-t border-white/10 whitespace-pre-line text-neutral-300">
-              {post.longContent}
-            </div>
+      {/* 3. Experiencia de Lectura */}
+      <main className="px-5 py-8 max-w-2xl mx-auto">
+        <article className="text-neutral-300 leading-[1.8] text-[17px] md:text-lg font-medium tracking-wide">
+          {firstParagraph && (
+            <p className="mb-6 first-letter:text-6xl first-letter:font-black first-letter:text-[#D4FF00] first-letter:mr-3 first-letter:float-left first-line:uppercase first-line:tracking-widest first-line:text-white">
+              {firstParagraph}
+            </p>
           )}
-        </div>
+          {restParagraphs.map((paragraph: string, idx: number) => (
+            <p key={idx} className="mb-6">{paragraph}</p>
+          ))}
+        </article>
 
-        {/* Interactive Comment Section */}
-        <CommentSection targetId={post.id} title="Debate y Comentarios del Artículo" />
-      </article>
+        {/* Divider */}
+        <div className="flex items-center justify-center my-14 gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#D4FF00]"></span>
+          <span className="w-1.5 h-1.5 rounded-full bg-[#D4FF00]/60"></span>
+          <span className="w-1.5 h-1.5 rounded-full bg-[#D4FF00]/30"></span>
+        </div>
+      </main>
+
+      {/* 4. Sección de Comentarios */}
+      <CommentSection 
+        targetId={post.id}
+        title="Comentarios"
+        isMock={false}
+        endpointType="posts"
+        className="px-5"
+      />
+
+      {/* 5. Sticky Bottom Action Bar */}
+      <div className="fixed bottom-0 inset-x-0 bg-[#0B0D10]/80 backdrop-blur-xl border-t border-white/10 py-3 sm:py-4 px-6 z-40">
+        <div className="max-w-2xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <button onClick={handleLike} className="flex items-center gap-2 group cursor-pointer">
+              <Heart className={cn("w-6 h-6 transition-transform active:scale-90", liked ? "fill-[#D4FF00] stroke-[#D4FF00]" : "stroke-neutral-400 group-hover:stroke-white")} />
+              <span className={cn("text-sm font-black", liked ? "text-[#D4FF00]" : "text-neutral-400 group-hover:text-white transition-colors")}>{likesCount}</span>
+            </button>
+            <button className="flex items-center gap-2 group cursor-pointer">
+              <MessageCircle className="w-6 h-6 stroke-neutral-400 group-hover:stroke-white transition-transform active:scale-90" />
+              <span className="text-sm font-black text-neutral-400 group-hover:text-white transition-colors">0</span>
+            </button>
+          </div>
+          <button className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors cursor-pointer">
+            <MoreHorizontal className="w-5 h-5 text-neutral-400" />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
-

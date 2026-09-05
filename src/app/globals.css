@@ -21,6 +21,24 @@
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+/* 
+  Evitar selección de texto en la app
+  (salvo en inputs y textareas)
+*/
+* {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+input, textarea, [contenteditable="true"] {
+  -webkit-user-select: auto;
+  -moz-user-select: auto;
+  -ms-user-select: auto;
+  user-select: auto;
+}
+
 @layer utilities {
   .hide-scrollbar {
     -ms-overflow-style: none;

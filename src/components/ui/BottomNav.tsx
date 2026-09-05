@@ -31,6 +31,10 @@ export function BottomNav() {
     pathname === "/register" ||
     pathname === "/search" ||
     pathname.startsWith("/transfers/") ||
+    pathname.startsWith("/posts/") ||
+    pathname.startsWith("/events/") ||
+    pathname.startsWith("/communities/") ||
+    pathname.startsWith("/chat/") ||
     searchParams.get("from") === "search"
   ) return null;
 
