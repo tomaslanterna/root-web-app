@@ -1,45 +1,69 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { PostCard } from "@/components/ui/PostCard";
 import { EventCard } from "@/components/ui/EventCard";
 import { QuickActionMenu } from "@/components/ui/QuickActionMenu";
 import { CommunityList } from "@/components/communities/CommunityList";
-import { MOCK_POSTS, MOCK_EVENTS, MOCK_COMMUNITIES } from "@/lib/mocks";
+import { MOCK_EVENTS, MOCK_COMMUNITIES } from "@/lib/mocks";
 import type { Event } from "@/types/events";
+import type { Post } from "@/types/posts";
 import { Plus, Sparkles, Compass, ChevronUp, Globe, Flame, UserCheck, Users, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { useMutation } from "@/hooks/useMutation";
+import { postsApi } from "@/services/posts";
 
-type FilterType = "all" | "featured" | "following" | "communities";
+type FilterType = "global" | "featured" | "following" | "communities";
 
 interface FilterOption {
   id: FilterType;
   label: string;
   icon: React.ElementType;
-  count: number;
 }
 
 export default function FeedPage() {
   const router = useRouter();
-  const [filter, setFilter] = useState<FilterType>("all");
+  const [filter, setFilter] = useState<FilterType>("global");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSwimlaneHidden, setIsSwimlaneHidden] = useState(false);
   const [featuredEvents, setFeaturedEvents] = useState<Event[]>([]);
   const swimlaneRef = useRef<HTMLElement | null>(null);
 
+  // States for Posts
+  const [globalPosts, setGlobalPosts] = useState<Post[]>([]);
+  const [featuredPosts, setFeaturedPosts] = useState<Post[]>([]);
+  const [followingPosts, setFollowingPosts] = useState<Post[]>([]);
+
+  // Pagination states
+  const [globalPage, setGlobalPage] = useState(1);
+  const [featuredPage, setFeaturedPage] = useState(1);
+  const [followingPage, setFollowingPage] = useState(1);
+
+  const [hasMoreGlobal, setHasMoreGlobal] = useState(false);
+  const [hasMoreFeatured, setHasMoreFeatured] = useState(false);
+  const [hasMoreFollowing, setHasMoreFollowing] = useState(false);
+
+  // Mantiene el estado de si ya se hizo el primer fetch para evitar parpadeos
+  const [hasFetchedInitial, setHasFetchedInitial] = useState(false);
+  const [hasFetchedEvents, setHasFetchedEvents] = useState(false);
+
+  // 1. Fetch Events
   const { mutate: fetchFeaturedEvents, isLoading: isLoadingEvents } = useMutation<Event[], void>(
     async () => {
       const res = await api.get("/v1/events/featured");
       return res.data?.data || (Array.isArray(res.data) ? res.data : []);
     },
     {
-      onSuccess: (data) => setFeaturedEvents(data),
+      onSuccess: (data) => {
+        setFeaturedEvents(data);
+        setHasFetchedEvents(true);
+      },
       onError: (err) => {
         console.error("Error fetching featured events from live backend:", err);
         setFeaturedEvents([]);
+        setHasFetchedEvents(true);
       },
     }
   );
@@ -48,34 +72,119 @@ export default function FeedPage() {
     void fetchFeaturedEvents().catch(() => undefined);
   }, [fetchFeaturedEvents]);
 
+  // 2. Fetch Initial Posts (Option 1)
+  const { mutate: loadInitialFeeds, isLoading: isLoadingInitialPosts } = useMutation(
+    postsApi.getFeeds,
+    {
+      onSuccess: (res) => {
+        if (res.global) {
+          setGlobalPosts(res.global.data);
+          setGlobalPage(res.global.pagination.page);
+          setHasMoreGlobal(res.global.pagination.has_more);
+        }
+        if (res.featured) {
+          setFeaturedPosts(res.featured.data);
+          setFeaturedPage(res.featured.pagination.page);
+          setHasMoreFeatured(res.featured.pagination.has_more);
+        }
+        if (res.following) {
+          setFollowingPosts(res.following.data);
+          setFollowingPage(res.following.pagination.page);
+          setHasMoreFollowing(res.following.pagination.has_more);
+        }
+        setHasFetchedInitial(true);
+      },
+      onError: (err) => {
+        console.error("Error fetching initial feeds:", err);
+        setHasFetchedInitial(true);
+      }
+    }
+  );
+
+  useEffect(() => {
+    loadInitialFeeds({ 
+      include_feeds: "global,featured,following",
+      global_limit: 10,
+      featured_limit: 10,
+      following_limit: 10
+    }).catch(() => {});
+  }, [loadInitialFeeds]);
+
+  // 3. Load More Posts (Pagination)
+  const { mutate: loadMorePosts, isLoading: isLoadingMore } = useMutation(
+    postsApi.getFeeds,
+    {
+      onSuccess: (res, vars) => {
+        const requestedFeeds = vars.include_feeds.split(",");
+        
+        if (requestedFeeds.includes("global") && res.global) {
+          setGlobalPosts((prev) => [...prev, ...res.global!.data]);
+          setGlobalPage(res.global.pagination.page);
+          setHasMoreGlobal(res.global.pagination.has_more);
+        }
+        if (requestedFeeds.includes("featured") && res.featured) {
+          setFeaturedPosts((prev) => [...prev, ...res.featured!.data]);
+          setFeaturedPage(res.featured.pagination.page);
+          setHasMoreFeatured(res.featured.pagination.has_more);
+        }
+        if (requestedFeeds.includes("following") && res.following) {
+          setFollowingPosts((prev) => [...prev, ...res.following!.data]);
+          setFollowingPage(res.following.pagination.page);
+          setHasMoreFollowing(res.following.pagination.has_more);
+        }
+      }
+    }
+  );
+
+  const handleLoadMore = useCallback(() => {
+    if (isLoadingMore) return; // Evitar multiples request simultaneos
+    
+    if (filter === "global" && hasMoreGlobal) {
+      loadMorePosts({ include_feeds: "global", global_page: globalPage + 1, global_limit: 10 });
+    } else if (filter === "featured" && hasMoreFeatured) {
+      loadMorePosts({ include_feeds: "featured", featured_page: featuredPage + 1, featured_limit: 10 });
+    } else if (filter === "following" && hasMoreFollowing) {
+      loadMorePosts({ include_feeds: "following", following_page: followingPage + 1, following_limit: 10 });
+    }
+  }, [filter, hasMoreGlobal, hasMoreFeatured, hasMoreFollowing, globalPage, featuredPage, followingPage, isLoadingMore, loadMorePosts]);
+
+  // Intersection Observer para Auto-Scroll
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          handleLoadMore();
+        }
+      },
+      { threshold: 0.1, rootMargin: '400px' } // Arranca a precargar 400px antes de llegar al fondo
+    );
+
+    const currentRef = loadMoreRef.current;
+    if (currentRef) {
+      observer.observe(currentRef);
+    }
+
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef);
+      }
+    };
+  }, [handleLoadMore]);
+
+
   const filterOptions: FilterOption[] = [
-    { id: "all", label: "Todos", icon: Globe, count: MOCK_POSTS.length },
-    {
-      id: "featured",
-      label: "Destacados",
-      icon: Flame,
-      count: MOCK_POSTS.filter((p) => p.likesCount > 40).length,
-    },
-    {
-      id: "following",
-      label: "Seguidos",
-      icon: UserCheck,
-      count: MOCK_POSTS.filter((p) => p.authorId === "1" || p.authorId === "2").length,
-    },
-    {
-      id: "communities",
-      label: "Comunidades",
-      icon: Users,
-      count: MOCK_COMMUNITIES.length,
-    },
+    { id: "global", label: "Todos", icon: Globe },
+    { id: "featured", label: "Destacados", icon: Flame },
+    { id: "following", label: "Seguidos", icon: UserCheck },
+    { id: "communities", label: "Comunidades", icon: Users },
   ];
 
-  // Detect when the featured events swimlane has scrolled out of view
   useEffect(() => {
     const handleScroll = () => {
       if (!swimlaneRef.current) return;
       const rect = swimlaneRef.current.getBoundingClientRect();
-      // Header is ~56px high. When swimlane bottom is above 60px, it's scrolled out
       setIsSwimlaneHidden(rect.bottom <= 60);
     };
 
@@ -91,18 +200,20 @@ export default function FeedPage() {
     }
   };
 
-  const filteredPosts = MOCK_POSTS.filter((post) => {
-    if (filter === "featured") return post.likesCount > 40;
-    if (filter === "following") return post.authorId === "1" || post.authorId === "2";
-    if (filter === "communities") return false;
-    return true;
-  });
+  const currentPosts = 
+    filter === "global" ? globalPosts : 
+    filter === "featured" ? featuredPosts : 
+    filter === "following" ? followingPosts : [];
+    
+  const currentHasMore = 
+    filter === "global" ? hasMoreGlobal : 
+    filter === "featured" ? hasMoreFeatured : 
+    filter === "following" ? hasMoreFollowing : false;
 
   return (
     <div className="flex flex-col min-h-screen bg-[#0B0D10] text-white">
       {/* Sticky Header with Collapsible Eventos Destacados Bar */}
       <header className="sticky top-0 z-40 glass-header-obsidian transition-all duration-300">
-        {/* Main Brand Bar */}
         <div className="px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-[#D4FF00] text-neutral-950 flex items-center justify-center font-black italic text-sm tracking-tighter shadow-md shadow-[#D4FF00]/15">
@@ -120,7 +231,6 @@ export default function FeedPage() {
           </button>
         </div>
 
-        {/* Collapsed Sticky "Eventos Destacados" Tab Bar */}
         <div
           className={cn(
             "overflow-hidden transition-all duration-300 ease-out border-t border-white/10 bg-[#0B0D10]/95 backdrop-blur-xl",
@@ -132,7 +242,6 @@ export default function FeedPage() {
           <button
             onClick={scrollToSwimlane}
             className="w-full flex items-center justify-between px-3.5 py-1.5 rounded-full bg-[#14171F] hover:bg-[#1A1F2B] active:scale-[0.99] border border-white/10 text-xs font-black uppercase tracking-wider transition-all duration-200 group shadow-inner cursor-pointer"
-            title="Ver eventos destacados"
           >
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#D4FF00] animate-pulse" />
@@ -152,9 +261,7 @@ export default function FeedPage() {
         </div>
       </header>
 
-      {/* Main Content Area */}
       <div className="flex-1 pb-28 space-y-4">
-        {/* Search Bar Visual */}
         <div className="px-4 pt-4">
           <div 
             onClick={() => router.push('/search')}
@@ -165,7 +272,6 @@ export default function FeedPage() {
           </div>
         </div>
 
-        {/* Featured Events Swimlane Section */}
         <section ref={swimlaneRef} className="pt-4 pb-1">
           <div className="px-4 flex items-center justify-between mb-3">
             <h2 className="text-xs font-black uppercase tracking-widest text-neutral-400 flex items-center gap-1.5">
@@ -177,8 +283,7 @@ export default function FeedPage() {
           </div>
 
           <div className="flex overflow-x-auto snap-x snap-mandatory hide-scrollbar gap-3.5 px-4 pb-2 scroll-px-4">
-            {isLoadingEvents ? (
-              // Skeletons
+            {(!hasFetchedEvents || isLoadingEvents) ? (
               [1, 2, 3].map((i) => (
                 <div
                   key={i}
@@ -201,7 +306,6 @@ export default function FeedPage() {
           </div>
         </section>
 
-        {/* Sticky Feed Tabs Navigation (Todos / Destacados / Seguidos / Comunidades) */}
         <div
           className="sticky z-30 transition-[top] duration-300 bg-[#0B0D10]/85 backdrop-blur-xl py-2 px-4"
           style={{ top: isSwimlaneHidden ? "100px" : "56px" }}
@@ -223,23 +327,12 @@ export default function FeedPage() {
                 >
                   <Icon className={cn("w-3.5 h-3.5", isActive ? "stroke-[2.5]" : "stroke-2")} />
                   <span className={cn(isActive ? "inline" : "hidden sm:inline")}>{option.label}</span>
-                  <span
-                    className={cn(
-                      "text-[9px] px-1.5 py-0.5 rounded-full font-extrabold",
-                      isActive
-                        ? "bg-neutral-950/20 text-neutral-950"
-                        : "bg-white/10 text-neutral-400"
-                    )}
-                  >
-                    {option.count}
-                  </span>
                 </button>
               );
             })}
           </div>
         </div>
 
-        {/* Dynamic Content Section based on Filter */}
         <section className="px-4 space-y-4 pt-1">
           {filter === "communities" ? (
             <>
@@ -260,32 +353,49 @@ export default function FeedPage() {
                   <Compass className="w-3.5 h-3.5 text-[#D4FF00]" /> Publicaciones
                 </h2>
                 <span className="text-[10px] font-extrabold uppercase tracking-wider text-neutral-500">
-                  {filteredPosts.length} {filteredPosts.length === 1 ? "publicación" : "publicaciones"}
+                  {currentPosts.length} {currentPosts.length === 1 ? "publicación" : "publicaciones"}
                 </span>
               </div>
 
-              <div className="space-y-4">
-                {filteredPosts.map((post) => (
-                  <PostCard key={post.id} post={post} variant="electronic" />
-                ))}
+              {(!hasFetchedInitial || isLoadingInitialPosts) ? (
+                // Skeletons while loading initial posts
+                <div className="space-y-4">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="w-full h-40 bg-[#14171F] border border-white/5 rounded-3xl animate-pulse" />
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {currentPosts.map((post: any) => (
+                    <PostCard key={post.id} post={post} variant="electronic" />
+                  ))}
 
-                {filteredPosts.length === 0 && (
-                  <div className="p-8 text-center rounded-3xl bg-[#14171F] border border-white/10 space-y-2">
-                    <Compass className="w-8 h-8 text-neutral-500 mx-auto" />
-                    <p className="text-sm font-bold text-neutral-300">No hay publicaciones en esta sección</p>
-                    <p className="text-xs text-neutral-500">Prueba cambiando de filtro o crea una nueva publicación.</p>
-                  </div>
-                )}
-              </div>
+                  {currentPosts.length === 0 && (
+                    <div className="p-8 text-center rounded-3xl bg-[#14171F] border border-white/10 space-y-2">
+                      <Compass className="w-8 h-8 text-neutral-500 mx-auto" />
+                      <p className="text-sm font-bold text-neutral-300">No hay publicaciones en esta sección</p>
+                      <p className="text-xs text-neutral-500">Prueba cambiando de filtro o crea una nueva publicación.</p>
+                    </div>
+                  )}
+
+                  {/* Load More Trigger */}
+                  {currentHasMore && (
+                    <div ref={loadMoreRef} className="w-full flex justify-center py-4">
+                      {isLoadingMore && (
+                        <div className="flex items-center gap-2 text-neutral-500 font-bold text-xs uppercase tracking-widest">
+                          <Loader2 className="w-4 h-4 animate-spin" /> Cargando...
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           )}
         </section>
       </div>
 
-      {/* Quick Action Drawer */}
       <QuickActionMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
     </div>
   );
 }
-
-

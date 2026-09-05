@@ -2,10 +2,10 @@ import * as React from "react";
 import { Card, CardContent, CardHeader, CardFooter } from "./Card";
 import { Avatar } from "./Avatar";
 import { Heart, MessageCircle, Share2, Sparkles, Calendar, Users, BadgeCheck, ShieldAlert } from "lucide-react";
-import { MOCK_USERS, MOCK_EVENTS, MOCK_COMMUNITIES, Post } from "@/lib/mocks";
+import { MOCK_EVENTS, MOCK_COMMUNITIES } from "@/lib/mocks";
+import type { Post } from "@/types/posts";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-
 
 interface PostCardProps {
   post: Post;
@@ -13,12 +13,12 @@ interface PostCardProps {
 }
 
 export function PostCard({ post, variant = "light" }: PostCardProps) {
-  const author = MOCK_USERS.find((u) => u.id === post.authorId);
+  // Aún usamos MOCK para eventos y comunidades relacionadas hasta que implementes su backend
   const relatedEvent = MOCK_EVENTS.find((e) => e.id === post.eventId);
   const relatedCommunity = MOCK_COMMUNITIES.find((c) => c.id === post.communityId);
 
   const [liked, setLiked] = React.useState(false);
-  const [likesCount, setLikesCount] = React.useState(post.likesCount);
+  const [likesCount, setLikesCount] = React.useState(post.likesCount || 0);
 
   const isElectronic = variant === "electronic";
 
@@ -76,15 +76,15 @@ export function PostCard({ post, variant = "light" }: PostCardProps) {
       <div className="p-4 pb-2 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Avatar
-            src={author?.avatarUrl}
-            fallback={author?.name || "U"}
+            src={post.authorAvatar}
+            fallback={post.authorName || "U"}
             size="sm"
             className={cn("ring-2", isElectronic ? "ring-[#D4FF00]/40" : "ring-neutral-900/10")}
           />
           <div>
             <p className={cn("flex items-center gap-1 text-xs font-black uppercase tracking-wider", isElectronic ? "text-white" : "text-neutral-950")}>
-              {author?.name}
-              {author?.isKycVerified ? (
+              {post.authorName || "Usuario Desconocido"}
+              {post.isVerified ? (
                 <BadgeCheck className="w-3.5 h-3.5 text-[#0B0D10] fill-[#D4FF00]" />
               ) : (
                 <ShieldAlert className="w-3.5 h-3.5 text-amber-500" />

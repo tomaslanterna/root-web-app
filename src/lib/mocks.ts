@@ -18,14 +18,18 @@ export interface User {
 export interface Post {
   id: string;
   authorId: string;
-  title?: string;
   eventId?: string;
   communityId?: string;
-  headerImageUrl?: string;
+  title?: string;
   content: string;
   longContent?: string;
+  headerImageUrl?: string;
   timestamp: string;
+  isFeatured?: boolean;
   likesCount: number;
+  authorName?: string;
+  authorAvatar?: string;
+  isVerified?: boolean;
 }
 
 export interface Comment {
