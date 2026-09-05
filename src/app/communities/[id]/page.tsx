@@ -7,8 +7,11 @@ import { Button } from "@/components/ui/Button";
 import { QuickActionMenu } from "@/components/ui/QuickActionMenu";
 import { Users, UserPlus, ArrowLeft, Plus, Sparkles, MessageSquare } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { DetailHeader } from "@/components/ui/DetailHeader";
 
 export default function CommunityDetailPage({ params }: { params: Promise<{ id: string }> | { id: string } }) {
+  const router = useRouter();
   const resolvedParams = typeof (params as any)?.then === "function" ? use(params as Promise<{ id: string }>) : (params as { id: string });
   const community = MOCK_COMMUNITIES.find((c) => c.id === resolvedParams.id);
 
@@ -30,17 +33,8 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
 
   return (
     <div className="flex flex-col min-h-screen bg-[#0B0D10] text-white pb-28">
-      {/* Sticky top bar */}
-      <div className="sticky top-0 z-40 glass-header-obsidian px-4 py-3 flex items-center justify-between">
-        <Link
-          href="/communities"
-          className="p-2 rounded-full bg-white/10 backdrop-blur-md border border-white/15 hover:bg-white/20 active:scale-95 transition-all text-white flex items-center gap-1 text-xs font-bold uppercase"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Comunidades</span>
-        </Link>
-        <span className="text-[10px] font-black uppercase tracking-widest text-[#D4FF00]">Feed de Comunidad</span>
-      </div>
+      {/* Detail Header */}
+      <DetailHeader onBack={() => router.push('/communities')} />
 
       {/* Community Header Banner */}
       <div className="relative w-full h-48 sm:h-56 bg-neutral-950 overflow-hidden">

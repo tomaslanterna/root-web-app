@@ -23,6 +23,13 @@ export const metadata: Metadata = {
   description: "Social network and event management for electronic music.",
 };
 
+export const viewport: import("next").Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{

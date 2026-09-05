@@ -9,7 +9,7 @@ import { CommunityList } from "@/components/communities/CommunityList";
 import { MOCK_EVENTS, MOCK_COMMUNITIES } from "@/lib/mocks";
 import type { Event } from "@/types/events";
 import type { Post } from "@/types/posts";
-import { Plus, Sparkles, Compass, ChevronUp, Globe, Flame, UserCheck, Users, Loader2 } from "lucide-react";
+import { Plus, Sparkles, Compass, ChevronUp, Globe, Flame, UserCheck, Users, Loader2, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { useMutation } from "@/hooks/useMutation";
@@ -28,7 +28,7 @@ export default function FeedPage() {
   const [filter, setFilter] = useState<FilterType>("global");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSwimlaneHidden, setIsSwimlaneHidden] = useState(false);
-  const [featuredEvents, setFeaturedEvents] = useState<Event[]>([]);
+  const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
   const swimlaneRef = useRef<HTMLElement | null>(null);
 
   // States for Posts
@@ -50,27 +50,27 @@ export default function FeedPage() {
   const [hasFetchedEvents, setHasFetchedEvents] = useState(false);
 
   // 1. Fetch Events
-  const { mutate: fetchFeaturedEvents, isLoading: isLoadingEvents } = useMutation<Event[], void>(
+  const { mutate: fetchUpcomingEvents, isLoading: isLoadingEvents } = useMutation<Event[], void>(
     async () => {
-      const res = await api.get("/v1/events/featured");
+      const res = await api.get("/v1/events");
       return res.data?.data || (Array.isArray(res.data) ? res.data : []);
     },
     {
       onSuccess: (data) => {
-        setFeaturedEvents(data);
+        setUpcomingEvents(data);
         setHasFetchedEvents(true);
       },
       onError: (err) => {
-        console.error("Error fetching featured events from live backend:", err);
-        setFeaturedEvents([]);
+        console.error("Error fetching upcoming events from live backend:", err);
+        setUpcomingEvents([]);
         setHasFetchedEvents(true);
       },
     }
   );
 
   useEffect(() => {
-    void fetchFeaturedEvents().catch(() => undefined);
-  }, [fetchFeaturedEvents]);
+    void fetchUpcomingEvents().catch(() => undefined);
+  }, [fetchUpcomingEvents]);
 
   // 2. Fetch Initial Posts (Option 1)
   const { mutate: loadInitialFeeds, isLoading: isLoadingInitialPosts } = useMutation(
@@ -231,80 +231,80 @@ export default function FeedPage() {
           </button>
         </div>
 
-        <div
-          className={cn(
-            "overflow-hidden transition-all duration-300 ease-out border-t border-white/10 bg-[#0B0D10]/95 backdrop-blur-xl",
-            isSwimlaneHidden
-              ? "max-h-14 opacity-100 py-1.5 px-4 pointer-events-auto"
-              : "max-h-0 opacity-0 py-0 px-4 pointer-events-none border-t-transparent"
-          )}
-        >
-          <button
-            onClick={scrollToSwimlane}
-            className="w-full flex items-center justify-between px-3.5 py-1.5 rounded-full bg-[#14171F] hover:bg-[#1A1F2B] active:scale-[0.99] border border-white/10 text-xs font-black uppercase tracking-wider transition-all duration-200 group shadow-inner cursor-pointer"
+        {(!hasFetchedEvents || isLoadingEvents || upcomingEvents.length > 0) && (
+          <div
+            className={cn(
+              "overflow-hidden transition-all duration-300 ease-out border-t border-white/10 bg-[#0B0D10]/95 backdrop-blur-xl",
+              isSwimlaneHidden
+                ? "max-h-14 opacity-100 py-1.5 px-4 pointer-events-auto"
+                : "max-h-0 opacity-0 py-0 px-4 pointer-events-none border-t-transparent"
+            )}
           >
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#D4FF00] animate-pulse" />
-              <Sparkles className="w-3.5 h-3.5 text-[#D4FF00]" />
-              <span className="text-white tracking-wider font-black text-xs">Eventos destacados</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-[#D4FF00]/15 text-[#D4FF00] border border-[#D4FF00]/20">
-                {isLoadingEvents ? "..." : `${featuredEvents.length} EVENTOS`}
-              </span>
-              <span className="text-neutral-400 group-hover:text-white flex items-center gap-0.5 text-[10px] font-bold">
-                <span>Ver</span>
-                <ChevronUp className="w-3.5 h-3.5 transition-transform duration-200 group-hover:-translate-y-0.5 text-[#D4FF00]" />
-              </span>
-            </div>
-          </button>
-        </div>
+            <button
+              onClick={scrollToSwimlane}
+              className="w-full flex items-center justify-between px-3.5 py-1.5 rounded-full bg-[#14171F] hover:bg-[#1A1F2B] active:scale-[0.99] border border-white/10 text-xs font-black uppercase tracking-wider transition-all duration-200 group shadow-inner cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#D4FF00] animate-pulse" />
+                <Calendar className="w-3.5 h-3.5 text-[#D4FF00]" />
+                <span className="text-white tracking-wider font-black text-xs">Próximos eventos</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-[#D4FF00]/15 text-[#D4FF00] border border-[#D4FF00]/20">
+                  {isLoadingEvents ? "..." : `${upcomingEvents.length} EVENTOS`}
+                </span>
+                <span className="text-neutral-400 group-hover:text-white flex items-center gap-0.5 text-[10px] font-bold">
+                  <span>Ver</span>
+                  <ChevronUp className="w-3.5 h-3.5 transition-transform duration-200 group-hover:-translate-y-0.5 text-[#D4FF00]" />
+                </span>
+              </div>
+            </button>
+          </div>
+        )}
       </header>
 
       <div className="flex-1 pb-28 space-y-4">
         <div className="px-4 pt-4">
           <div 
             onClick={() => router.push('/search')}
-            className="w-full bg-[#14171F] border border-white/10 rounded-xl px-4 py-3 flex items-center gap-3 text-neutral-400 hover:bg-[#1A1F2B] transition-colors cursor-text"
+            className="w-full bg-[#14171F] border border-white/10 rounded-full px-4 py-3 flex items-center gap-3 text-neutral-400 hover:bg-[#1A1F2B] transition-colors cursor-text"
           >
             <Sparkles className="w-4 h-4 text-[#D4FF00]" />
             <span className="text-sm font-semibold tracking-wide">Buscar usuarios, eventos o posteos...</span>
           </div>
         </div>
 
-        <section ref={swimlaneRef} className="pt-4 pb-1">
-          <div className="px-4 flex items-center justify-between mb-3">
-            <h2 className="text-xs font-black uppercase tracking-widest text-neutral-400 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-[#D4FF00]" /> Eventos Destacados
-            </h2>
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#D4FF00]">
-              {isLoadingEvents ? "..." : `${featuredEvents.length} EVENTOS`}
-            </span>
-          </div>
+        {(!hasFetchedEvents || isLoadingEvents || upcomingEvents.length > 0) && (
+          <section ref={swimlaneRef} className="pt-4 pb-1">
+            <div className="px-4 flex items-center justify-between mb-3">
+              <h2 className="text-xs font-black uppercase tracking-widest text-neutral-400 flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-[#D4FF00]" /> Próximos Eventos
+              </h2>
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#D4FF00]">
+                {isLoadingEvents ? "..." : `${upcomingEvents.length} EVENTOS`}
+              </span>
+            </div>
 
-          <div className="flex overflow-x-auto snap-x snap-mandatory hide-scrollbar gap-3.5 px-4 pb-2 scroll-px-4">
-            {(!hasFetchedEvents || isLoadingEvents) ? (
-              [1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="w-[260px] sm:w-[280px] shrink-0 snap-start aspect-[2/3] rounded-3xl bg-[#14171F] border border-white/5 animate-pulse relative overflow-hidden flex flex-col justify-end p-4 space-y-2"
-                >
-                  <div className="w-16 h-4 rounded-full bg-white/10" />
-                  <div className="w-3/4 h-5 rounded-md bg-white/10" />
-                  <div className="w-1/2 h-3 rounded-md bg-white/10" />
-                </div>
-              ))
-            ) : featuredEvents.length > 0 ? (
-              featuredEvents.map((event) => (
-                <EventCard key={event.id} event={event} />
-              ))
-            ) : (
-              <div className="px-4 py-8 text-neutral-500 text-xs italic">
-                No hay eventos destacados en este momento.
-              </div>
-            )}
-          </div>
-        </section>
+            <div className="flex overflow-x-auto snap-x snap-mandatory hide-scrollbar gap-3.5 px-4 pb-2 scroll-px-4">
+              {(!hasFetchedEvents || isLoadingEvents) ? (
+                [1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="w-[260px] sm:w-[280px] shrink-0 snap-start aspect-[2/3] rounded-3xl bg-[#14171F] border border-white/5 animate-pulse relative overflow-hidden flex flex-col justify-end p-4 space-y-2"
+                  >
+                    <div className="w-16 h-4 rounded-full bg-white/10" />
+                    <div className="w-3/4 h-5 rounded-md bg-white/10" />
+                    <div className="w-1/2 h-3 rounded-md bg-white/10" />
+                  </div>
+                ))
+              ) : (
+                upcomingEvents.map((event) => (
+                  <EventCard key={event.id} event={event} />
+                ))
+              )}
+            </div>
+          </section>
+        )}
 
         <div
           className="sticky z-30 transition-[top] duration-300 bg-[#0B0D10]/85 backdrop-blur-xl py-2 px-4"

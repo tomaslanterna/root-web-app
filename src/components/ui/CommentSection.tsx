@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, LogIn, MessageSquare, Send, Sparkles } from "lucide-react";
+import { Loader2, LogIn, MessageCircle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useMutation } from "@/hooks/useMutation";
 import { api } from "@/lib/api";
@@ -13,20 +13,29 @@ import { Button } from "./Button";
 interface CommentSectionProps {
   targetId: string;
   title?: string;
+  isMock?: boolean;
+  mockComments?: EventComment[];
+  className?: string;
+  endpointType?: "events" | "posts";
 }
 
 const pageSize = 20;
 
 export function CommentSection({
   targetId,
-  title = "Comentarios de la comunidad",
+  title = "Comentarios",
+  isMock = false,
+  mockComments = [],
+  className = "",
+  endpointType = "events",
 }: CommentSectionProps) {
   const router = useRouter();
   const { user } = useAuth();
-  const [comments, setComments] = useState<EventComment[]>([]);
-  const [total, setTotal] = useState(0);
+  
+  const [comments, setComments] = useState<EventComment[]>(isMock ? mockComments : []);
+  const [total, setTotal] = useState(isMock ? mockComments.length : 0);
   const [hasMore, setHasMore] = useState(false);
-  const [hasLoaded, setHasLoaded] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(isMock);
   const [content, setContent] = useState("");
 
   const {
@@ -35,20 +44,25 @@ export function CommentSection({
     error: commentsError,
   } = useMutation<PaginatedResponse<EventComment>, number>(
     async (offset) => {
+      if (isMock) return { data: [], meta: { total: mockComments.length, hasMore: false } };
       const response = await api.get<PaginatedResponse<EventComment>>(
-        `/v1/events/${targetId}/comments`,
+        `/v1/${endpointType}/${targetId}/comments`,
         { params: { limit: pageSize, offset } },
       );
       return response.data;
     },
     {
       onSuccess: (response, offset) => {
-        setComments((current) => (offset === 0 ? response.data : [...current, ...response.data]));
-        setTotal(response.meta.total);
-        setHasMore(response.meta.hasMore);
-        setHasLoaded(true);
+        if (!isMock) {
+          setComments((current) => (offset === 0 ? response.data : [...current, ...response.data]));
+          setTotal(response.meta.total);
+          setHasMore(response.meta.hasMore);
+          setHasLoaded(true);
+        }
       },
-      onError: () => setHasLoaded(true),
+      onError: () => {
+        if (!isMock) setHasLoaded(true);
+      },
     },
   );
 
@@ -58,7 +72,20 @@ export function CommentSection({
     error: createCommentError,
   } = useMutation<EventComment, string>(
     async (text) => {
-      const response = await api.post<EventComment>(`/v1/events/${targetId}/comments`, {
+      if (isMock) {
+        // Return a mock response immediately
+        return {
+          id: Math.random().toString(),
+          targetId,
+          authorId: user?.id || "mock-author",
+          authorName: user?.name || "Usuario",
+          authorUsername: user?.username || "usuario",
+          authorAvatar: user?.avatarUrl,
+          content: text,
+          timestamp: new Date().toISOString(),
+        } as EventComment;
+      }
+      const response = await api.post<EventComment>(`/v1/${endpointType}/${targetId}/comments`, {
         content: text,
       });
       return response.data;
@@ -73,8 +100,10 @@ export function CommentSection({
   );
 
   useEffect(() => {
-    void fetchComments(0).catch(() => undefined);
-  }, [fetchComments, targetId]);
+    if (!isMock) {
+      void fetchComments(0).catch(() => undefined);
+    }
+  }, [fetchComments, isMock, targetId, endpointType]);
 
   const submitComment = (event: FormEvent) => {
     event.preventDefault();
@@ -89,62 +118,59 @@ export function CommentSection({
   };
 
   return (
-    <section className="space-y-4 rounded-3xl border border-white/10 bg-[#14171F] p-5 shadow-md">
-      <div className="flex items-center justify-between border-b border-white/10 pb-3">
-        <h3 className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-neutral-300">
-          <MessageSquare className="h-4 w-4 text-[#D4FF00]" /> {title}
-        </h3>
-        <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#D4FF00]">
-          {total} comentarios
+    <section className={`max-w-2xl mx-auto w-full ${className}`}>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8">
+        <h2 className="text-sm font-black uppercase tracking-widest flex items-center gap-2 text-white">
+          <MessageCircle className="w-4 h-4 text-[#D4FF00]" /> {title}
+        </h2>
+        <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#D4FF00] bg-[#D4FF00]/10 px-2 py-1 rounded-full border border-[#D4FF00]/20">
+          {total} Respuestas
         </span>
       </div>
 
+      {/* Input box */}
       {user ? (
-        <form onSubmit={submitComment} className="space-y-2">
-          <div className="flex items-start gap-2">
-            <textarea
+        <form onSubmit={submitComment} className="flex gap-3 mb-10">
+          <Avatar src={user.avatarUrl} fallback={user.name || "Tú"} size="sm" className="ring-1 ring-white/10" />
+          <div className="flex-1 bg-[#14171F] border border-white/10 rounded-2xl p-1 flex items-center shadow-inner focus-within:border-white/30 transition-colors">
+            <input 
+              type="text" 
+              placeholder="Deja tu opinión..." 
               value={content}
-              onChange={(event) => setContent(event.target.value)}
-              maxLength={1000}
-              rows={2}
-              placeholder="Escribí un comentario sobre el evento..."
-              className="min-h-20 flex-1 resize-none rounded-2xl border border-white/10 bg-[#0B0D10] px-4 py-3 text-xs text-white placeholder-neutral-500 focus:border-[#D4FF00] focus:outline-none"
+              onChange={(e) => setContent(e.target.value)}
+              className="flex-1 bg-transparent border-none text-sm text-white px-3 focus:outline-none placeholder:text-neutral-500 font-medium"
             />
-            <Button
+            <button 
               type="submit"
-              size="icon"
-              aria-label="Publicar comentario"
               disabled={!content.trim() || isPostingComment}
-              className="h-10 w-10 shrink-0"
+              className="bg-[#D4FF00] text-neutral-950 text-[10px] sm:text-xs font-black uppercase tracking-wider px-3 sm:px-4 py-2 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#bce400] transition-colors cursor-pointer flex items-center gap-2"
             >
-              {isPostingComment ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
-            </Button>
+              {isPostingComment ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+              Enviar
+            </button>
           </div>
-          <p className="text-right text-[10px] font-semibold text-neutral-500">
-            {content.length}/1000
-          </p>
         </form>
       ) : (
-        <button
-          type="button"
-          onClick={() => router.push("/login")}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl border border-[#D4FF00]/25 bg-[#D4FF00]/10 px-4 py-3 text-[11px] font-black uppercase tracking-wider text-[#D4FF00]"
-        >
-          <LogIn className="h-4 w-4" /> Iniciá sesión para comentar
-        </button>
+        <div className="mb-10">
+          <button
+            type="button"
+            onClick={() => router.push("/login")}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-[#D4FF00]/25 bg-[#D4FF00]/10 px-4 py-3 text-[11px] font-black uppercase tracking-wider text-[#D4FF00] transition-colors hover:bg-[#D4FF00]/20"
+          >
+            <LogIn className="h-4 w-4" /> Iniciá sesión para comentar
+          </button>
+        </div>
       )}
 
       {createCommentError && (
-        <p className="text-center text-[11px] font-semibold text-rose-400">
+        <p className="text-center text-[11px] font-semibold text-rose-400 mb-6">
           No pudimos publicar el comentario. Intentá nuevamente.
         </p>
       )}
 
-      <div className="space-y-3 pt-1">
+      {/* Lista de comentarios */}
+      <div className="space-y-6">
         {!hasLoaded && isLoadingComments ? (
           <div className="flex justify-center py-8">
             <Loader2 className="h-5 w-5 animate-spin text-[#D4FF00]" />
@@ -157,64 +183,52 @@ export function CommentSection({
             </Button>
           </div>
         ) : comments.length === 0 ? (
-          <div className="space-y-2 py-8 text-center text-neutral-500">
-            <Sparkles className="mx-auto h-5 w-5 text-[#D4FF00]" />
-            <p className="text-xs font-semibold">Sé la primera persona en comentar.</p>
-          </div>
+          <p className="text-center text-sm text-neutral-500 py-8 italic font-medium">No hay comentarios todavía. ¡Sé el primero!</p>
         ) : (
           comments.map((comment) => {
             const timestamp = new Date(comment.timestamp);
             const formattedTime = Number.isNaN(timestamp.getTime())
               ? comment.timestamp
               : new Intl.DateTimeFormat("es-AR", {
-                  day: "numeric",
                   month: "short",
-                  hour: "2-digit",
-                  minute: "2-digit",
+                  day: "numeric",
                 }).format(timestamp);
+                
             return (
-              <article
-                key={comment.id}
-                className="space-y-2 rounded-2xl border border-white/5 bg-[#0B0D10]/60 p-3.5"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <Avatar
-                      src={comment.authorAvatar}
-                      fallback={comment.authorName}
-                      size="sm"
-                      className="h-7 w-7 border-white/10"
-                    />
-                    <div className="min-w-0">
-                      <p className="truncate text-xs font-black text-white">{comment.authorName}</p>
-                      <p className="truncate text-[10px] font-semibold text-neutral-500">
-                        @{comment.authorUsername}
-                      </p>
-                    </div>
+              <div key={comment.id} className="flex gap-3 group">
+                <Avatar 
+                  src={comment.authorAvatar} 
+                  fallback={comment.authorName?.charAt(0) || "U"} 
+                  size="sm" 
+                  className="ring-1 ring-white/5 shrink-0" 
+                />
+                <div className="flex-1">
+                  <div className="flex items-baseline justify-between mb-1">
+                    <span className="text-sm font-bold text-neutral-200">{comment.authorName || "Usuario"}</span>
+                    <span className="text-[10px] text-neutral-500 font-bold tracking-wider uppercase">
+                      {formattedTime}
+                    </span>
                   </div>
-                  <time className="shrink-0 text-[10px] font-semibold text-neutral-500">
-                    {formattedTime}
-                  </time>
+                  <p className="text-sm text-neutral-400 font-medium leading-relaxed">{comment.content}</p>
                 </div>
-                <p className="whitespace-pre-wrap break-words pl-9 text-xs leading-relaxed text-neutral-300">
-                  {comment.content}
-                </p>
-              </article>
+              </div>
             );
           })
         )}
       </div>
 
       {hasMore && (
-        <Button
-          type="button"
-          variant="outline"
-          size="full"
-          disabled={isLoadingComments}
-          onClick={() => void fetchComments(comments.length)}
-        >
-          {isLoadingComments ? "Cargando..." : "Cargar más comentarios"}
-        </Button>
+        <div className="pt-6">
+          <Button
+            type="button"
+            variant="outline"
+            size="full"
+            disabled={isLoadingComments}
+            onClick={() => void fetchComments(comments.length)}
+          >
+            {isLoadingComments ? "Cargando..." : "Cargar más respuestas"}
+          </Button>
+        </div>
       )}
     </section>
   );
