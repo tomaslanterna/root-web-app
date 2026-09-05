@@ -44,7 +44,12 @@ export function CommentSection({
     error: commentsError,
   } = useMutation<PaginatedResponse<EventComment>, number>(
     async (offset) => {
-      if (isMock) return { data: [], meta: { total: mockComments.length, hasMore: false } };
+      if (isMock) {
+        return { 
+          data: [], 
+          meta: { total: mockComments.length, hasMore: false, limit: pageSize, offset } 
+        } as PaginatedResponse<EventComment>;
+      }
       const response = await api.get<PaginatedResponse<EventComment>>(
         `/v1/${endpointType}/${targetId}/comments`,
         { params: { limit: pageSize, offset } },
