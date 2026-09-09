@@ -45,12 +45,21 @@ export default function RootLayout({
           <ThemeProvider>
             <AuthProvider>
               <MatchProvider>
-                <main className="max-w-md mx-auto min-h-[100dvh] pb-24 border-x border-white/10 shadow-2xl transition-colors duration-300">
-                  {children}
-                </main>
-                <React.Suspense fallback={null}>
-                  <BottomNav />
-                </React.Suspense>
+                <div className="flex min-h-[100dvh] w-full">
+                  <React.Suspense fallback={null}>
+                    <BottomNav />
+                  </React.Suspense>
+                  
+                  {/* Contenedor principal con padding izquierdo para el sidebar en desktop */}
+                  <div className="flex-1 flex min-h-[100dvh] w-full md:pl-64 bg-[#0B0D10]">
+                    
+                    {/* Columna central (Feed) - Ocupa el 100% del espacio de forma segura sin overflow */}
+                    <main className="flex-1 w-full min-w-0 max-w-md md:max-w-none min-h-[100dvh] pb-24 md:pb-0 md:px-12 border-x border-white/10 shadow-2xl md:shadow-none transition-colors duration-300">
+                      {children}
+                    </main>
+
+                  </div>
+                </div>
               </MatchProvider>
             </AuthProvider>
           </ThemeProvider>

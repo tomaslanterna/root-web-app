@@ -213,7 +213,10 @@ export default function FeedPage() {
   return (
     <div className="flex flex-col min-h-screen bg-[#0B0D10] text-white">
       {/* Sticky Header with Collapsible Eventos Destacados Bar */}
-      <header className="sticky top-0 z-40 glass-header-obsidian transition-all duration-300">
+      <header 
+        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        className="sticky top-0 z-40 glass-header-obsidian transition-all duration-300 md:hidden cursor-pointer"
+      >
         <div className="px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-[#D4FF00] text-neutral-950 flex items-center justify-center font-black italic text-sm tracking-tighter shadow-md shadow-[#D4FF00]/15">
@@ -223,7 +226,10 @@ export default function FeedPage() {
           </div>
 
           <button
-            onClick={() => setIsMenuOpen(true)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsMenuOpen(true);
+            }}
             className="bg-[#D4FF00] text-neutral-950 p-2 rounded-full hover:bg-[#bce400] active:scale-95 transition-all shadow-md shadow-[#D4FF00]/10 flex items-center justify-center gap-1.5 px-3.5 text-xs font-black uppercase tracking-wider cursor-pointer"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
@@ -241,7 +247,10 @@ export default function FeedPage() {
             )}
           >
             <button
-              onClick={scrollToSwimlane}
+              onClick={(e) => {
+                e.stopPropagation();
+                scrollToSwimlane();
+              }}
               className="w-full flex items-center justify-between px-3.5 py-1.5 rounded-full bg-[#14171F] hover:bg-[#1A1F2B] active:scale-[0.99] border border-white/10 text-xs font-black uppercase tracking-wider transition-all duration-200 group shadow-inner cursor-pointer"
             >
               <div className="flex items-center gap-2">
@@ -255,7 +264,7 @@ export default function FeedPage() {
                 </span>
                 <span className="text-neutral-400 group-hover:text-white flex items-center gap-0.5 text-[10px] font-bold">
                   <span>Ver</span>
-                  <ChevronUp className="w-3.5 h-3.5 transition-transform duration-200 group-hover:-translate-y-0.5 text-[#D4FF00]" />
+                  <ChevronUp className="w-3 h-3 group-hover:-translate-y-0.5 transition-transform" />
                 </span>
               </div>
             </button>
@@ -264,10 +273,35 @@ export default function FeedPage() {
       </header>
 
       <div className="flex-1 pb-28 space-y-4">
-        <div className="px-4 pt-4">
+        
+        {/* Desktop Hero Banner */}
+        <div className="relative w-full h-[350px] md:h-[450px] lg:h-[500px] overflow-hidden hidden md:flex items-center">
+           <img 
+             src="https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=80&w=2070&auto=format&fit=crop" 
+             alt="Electronic Music Festival" 
+             className="absolute inset-0 w-full h-full object-cover opacity-40"
+           />
+           <div className="absolute inset-0 bg-gradient-to-t from-[#0B0D10] via-transparent to-transparent" />
+           <div className="absolute inset-0 bg-gradient-to-r from-[#0B0D10]/80 via-transparent to-transparent" />
+           <div className="relative z-10 text-center md:text-left space-y-4 w-full px-10">
+             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 mb-2">
+               <span className="w-2 h-2 rounded-full bg-[#D4FF00] animate-pulse" />
+               <span className="text-[10px] font-black uppercase tracking-widest text-white">Live Now</span>
+             </div>
+             <h2 className="text-4xl lg:text-5xl font-black italic tracking-tighter text-white max-w-2xl">
+               Descubrí tu próxima <span className="text-[#D4FF00]">experiencia</span> en la escena.
+             </h2>
+             <p className="text-neutral-300 font-medium text-lg max-w-xl">
+               Conectá con la escena electrónica, encontrá los mejores eventos y sé parte de la comunidad exclusiva de root.
+             </p>
+           </div>
+        </div>
+
+        {/* Search Bar - Sticky on Desktop */}
+        <div className="px-4 pt-4 md:pt-4 md:sticky md:top-0 md:z-40 md:bg-[#0B0D10]/85 md:backdrop-blur-xl md:pb-3 transition-all duration-300">
           <div 
             onClick={() => router.push('/search')}
-            className="w-full bg-[#14171F] border border-white/10 rounded-full px-4 py-3 flex items-center gap-3 text-neutral-400 hover:bg-[#1A1F2B] transition-colors cursor-text"
+            className="w-full bg-[#14171F] border border-white/10 rounded-full px-4 py-3 flex items-center gap-3 text-neutral-400 hover:bg-[#1A1F2B] transition-colors cursor-text shadow-lg"
           >
             <Sparkles className="w-4 h-4 text-[#D4FF00]" />
             <span className="text-sm font-semibold tracking-wide">Buscar usuarios, eventos o posteos...</span>
@@ -307,7 +341,7 @@ export default function FeedPage() {
         )}
 
         <div
-          className="sticky z-30 transition-[top] duration-300 bg-[#0B0D10]/85 backdrop-blur-xl py-2 px-4"
+          className="sticky z-30 transition-all duration-300 bg-[#0B0D10]/85 backdrop-blur-xl py-2 px-4 md:!top-[72px]"
           style={{ top: isSwimlaneHidden ? "100px" : "56px" }}
         >
           <div className="w-full bg-[#14171F]/90 p-1 rounded-full border border-white/10 shadow-lg flex items-center gap-1 overflow-x-auto hide-scrollbar">
@@ -359,19 +393,19 @@ export default function FeedPage() {
 
               {(!hasFetchedInitial || isLoadingInitialPosts) ? (
                 // Skeletons while loading initial posts
-                <div className="space-y-4">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="w-full h-40 bg-[#14171F] border border-white/5 rounded-3xl animate-pulse" />
+                <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-6">
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div key={i} className="w-full h-80 bg-[#14171F] border border-white/5 rounded-3xl animate-pulse" />
                   ))}
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-6">
                   {currentPosts.map((post: any) => (
                     <PostCard key={post.id} post={post} variant="electronic" />
                   ))}
 
                   {currentPosts.length === 0 && (
-                    <div className="p-8 text-center rounded-3xl bg-[#14171F] border border-white/10 space-y-2">
+                    <div className="p-8 text-center rounded-3xl bg-[#14171F] border border-white/10 space-y-2 md:col-span-2 lg:col-span-3">
                       <Compass className="w-8 h-8 text-neutral-500 mx-auto" />
                       <p className="text-sm font-bold text-neutral-300">No hay publicaciones en esta sección</p>
                       <p className="text-xs text-neutral-500">Prueba cambiando de filtro o crea una nueva publicación.</p>
@@ -380,7 +414,7 @@ export default function FeedPage() {
 
                   {/* Load More Trigger */}
                   {currentHasMore && (
-                    <div ref={loadMoreRef} className="w-full flex justify-center py-4">
+                    <div ref={loadMoreRef} className="w-full flex justify-center py-4 md:col-span-2 lg:col-span-3">
                       {isLoadingMore && (
                         <div className="flex items-center gap-2 text-neutral-500 font-bold text-xs uppercase tracking-widest">
                           <Loader2 className="w-4 h-4 animate-spin" /> Cargando...

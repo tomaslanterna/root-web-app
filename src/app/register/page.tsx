@@ -189,22 +189,36 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-[100dvh] bg-obsidian text-white relative overflow-hidden">
-      {/* Background cinematic elements fixed during scroll */}
-      <div className="fixed top-0 left-0 w-full h-1/2 bg-gradient-to-b from-[#D4FF00]/10 to-transparent pointer-events-none opacity-50 blur-3xl z-0" />
-      <div className="fixed bottom-0 right-0 w-3/4 h-3/4 bg-gradient-to-tl from-[#D4FF00]/5 to-transparent pointer-events-none opacity-30 blur-2xl rounded-full z-0" />
+    <div className="flex flex-col md:flex-row min-h-[100dvh] bg-obsidian text-white relative overflow-hidden">
       
-      <div className="flex-1 flex flex-col px-6 py-12 z-10 animate-fade-in relative">
-        <button
-          onClick={() => router.back()}
-          className="absolute top-4 left-4 p-2 rounded-full hover:bg-white/10 transition-colors active:scale-95 z-20"
-        >
-          <ChevronLeft className="w-6 h-6 text-white" />
-        </button>
+      {/* Left Column (Image) - Desktop Only */}
+      <div className="hidden md:block md:w-1/2 relative bg-black">
+        <img 
+          src="https://images.unsplash.com/photo-1574169208507-84376144848b?q=80&w=2079&auto=format&fit=crop" 
+          alt="Root Web App" 
+          className="w-full h-full object-cover opacity-60" 
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent to-[#0B0D10]" />
+        
+        <div className="absolute bottom-12 left-12 right-12 z-20">
+          <h2 className="text-4xl font-black uppercase tracking-tight text-white mb-2">
+            Unite a la <span className="text-[#D4FF00]">comunidad</span>.
+          </h2>
+          <p className="text-neutral-300 font-medium max-w-md">
+            Creá tu cuenta, armá tu perfil Raver y empezá a conectar con miles de amantes de la electrónica.
+          </p>
+        </div>
+      </div>
 
-        <div className="mb-8 text-center mt-4">
-          <h1 className="text-3xl font-black tracking-tighter mb-2 text-white drop-shadow-md">
-            Crear cuenta<span className="text-acid-lime">.</span>
+      {/* Right Column (Form) */}
+      <div className="flex-1 md:w-1/2 flex flex-col justify-center px-6 md:px-12 py-12 z-10 animate-fade-in relative max-w-md mx-auto w-full h-screen overflow-y-auto no-scrollbar">
+        {/* Background cinematic elements (mobile only) */}
+        <div className="md:hidden absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-[#D4FF00]/10 to-transparent pointer-events-none opacity-50 blur-3xl" />
+        <div className="md:hidden absolute bottom-0 right-0 w-3/4 h-3/4 bg-gradient-to-tl from-[#D4FF00]/5 to-transparent pointer-events-none opacity-30 blur-2xl rounded-full" />
+        
+        <div className="mb-10 text-center">
+          <h1 className="text-4xl font-black tracking-tighter mb-2 text-white drop-shadow-md">
+            root<span className="text-acid-lime">.</span>
           </h1>
           <p className="text-neutral-400 text-sm font-medium tracking-wide">
             Únete a la red

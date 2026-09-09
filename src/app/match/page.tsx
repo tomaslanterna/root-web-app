@@ -55,8 +55,8 @@ export default function MatchPage() {
         </button>
       </header>
 
-      {/* Main Sub-nav Mode Switcher */}
-      <div className="p-4 pb-2">
+      {/* Main Sub-nav Mode Switcher (Solo Móvil) */}
+      <div className="p-4 pb-2 md:hidden">
         <div className="w-full bg-[#14171F]/90 p-1 rounded-full border border-white/10 shadow-lg flex items-center gap-1">
           <button
             onClick={() => setActiveTab("deck")}
@@ -68,7 +68,7 @@ export default function MatchPage() {
             )}
           >
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Descubrir Eventos</span>
+            <span>Descubrir</span>
           </button>
 
           <button
@@ -98,28 +98,35 @@ export default function MatchPage() {
         </div>
       </div>
 
-      {/* Tab 1: Swipe Deck */}
-      {activeTab === "deck" && (
-        <div className="flex-1 p-4 flex flex-col justify-center">
-          <EventSwipeDeck
-            events={MOCK_EVENTS}
-            vibeProfile={vibeProfile}
-            onSwipe={swipeEvent}
-            onOpenPreferences={() => setIsPreferencesOpen(true)}
-            onResetSwipes={resetSwipes}
-            swipedIds={swipedEventIds}
-          />
-        </div>
-      )}
-
-      {/* Tab 2: User Squads List */}
-      {activeTab === "squads" && (
-        <div className="flex-1 p-4 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xs font-black uppercase tracking-widest text-neutral-400">
-              Crews Formados para Eventos
+      <div className="flex-1 w-full max-w-5xl mx-auto flex flex-col md:grid md:grid-cols-12 md:gap-8 lg:gap-16 p-4 md:py-8 items-start">
+        
+        {/* Columna Izquierda: Swipe Deck (Siempre visible en desktop, según tab en móvil) */}
+        <div className={cn("w-full md:col-span-5 lg:col-span-5 flex-col", activeTab === "deck" ? "flex" : "hidden md:flex")}>
+          <div className="hidden md:flex items-center justify-between mb-4">
+            <h2 className="text-sm font-black uppercase tracking-widest text-white flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-[#D4FF00]" /> Descubrir Eventos
             </h2>
-            <span className="text-[10px] font-extrabold uppercase text-[#D4FF00]">
+          </div>
+          <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full">
+            <EventSwipeDeck
+              events={MOCK_EVENTS}
+              vibeProfile={vibeProfile}
+              onSwipe={swipeEvent}
+              onOpenPreferences={() => setIsPreferencesOpen(true)}
+              onResetSwipes={resetSwipes}
+              swipedIds={swipedEventIds}
+            />
+          </div>
+        </div>
+
+        {/* Columna Derecha: User Squads List (Siempre visible en desktop, según tab en móvil) */}
+        <div className={cn("w-full md:col-span-7 lg:col-span-7 flex-col space-y-4", activeTab === "squads" ? "flex" : "hidden md:flex")}>
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs md:text-sm font-black uppercase tracking-widest text-neutral-400 flex items-center gap-2">
+              <Users className="w-4 h-4 hidden md:block text-[#D4FF00]" />
+              Crews Formados
+            </h2>
+            <span className="text-[10px] md:text-xs font-extrabold uppercase text-[#D4FF00] bg-[#D4FF00]/10 px-2.5 py-1 rounded-full border border-[#D4FF00]/20">
               {userSquads.length} ACTIVOS
             </span>
           </div>
@@ -134,13 +141,13 @@ export default function MatchPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab("deck")}
-                className="mt-2 py-2.5 px-5 rounded-full bg-[#D4FF00] text-neutral-950 text-xs font-black uppercase tracking-wider"
+                className="md:hidden mt-2 py-2.5 px-5 rounded-full bg-[#D4FF00] text-neutral-950 text-xs font-black uppercase tracking-wider"
               >
                 Descubrir Eventos
               </button>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-3 md:space-y-4">
               {userSquads.map((sq) => {
                 const event = MOCK_EVENTS.find((e) => e.id === sq.eventId);
                 const members = sq.members.map(
@@ -151,49 +158,49 @@ export default function MatchPage() {
                   <Link
                     key={sq.id}
                     href={`/chat/squad/${sq.id}`}
-                    className="block p-4 rounded-3xl bg-[#14171F] border border-white/10 hover:border-[#D4FF00]/40 transition-all duration-300 shadow-md group"
+                    className="block p-4 rounded-3xl bg-[#14171F] border border-white/10 hover:border-[#D4FF00]/40 transition-all duration-300 shadow-lg hover:shadow-[#D4FF00]/5 group"
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-4">
                       {event && (
                         <img
                           src={event.cinematicBannerUrl}
                           alt={event.title}
-                          className="w-14 h-14 rounded-2xl object-cover border border-white/10 shrink-0"
+                          className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover border border-white/10 shrink-0"
                         />
                       )}
 
-                      <div className="flex-1 min-w-0 space-y-1">
+                      <div className="flex-1 min-w-0 space-y-1.5">
                         <div className="flex items-center justify-between">
-                          <h3 className="text-xs font-black uppercase tracking-tight text-white group-hover:text-[#D4FF00] transition-colors truncate">
+                          <h3 className="text-xs md:text-sm font-black uppercase tracking-tight text-white group-hover:text-[#D4FF00] transition-colors truncate">
                             {sq.name}
                           </h3>
-                          <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-[#D4FF00]/15 text-[#D4FF00] border border-[#D4FF00]/20 shrink-0">
+                          <span className="text-[9px] md:text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-[#D4FF00]/15 text-[#D4FF00] border border-[#D4FF00]/20 shrink-0">
                             {sq.matchScore}% Match
                           </span>
                         </div>
 
-                        <p className="text-[10px] text-neutral-400 font-bold truncate">
+                        <p className="text-[10px] md:text-xs text-neutral-400 font-bold truncate">
                           {event?.title} • {sq.departureZone}
                         </p>
 
                         <div className="flex items-center justify-between pt-1">
-                          <div className="flex items-center -space-x-2">
+                          <div className="flex items-center -space-x-2 md:-space-x-1.5">
                             {members.map((u) => (
                               <Avatar
                                 key={u.id}
                                 src={u.avatarUrl}
                                 fallback={u.name}
                                 size="sm"
-                                className="ring-2 ring-[#14171F]"
+                                className="ring-2 ring-[#14171F] w-6 h-6 md:w-7 md:h-7"
                               />
                             ))}
-                            <span className="text-[10px] text-neutral-400 font-bold pl-3">
+                            <span className="text-[10px] md:text-[11px] text-neutral-400 font-bold pl-3">
                               {sq.members.length} miembros
                             </span>
                           </div>
 
-                          <span className="text-neutral-400 group-hover:text-white flex items-center gap-1 text-[11px] font-extrabold uppercase">
-                            <MessageSquare className="w-3.5 h-3.5 text-[#D4FF00]" /> Chat →
+                          <span className="text-neutral-400 group-hover:text-white flex items-center gap-1 text-[11px] font-extrabold uppercase transition-colors">
+                            <MessageSquare className="w-3.5 h-3.5 text-[#D4FF00]" /> <span className="hidden sm:inline">Chat</span> →
                           </span>
                         </div>
                       </div>
@@ -204,7 +211,7 @@ export default function MatchPage() {
             </div>
           )}
         </div>
-      )}
+      </div>
 
       {/* Global Vibe Preferences Drawer */}
       <VibePreferencesDrawer />

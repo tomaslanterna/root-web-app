@@ -15,12 +15,28 @@ api.interceptors.request.use(
     if (typeof window !== "undefined") {
       const token = localStorage.getItem("root_jwt_token");
       if (token && config.headers) {
-        config.headers.Authorization = `Bearer ${token}`;
+        if (typeof config.headers.set === 'function') {
+          config.headers.set("Authorization", `Bearer ${token}`);
+        } else {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
       }
     }
     return config;
   },
+  (error) => Promise.reject(error)
+);
+
+api.interceptors.response.use(
+  (response) => response,
   (error) => {
+    if (error.response && error.response.status === 401) {
+      if (typeof window !== "undefined" && !window.location.pathname.includes('/login')) {
+        localStorage.removeItem('root_jwt_token');
+        localStorage.removeItem('root_user');
+        window.location.href = '/login';
+      }
+    }
     return Promise.reject(error);
-  },
+  }
 );
