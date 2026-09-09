@@ -1,5 +1,22 @@
 export type EventRSVPStatus = "going" | "not_going";
 
+export interface Artist {
+  id: string;
+  name: string;
+  artistType: string;
+  genres: string[];
+  avatarUrl?: string;
+  socialLinks?: any;
+}
+
+export interface EventArtist {
+  eventId: string;
+  artistId: string;
+  performanceTime?: string;
+  isHeadliner: boolean;
+  artist?: Artist;
+}
+
 export interface Event {
   id: string;
   title: string;
@@ -9,6 +26,7 @@ export interface Event {
   cinematicBannerUrl: string;
   description: string;
   lineup: string[];
+  artists?: EventArtist[];
   genre?: string;
   price?: number;
   isFree: boolean;
