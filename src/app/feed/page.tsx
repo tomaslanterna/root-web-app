@@ -71,7 +71,7 @@ export default function FeedPage() {
     }
   );
 
-  const { mutate: fetchPendingSurveys } = useMutation(
+  const { mutate: fetchPendingSurveys } = useMutation<Event[], void>(
     surveysApi.getPendingSurveys,
     {
       onSuccess: (data) => {
