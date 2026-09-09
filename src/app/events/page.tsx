@@ -352,16 +352,16 @@ export default function EventsPage() {
           ))}
         </div>
 
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-6 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-6">
           {!hasLoaded && isLoadingEvents ? (
-            [1, 2].map((item) => (
+            [1, 2, 3, 4].map((item) => (
               <div
                 key={item}
                 className="mx-auto aspect-[2/3] w-full max-w-md animate-pulse rounded-3xl border border-white/5 bg-[#14171F] sm:aspect-[16/10]"
               />
             ))
           ) : eventsError && events.length === 0 ? (
-            <div className="space-y-4 rounded-3xl border border-rose-500/20 bg-[#14171F] p-8 text-center">
+            <div className="space-y-4 rounded-3xl border border-rose-500/20 bg-[#14171F] p-8 text-center md:col-span-2 lg:col-span-3">
               <RefreshCw className="mx-auto h-7 w-7 text-rose-400" />
               <p className="text-sm font-bold text-white">No pudimos cargar los eventos.</p>
               <Button
@@ -377,7 +377,7 @@ export default function EventsPage() {
           ) : events.length > 0 ? (
             events.map((event) => <EventCard key={event.id} event={event} variant="full" />)
           ) : (
-            <div className="space-y-3 rounded-3xl border border-white/5 bg-[#14171F]/50 p-8 text-center">
+            <div className="space-y-3 rounded-3xl border border-white/5 bg-[#14171F]/50 p-8 text-center md:col-span-2 lg:col-span-3">
               <Film className="mx-auto h-8 w-8 text-neutral-500" />
               <p className="text-sm font-bold uppercase tracking-wider text-white">
                 No hay próximos eventos con esos filtros

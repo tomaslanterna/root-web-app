@@ -125,7 +125,7 @@ export default function SearchPage() {
         )}
 
         {!isLoading && debouncedQuery && results.length > 0 && (
-          <div className="space-y-4 pb-20">
+          <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-6 pb-20">
             {activeTab === "usuarios" && results.map((user: any) => (
               <div 
                 key={user.id} 

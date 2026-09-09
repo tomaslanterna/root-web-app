@@ -119,93 +119,100 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     <div className="min-h-screen bg-[#0B0D10] pb-28 text-white">
       <DetailHeader onBack={() => router.push('/events')} />
 
-      <main className="space-y-6 p-4 pt-20">
-        <div className="relative mx-auto aspect-[2/3] w-full max-w-sm overflow-hidden rounded-3xl border border-white/15 bg-neutral-950 shadow-2xl">
-          <div
-            role="img"
-            aria-label={`Imagen de ${event.title}`}
-            className="absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: `url(${banner})` }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/25 to-transparent" />
-          <div className="absolute inset-x-4 bottom-4 space-y-2">
-            <div className="flex flex-wrap gap-1.5">
-              <span className="rounded-full bg-[#D4FF00] px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-neutral-950">
-                {priceLabel}
-              </span>
-              <span className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-neutral-200 backdrop-blur-md">
-                {event.genre?.trim() || "Sin especificar"}
-              </span>
+      <main className="p-4 pt-20 grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+        {/* 1. Poster (Izquierda en desktop, arriba en móvil) */}
+        <div className="md:col-span-7 lg:col-span-8 md:row-span-1">
+          <div className="relative mx-auto md:mx-0 aspect-[2/3] md:aspect-video w-full max-w-sm md:max-w-none overflow-hidden rounded-3xl border border-white/15 bg-neutral-950 shadow-2xl">
+            <div
+              role="img"
+              aria-label={`Imagen de ${event.title}`}
+              className="absolute inset-0 bg-cover bg-center"
+              style={{ backgroundImage: `url(${banner})` }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/25 to-transparent" />
+            <div className="absolute inset-x-4 bottom-4 space-y-2">
+              <div className="flex flex-wrap gap-1.5">
+                <span className="rounded-full bg-[#D4FF00] px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-neutral-950">
+                  {priceLabel}
+                </span>
+                <span className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-neutral-200 backdrop-blur-md">
+                  {event.genre?.trim() || "Sin especificar"}
+                </span>
+              </div>
+              <p className="flex items-center gap-1 text-xs font-bold text-neutral-300">
+                <MapPin className="h-3.5 w-3.5 text-[#D4FF00]" /> {event.location}
+              </p>
             </div>
-            <p className="flex items-center gap-1 text-xs font-bold text-neutral-300">
-              <MapPin className="h-3.5 w-3.5 text-[#D4FF00]" /> {event.location}
-            </p>
           </div>
         </div>
 
-        <section className="space-y-3">
-          <div>
-            <p className="mb-1 text-xs font-bold capitalize text-[#D4FF00]">{formattedDate}</p>
-            <h1 className="text-2xl font-black uppercase leading-tight tracking-tight sm:text-3xl">
-              {event.title}
-            </h1>
-          </div>
-
-          <EventAttendanceVote
-            eventId={event.id}
-            initialGoing={event.goingCount}
-            initialNotGoing={event.notGoingCount}
-            initialStatus={event.userRsvp}
-            onChange={updateAttendance}
-          />
-
-          <button
-            type="button"
-            onClick={() => setIsAttendeesOpen(true)}
-            className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-[#14171F] p-3.5 text-left transition-colors hover:border-[#D4FF00]/40"
-          >
-            <span className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-white">
-              <UserCheck className="h-4 w-4 text-[#D4FF00]" /> Personas que seguís y van
-            </span>
-            <span className="text-[10px] font-black uppercase tracking-wider text-[#D4FF00]">Ver →</span>
-          </button>
-
-          <Link
-            href="/match"
-            className="flex items-center justify-between rounded-2xl border border-[#D4FF00]/30 bg-gradient-to-r from-[#14171F] to-[#1E2330] p-3.5 shadow-md transition-all hover:border-[#D4FF00]"
-          >
-            <span className="flex items-center gap-3">
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#D4FF00] text-neutral-950">
-                <Flame className="h-4 w-4 fill-neutral-950" />
-              </span>
-              <span>
-                <span className="block text-xs font-black uppercase tracking-wider">Encontrá tu crew</span>
-                <span className="block text-[10px] text-neutral-400">Grupos de 3-5 personas con tu vibra</span>
-              </span>
-            </span>
-            <span className="text-[10px] font-black uppercase text-[#D4FF00]">Match →</span>
-          </Link>
-        </section>
-
-        {event.lineup.length > 0 && (
-          <section className="space-y-2 rounded-3xl border border-white/10 bg-[#14171F] p-4 shadow-md">
-            <h2 className="flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-neutral-400">
-              <Disc3 className="h-4 w-4 text-[#D4FF00]" /> Lineup confirmado
-            </h2>
-            <div className="flex flex-wrap gap-1.5 pt-1">
-              {event.lineup.map((artist) => (
-                <span
-                  key={artist}
-                  className="rounded-full bg-[#D4FF00] px-3 py-1 text-xs font-black uppercase tracking-wider text-neutral-950"
-                >
-                  {artist}
-                </span>
-              ))}
+        {/* 2. Info y Acciones (Derecha en desktop, sticky. Abajo del poster en móvil) */}
+        <div className="md:col-span-5 lg:col-span-4 md:row-span-4 space-y-6 md:sticky md:top-24">
+          <section className="space-y-3">
+            <div>
+              <p className="mb-1 text-xs font-bold capitalize text-[#D4FF00]">{formattedDate}</p>
+              <h1 className="text-2xl font-black uppercase leading-tight tracking-tight sm:text-3xl">
+                {event.title}
+              </h1>
             </div>
-          </section>
-        )}
 
-        <section className="space-y-3 rounded-3xl border border-white/10 bg-[#14171F] p-5 shadow-md">
+            <EventAttendanceVote
+              eventId={event.id}
+              initialGoing={event.goingCount}
+              initialNotGoing={event.notGoingCount}
+              initialStatus={event.userRsvp}
+              onChange={updateAttendance}
+            />
+
+            <button
+              type="button"
+              onClick={() => setIsAttendeesOpen(true)}
+              className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-[#14171F] p-3.5 text-left transition-colors hover:border-[#D4FF00]/40"
+            >
+              <span className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-white">
+                <UserCheck className="h-4 w-4 text-[#D4FF00]" /> Personas que seguís y van
+              </span>
+              <span className="text-[10px] font-black uppercase tracking-wider text-[#D4FF00]">Ver →</span>
+            </button>
+
+            <Link
+              href="/match"
+              className="flex items-center justify-between rounded-2xl border border-[#D4FF00]/30 bg-gradient-to-r from-[#14171F] to-[#1E2330] p-3.5 shadow-md transition-all hover:border-[#D4FF00]"
+            >
+              <span className="flex items-center gap-3">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#D4FF00] text-neutral-950">
+                  <Flame className="h-4 w-4 fill-neutral-950" />
+                </span>
+                <span>
+                  <span className="block text-xs font-black uppercase tracking-wider">Encontrá tu crew</span>
+                  <span className="block text-[10px] text-neutral-400">Grupos de 3-5 personas con tu vibra</span>
+                </span>
+              </span>
+              <span className="text-[10px] font-black uppercase text-[#D4FF00]">Match →</span>
+            </Link>
+          </section>
+
+          {event.lineup.length > 0 && (
+            <section className="space-y-2 rounded-3xl border border-white/10 bg-[#14171F] p-4 shadow-md">
+              <h2 className="flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-neutral-400">
+                <Disc3 className="h-4 w-4 text-[#D4FF00]" /> Lineup confirmado
+              </h2>
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {event.lineup.map((artist) => (
+                  <span
+                    key={artist}
+                    className="rounded-full bg-[#D4FF00] px-3 py-1 text-xs font-black uppercase tracking-wider text-neutral-950"
+                  >
+                    {artist}
+                  </span>
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+
+        {/* 3. Descripción (Izquierda en desktop, abajo en móvil) */}
+        <section className="md:col-span-7 lg:col-span-8 md:row-span-1 space-y-3 rounded-3xl border border-white/10 bg-[#14171F] p-5 shadow-md">
           <h2 className="flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-neutral-400">
             <Sparkles className="h-4 w-4 text-[#D4FF00]" /> Información del evento
           </h2>
@@ -214,7 +221,10 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           </p>
         </section>
 
-        <CommentSection targetId={event.id} title="Muro de comentarios" />
+        {/* 4. Comentarios (Izquierda en desktop, abajo en móvil) */}
+        <div className="md:col-span-7 lg:col-span-8 md:row-span-1">
+          <CommentSection targetId={event.id} title="Muro de comentarios" />
+        </div>
       </main>
 
       <FollowedAttendeesModal
