@@ -192,21 +192,46 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             </Link>
           </section>
 
-          {event.lineup.length > 0 && (
+          {(event.artists?.length ? event.artists.length > 0 : event.lineup.length > 0) && (
             <section className="space-y-2 rounded-3xl border border-white/10 bg-[#14171F] p-4 shadow-md">
-              <h2 className="flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-neutral-400">
+              <h2 className="flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-neutral-400 mb-3">
                 <Disc3 className="h-4 w-4 text-[#D4FF00]" /> Lineup confirmado
               </h2>
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {event.lineup.map((artist) => (
-                  <span
-                    key={artist}
-                    className="rounded-full bg-[#D4FF00] px-3 py-1 text-xs font-black uppercase tracking-wider text-neutral-950"
-                  >
-                    {artist}
-                  </span>
-                ))}
-              </div>
+              
+              {event.artists && event.artists.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {event.artists.map((ea) => (
+                    <div key={ea.artistId} className="flex items-center gap-3 bg-white/5 rounded-2xl p-2.5">
+                      <div className="w-10 h-10 rounded-full overflow-hidden bg-neutral-800 shrink-0">
+                        {ea.artist?.avatarUrl ? (
+                          <img src={ea.artist.avatarUrl} alt={ea.artist.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-sm font-black text-neutral-600">
+                            {ea.artist?.name?.[0]}
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-bold text-sm text-white line-clamp-1">{ea.artist?.name}</p>
+                        <p className="text-[10px] uppercase font-bold text-neutral-400 tracking-wider">
+                          {ea.isHeadliner ? 'Headliner' : ea.artist?.artistType || 'DJ'}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {event.lineup.map((artist) => (
+                    <span
+                      key={artist}
+                      className="rounded-full bg-[#D4FF00] px-3 py-1 text-xs font-black uppercase tracking-wider text-neutral-950"
+                    >
+                      {artist}
+                    </span>
+                  ))}
+                </div>
+              )}
             </section>
           )}
         </div>

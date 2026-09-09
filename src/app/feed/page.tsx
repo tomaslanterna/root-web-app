@@ -14,6 +14,8 @@ import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { useMutation } from "@/hooks/useMutation";
 import { postsApi } from "@/services/posts";
+import { surveysApi } from "@/services/surveys";
+import { Star } from "lucide-react";
 
 type FilterType = "global" | "featured" | "following" | "communities";
 
@@ -48,6 +50,7 @@ export default function FeedPage() {
   // Mantiene el estado de si ya se hizo el primer fetch para evitar parpadeos
   const [hasFetchedInitial, setHasFetchedInitial] = useState(false);
   const [hasFetchedEvents, setHasFetchedEvents] = useState(false);
+  const [pendingSurveys, setPendingSurveys] = useState<Event[]>([]);
 
   // 1. Fetch Events
   const { mutate: fetchUpcomingEvents, isLoading: isLoadingEvents } = useMutation<Event[], void>(
@@ -68,9 +71,22 @@ export default function FeedPage() {
     }
   );
 
+  const { mutate: fetchPendingSurveys } = useMutation(
+    surveysApi.getPendingSurveys,
+    {
+      onSuccess: (data) => {
+        setPendingSurveys(data);
+      },
+      onError: (err) => {
+        console.error("Error fetching pending surveys:", err);
+      }
+    }
+  );
+
   useEffect(() => {
     void fetchUpcomingEvents().catch(() => undefined);
-  }, [fetchUpcomingEvents]);
+    void fetchPendingSurveys().catch(() => undefined);
+  }, [fetchUpcomingEvents, fetchPendingSurveys]);
 
   // 2. Fetch Initial Posts (Option 1)
   const { mutate: loadInitialFeeds, isLoading: isLoadingInitialPosts } = useMutation(
@@ -307,6 +323,43 @@ export default function FeedPage() {
             <span className="text-sm font-semibold tracking-wide">Buscar usuarios, eventos o posteos...</span>
           </div>
         </div>
+
+        {/* Pending Surveys Swimlane */}
+        {pendingSurveys.length > 0 && (
+          <div className="mt-2 mb-6">
+            <div className={cn(
+              "flex overflow-x-auto snap-x snap-mandatory hide-scrollbar gap-4 px-4 pb-4 scroll-px-4",
+              pendingSurveys.length === 1 ? "justify-center" : "justify-start"
+            )}>
+              {pendingSurveys.map((surveyEvent) => (
+                <div 
+                  key={surveyEvent.id}
+                  onClick={() => router.push(`/events/${surveyEvent.id}/survey`)}
+                  className="relative overflow-hidden w-full shrink-0 snap-center rounded-3xl bg-gradient-to-r from-indigo-900 via-purple-900 to-[#14171F] border border-purple-500/30 p-5 md:p-6 cursor-pointer hover:scale-[1.01] active:scale-[0.98] transition-all group shadow-xl shadow-purple-900/20"
+                >
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-purple-500/30 transition-colors" />
+                  <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="space-y-1.5 flex-1">
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 mb-1 w-fit">
+                        <Star className="w-3.5 h-3.5 text-[#D4FF00] fill-[#D4FF00]" />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-[#D4FF00]">Feedback</span>
+                      </div>
+                      <h3 className="text-lg md:text-xl font-black italic tracking-tight text-white leading-tight">
+                        Queremos saber tu opinión
+                      </h3>
+                      <p className="text-sm text-neutral-300 font-medium max-w-lg">
+                        ¿Cómo te fue en <span className="font-bold text-white line-clamp-1">{surveyEvent.title}</span>? Tu reseña ayuda a la comunidad.
+                      </p>
+                    </div>
+                    <button className="whitespace-nowrap w-full md:w-auto px-6 py-2.5 rounded-full bg-white text-black font-black uppercase tracking-wider text-xs shadow-lg hover:bg-neutral-200 transition-colors">
+                      Evaluar
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {(!hasFetchedEvents || isLoadingEvents || upcomingEvents.length > 0) && (
           <section ref={swimlaneRef} className="pt-4 pb-1">
