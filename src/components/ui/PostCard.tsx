@@ -1,10 +1,13 @@
+"use client";
+
 import * as React from "react";
 import { Card, CardContent, CardHeader, CardFooter } from "./Card";
 import { Avatar } from "./Avatar";
 import { Heart, MessageCircle, Share2, Sparkles, Calendar, Users, BadgeCheck, ShieldAlert } from "lucide-react";
-import { MOCK_EVENTS, MOCK_COMMUNITIES } from "@/lib/mocks";
+import { MOCK_EVENTS } from "@/lib/mocks";
 import type { Post } from "@/types/posts";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 interface PostCardProps {
@@ -13,9 +16,10 @@ interface PostCardProps {
 }
 
 export function PostCard({ post, variant = "light" }: PostCardProps) {
-  // Aún usamos MOCK para eventos y comunidades relacionadas hasta que implementes su backend
+  const pathname = usePathname();
+  // Aún usamos MOCK para eventos relacionadas hasta que implementes su backend
   const relatedEvent = MOCK_EVENTS.find((e) => e.id === post.eventId);
-  const relatedCommunity = MOCK_COMMUNITIES.find((c) => c.id === post.communityId);
+  const relatedCommunity = post.communityId ? { id: post.communityId, name: "Comunidad" } : null;
 
   const [liked, setLiked] = React.useState(false);
   const [likesCount, setLikesCount] = React.useState(post.likesCount || 0);
@@ -41,7 +45,7 @@ export function PostCard({ post, variant = "light" }: PostCardProps) {
       {/* Compact Banner Header (if media exists) */}
       {post.headerImageUrl && (
         <CardHeader className="h-32 sm:h-36 relative overflow-hidden bg-neutral-900">
-          <Link href={`/posts/${post.id}`} className="block w-full h-full">
+          <Link href={`/posts/${post.id}?origin=${pathname}`} className="block w-full h-full">
             <img
               src={post.headerImageUrl}
               alt="Post Header"
@@ -52,7 +56,7 @@ export function PostCard({ post, variant = "light" }: PostCardProps) {
 
           {relatedEvent && (
             <Link
-              href={`/events/${relatedEvent.id}`}
+              href={`/events/${relatedEvent.id}?origin=${pathname}`}
               className="absolute top-3 left-3 px-3 py-1 rounded-full bg-neutral-950/80 backdrop-blur-md border border-white/20 text-white text-[10px] font-extrabold uppercase tracking-wider flex items-center gap-1.5 hover:bg-neutral-950 transition-colors shadow-sm z-10"
             >
               <Calendar className="w-3 h-3 text-[#D4FF00]" />
@@ -62,7 +66,7 @@ export function PostCard({ post, variant = "light" }: PostCardProps) {
 
           {relatedCommunity && (
             <Link
-              href={`/communities/${relatedCommunity.id}`}
+              href={`/communities/${relatedCommunity.id}?origin=${pathname}`}
               className="absolute top-3 right-3 px-3 py-1 rounded-full bg-[#14171F]/90 backdrop-blur-md border border-white/15 text-[#D4FF00] text-[10px] font-extrabold uppercase tracking-wider flex items-center gap-1.5 hover:bg-white hover:text-neutral-950 transition-colors shadow-sm z-10"
             >
               <Users className="w-3 h-3 text-[#D4FF00]" />
@@ -98,7 +102,7 @@ export function PostCard({ post, variant = "light" }: PostCardProps) {
 
         {relatedCommunity ? (
           <Link
-            href={`/communities/${relatedCommunity.id}`}
+            href={`/communities/${relatedCommunity.id}?origin=${pathname}`}
             className={cn(
               "text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-full flex items-center gap-1 transition-colors",
               isElectronic
@@ -123,7 +127,7 @@ export function PostCard({ post, variant = "light" }: PostCardProps) {
       </div>
 
       {/* Main Content Body Clickable */}
-      <Link href={`/posts/${post.id}`} className="block">
+      <Link href={`/posts/${post.id}?origin=${pathname}`} className="block">
         <CardContent className="px-4 py-2 space-y-1">
           {post.title && (
             <h3
@@ -135,14 +139,7 @@ export function PostCard({ post, variant = "light" }: PostCardProps) {
               {post.title}
             </h3>
           )}
-          <p
-            className={cn(
-              "text-xs sm:text-sm leading-relaxed font-medium line-clamp-3",
-              isElectronic ? "text-neutral-300" : "text-neutral-800"
-            )}
-          >
-            {post.content}
-          </p>
+          
         </CardContent>
       </Link>
 
@@ -180,22 +177,11 @@ export function PostCard({ post, variant = "light" }: PostCardProps) {
             </span>
           </button>
 
-          <Link
-            href={`/posts/${post.id}`}
-            className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-colors active:scale-90",
-              isElectronic
-                ? "text-neutral-400 hover:text-white hover:bg-white/10"
-                : "text-neutral-600 hover:text-neutral-950 hover:bg-neutral-200/60"
-            )}
-          >
-            <MessageCircle className="w-4 h-4" />
-            <span className="text-xs font-extrabold uppercase tracking-wider">Comentar</span>
-          </Link>
+          
         </div>
 
         <Link
-          href={`/posts/${post.id}`}
+          href={`/posts/${post.id}?origin=${pathname}`}
           className={cn(
             "text-xs font-extrabold uppercase tracking-wider flex items-center gap-1 hover:underline",
             isElectronic ? "text-[#D4FF00]" : "text-neutral-950"

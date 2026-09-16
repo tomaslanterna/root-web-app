@@ -1,5 +1,8 @@
+"use client";
+
 import * as React from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { CalendarIcon, CheckCircle2, MapPinIcon, Tag, XCircle } from "lucide-react";
 import type { Event } from "@/types/events";
 import { cn } from "@/lib/utils";
@@ -12,9 +15,10 @@ interface EventCardProps {
 }
 
 const fallbackBanner =
-  "https://images.unsplash.com/photo-1514525253344-93168e974686?q=80&w=1200&auto=format&fit=crop";
+  "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=80&w=1200&auto=format&fit=crop";
 
 export function EventCard({ event, variant = "swimlane", className }: EventCardProps) {
+  const pathname = usePathname();
   const date = new Date(event.date);
   const formattedDate = Number.isNaN(date.getTime())
     ? event.date
@@ -30,7 +34,7 @@ export function EventCard({ event, variant = "swimlane", className }: EventCardP
 
   return (
     <Link
-      href={`/events/${event.id}`}
+      href={`/events/${event.id}?origin=${pathname}`}
       className={cn(
         "block select-none transition-all duration-300 active:scale-[0.98]",
         isSwimlane ? "w-[260px] sm:w-[280px] shrink-0 snap-start" : "w-full",

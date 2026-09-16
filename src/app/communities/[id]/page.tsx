@@ -1,22 +1,68 @@
 "use client";
 
-import { useState, use } from "react";
-import { MOCK_COMMUNITIES, MOCK_POSTS } from "@/lib/mocks";
+import { useState, use, useEffect } from "react";
+import { MOCK_POSTS } from "@/lib/mocks";
+import { api } from "@/lib/api";
 import { PostCard } from "@/components/ui/PostCard";
 import { Button } from "@/components/ui/Button";
 import { QuickActionMenu } from "@/components/ui/QuickActionMenu";
 import { Users, UserPlus, ArrowLeft, Plus, Sparkles, MessageSquare } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { DetailHeader } from "@/components/ui/DetailHeader";
-
 export default function CommunityDetailPage({ params }: { params: Promise<{ id: string }> | { id: string } }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const origin = searchParams.get('origin');
   const resolvedParams = typeof (params as any)?.then === "function" ? use(params as Promise<{ id: string }>) : (params as { id: string });
-  const community = MOCK_COMMUNITIES.find((c) => c.id === resolvedParams.id);
-
+  
+  const [community, setCommunity] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingJoin, setIsLoadingJoin] = useState(false);
   const [isJoined, setIsJoined] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const fetchCommunity = async () => {
+      try {
+        const res = await api.get(`/v1/communities/${resolvedParams.id}`);
+        if (res.data) {
+          setCommunity(res.data);
+          setIsJoined(res.data.isMember || false);
+        }
+      } catch (err) {
+        console.error("Error fetching community detail:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchCommunity();
+  }, [resolvedParams.id]);
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#0B0D10] text-white">
+        <p className="text-sm font-bold uppercase text-neutral-400 animate-pulse">Cargando comunidad...</p>
+      </div>
+    );
+  }
+
+
+  const handleToggleJoin = async () => {
+    if (!community || isLoadingJoin) return;
+    setIsLoadingJoin(true);
+    try {
+      const res = await api.post(`/v1/communities/${community.id}/join`);
+      if (res.data) {
+        setIsJoined(res.data.isMember);
+        setCommunity({ ...community, membersCount: res.data.membersCount });
+      }
+    } catch (err) {
+      console.error("Error toggling join community:", err);
+    } finally {
+      setIsLoadingJoin(false);
+    }
+  };
 
   if (!community) {
     return (
@@ -29,12 +75,13 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
     );
   }
 
+  // Dejamos los posts mockeados por ahora, ya que el request fue solo para la data de la comunidad.
   const communityPosts = MOCK_POSTS.filter((p) => p.communityId === community.id);
 
   return (
     <div className="flex flex-col min-h-screen bg-[#0B0D10] text-white pb-28">
       {/* Detail Header */}
-      <DetailHeader onBack={() => router.push('/communities')} />
+      <DetailHeader onBack={() => router.push(origin || '/feed')} />
 
       {/* Community Header Banner */}
       <div className="relative w-full h-48 sm:h-56 md:h-80 bg-neutral-950 overflow-hidden">
@@ -47,7 +94,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
         
         <div className="absolute bottom-4 inset-x-4 md:inset-x-8 space-y-1 text-white">
           <span className="px-3 py-1 rounded-full bg-[#D4FF00]/20 backdrop-blur-md text-[#D4FF00] text-[10px] font-extrabold uppercase tracking-widest border border-[#D4FF00]/30">
-            {community.membersCount + (isJoined ? 1 : 0)} Miembros
+            {community.membersCount} Miembros
           </span>
           <h1 className="text-2xl sm:text-3xl md:text-5xl font-black uppercase tracking-tight leading-tight">
             {community.name}
@@ -65,13 +112,23 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
             </p>
 
             <div className="flex flex-col gap-3">
+              {isJoined && (
+                <Button
+                  variant="primary"
+                  className="w-full gap-2 shadow-lg shadow-[#D4FF00]/10 bg-[#D4FF00] hover:bg-[#bce400] text-neutral-950 font-black uppercase tracking-wider text-xs h-10"
+                  onClick={() => router.push(`/create/post?communityId=${community.id}`)}
+                >
+                  <Sparkles className="w-4 h-4" /> Crear Publicación
+                </Button>
+              )}
               <Button
                 variant={isJoined ? "outline" : "primary"}
                 className="w-full gap-2"
-                onClick={() => setIsJoined(!isJoined)}
+                onClick={handleToggleJoin}
+                disabled={isLoadingJoin}
               >
                 <UserPlus className="w-4 h-4" />
-                <span>{isJoined ? "Miembro Activo ✓" : "Unirse a la Comunidad"}</span>
+                <span>{isLoadingJoin ? "Cargando..." : (isJoined ? "Dejar de pertenecer" : "Unirse a la Comunidad")}</span>
               </Button>
 
               <Button

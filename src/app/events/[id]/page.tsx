@@ -2,7 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   Disc3,
@@ -23,10 +23,12 @@ import { eventsApi } from "@/services/events";
 import type { Event, RSVPResponse } from "@/types/events";
 
 const fallbackBanner =
-  "https://images.unsplash.com/photo-1514525253344-93168e974686?q=80&w=1200&auto=format&fit=crop";
+  "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=80&w=1200&auto=format&fit=crop";
 
 export default function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const origin = searchParams.get('origin');
   const { id: eventId } = use(params);
   const [event, setEvent] = useState<Event | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
@@ -117,7 +119,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
   return (
     <div className="min-h-screen bg-[#0B0D10] pb-28 text-white">
-      <DetailHeader onBack={() => router.push('/events')} />
+      <DetailHeader onBack={() => router.push(origin || '/events')} />
 
       <main className="p-4 pt-20 grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
         {/* 1. Poster (Izquierda en desktop, arriba en móvil) */}

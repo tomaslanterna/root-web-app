@@ -5,11 +5,10 @@ import { useRouter } from "next/navigation";
 import { PostCard } from "@/components/ui/PostCard";
 import { EventCard } from "@/components/ui/EventCard";
 import { QuickActionMenu } from "@/components/ui/QuickActionMenu";
-import { CommunityList } from "@/components/communities/CommunityList";
-import { MOCK_EVENTS, MOCK_COMMUNITIES } from "@/lib/mocks";
+import { MOCK_EVENTS } from "@/lib/mocks";
 import type { Event } from "@/types/events";
 import type { Post } from "@/types/posts";
-import { Plus, Sparkles, Compass, ChevronUp, Globe, Flame, UserCheck, Users, Loader2, Calendar } from "lucide-react";
+import { Plus, Sparkles, Compass, ChevronUp, Globe, Flame, UserCheck, Users, Loader2, Calendar, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { useMutation } from "@/hooks/useMutation";
@@ -52,7 +51,7 @@ export default function FeedPage() {
   const [hasFetchedEvents, setHasFetchedEvents] = useState(false);
   const [pendingSurveys, setPendingSurveys] = useState<Event[]>([]);
 
-  // 1. Fetch Events
+  // 1. Fetch Events & Communities
   const { mutate: fetchUpcomingEvents, isLoading: isLoadingEvents } = useMutation<Event[], void>(
     async () => {
       const res = await api.get("/v1/events");
@@ -194,7 +193,6 @@ export default function FeedPage() {
     { id: "global", label: "Todos", icon: Globe },
     { id: "featured", label: "Destacados", icon: Flame },
     { id: "following", label: "Seguidos", icon: UserCheck },
-    { id: "communities", label: "Comunidades", icon: Users },
   ];
 
   useEffect(() => {
@@ -385,13 +383,54 @@ export default function FeedPage() {
                   </div>
                 ))
               ) : (
-                upcomingEvents.map((event) => (
-                  <EventCard key={event.id} event={event} />
-                ))
+                <>
+                  {upcomingEvents.map((event) => (
+                    <EventCard key={event.id} event={event} />
+                  ))}
+                  {upcomingEvents.length > 0 && (
+                    <div 
+                      onClick={() => router.push('/events')}
+                      className="w-[160px] sm:w-[180px] shrink-0 snap-start rounded-3xl bg-[#14171F] border border-white/5 hover:border-white/20 transition-all duration-300 flex flex-col items-center justify-center space-y-3 cursor-pointer group active:scale-[0.98] shadow-lg shadow-black/20"
+                    >
+                      <div className="w-14 h-14 rounded-full bg-white/5 group-hover:bg-[#D4FF00]/10 flex items-center justify-center transition-colors">
+                        <ArrowRight className="w-6 h-6 text-neutral-400 group-hover:text-[#D4FF00] group-hover:translate-x-1 transition-all" />
+                      </div>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400 group-hover:text-white transition-colors">
+                        Ver más eventos
+                      </span>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </section>
         )}
+
+        
+        <div className="px-4 pt-4">
+{/* Banner de Comunidades */}
+            <div 
+              onClick={() => router.push('/communities')}
+              className="relative w-full h-32 sm:h-40 rounded-3xl overflow-hidden cursor-pointer group shadow-lg shadow-black/20 border border-white/10 hover:border-white/20 transition-all duration-300 active:scale-[0.98]"
+            >
+              <div 
+                className="absolute inset-0 bg-cover bg-center transition-transform duration-700 ease-out group-hover:scale-105"
+                style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=80&w=1974&auto=format&fit=crop")' }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-neutral-950/90 via-neutral-950/60 to-transparent" />
+              <div className="absolute inset-0 p-4 sm:p-5 flex flex-col justify-center">
+                <span className="w-fit rounded-full border border-white/20 bg-white/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-[#D4FF00] backdrop-blur-md mb-2 flex items-center gap-1">
+                  <Sparkles className="w-3 h-3" /> Descubrir
+                </span>
+                <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tighter text-white drop-shadow-md mb-1 leading-none">
+                  Comunidades RRPP
+                </h2>
+                <p className="text-xs text-neutral-300 font-medium max-w-[200px] leading-snug drop-shadow-sm flex items-center gap-1">
+                  Únete y conecta <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                </p>
+              </div>
+            </div>
+        </div>
 
         <div
           className="sticky z-30 transition-all duration-300 bg-[#0B0D10]/85 backdrop-blur-xl py-2 px-4 md:!top-[72px]"
@@ -421,21 +460,9 @@ export default function FeedPage() {
         </div>
 
         <section className="px-4 space-y-4 pt-1">
-          {filter === "communities" ? (
-            <>
-              <div className="flex items-center justify-between">
-                <h2 className="text-xs font-black uppercase tracking-widest text-neutral-400 flex items-center gap-1.5">
-                  <Users className="w-3.5 h-3.5 text-[#D4FF00]" /> Comunidades RRPP
-                </h2>
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-neutral-500">
-                  {MOCK_COMMUNITIES.length} {MOCK_COMMUNITIES.length === 1 ? "comunidad" : "comunidades"}
-                </span>
-              </div>
-              <CommunityList />
-            </>
-          ) : (
-            <>
-              <div className="flex items-center justify-between">
+          <>
+
+            <div className="flex items-center justify-between pt-2">
                 <h2 className="text-xs font-black uppercase tracking-widest text-neutral-400 flex items-center gap-1.5">
                   <Compass className="w-3.5 h-3.5 text-[#D4FF00]" /> Publicaciones
                 </h2>
@@ -478,7 +505,6 @@ export default function FeedPage() {
                 </div>
               )}
             </>
-          )}
         </section>
       </div>
 

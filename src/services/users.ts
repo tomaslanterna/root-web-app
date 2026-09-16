@@ -11,6 +11,14 @@ export const usersApi = {
     return data;
   },
 
+  getUserCommunities: async (username: string) => {
+    const { data } = await api.get(`/v1/users/${username}/communities`);
+    return data;
+  },
+  getUserEvents: async (username: string) => {
+    const { data } = await api.get(`/v1/users/${username}/events`);
+    return data;
+  },
   getUserProfile: async (username: string) => {
     const { data } = await api.get(`/v1/users/${username}`);
     return data;
