@@ -15,15 +15,8 @@ const ACTIONS = [
     title: "Nueva Publicación",
     description: "Comparte fotos, tracks o sets con la comunidad",
     icon: Image,
-    href: "#",
+    href: "/create/post",
     badge: "Feed",
-  },
-  {
-    title: "Vender Entrada Reventa",
-    description: "Publica tu ticket verificado de forma segura",
-    icon: Ticket,
-    href: "/resale",
-    badge: "P2P",
   },
   {
     title: "Nueva Comunidad RRPP",
@@ -31,13 +24,6 @@ const ACTIONS = [
     icon: Users,
     href: "/communities",
     badge: "Social",
-  },
-  {
-    title: "Verificación de Identidad",
-    description: "Valida tu documento para comerciar entradas",
-    icon: ShieldCheck,
-    href: "/profile",
-    badge: "KYC",
   },
 ];
 
