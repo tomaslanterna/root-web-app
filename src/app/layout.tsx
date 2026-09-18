@@ -51,10 +51,10 @@ export default function RootLayout({
                   </React.Suspense>
                   
                   {/* Contenedor principal con padding izquierdo para el sidebar en desktop */}
-                  <div className="flex-1 flex min-h-[100dvh] w-full md:pl-64 bg-[#0B0D10]">
+                  <div className="flex-1 flex min-h-[100dvh] w-full md:pl-60 bg-[#0B0D10]">
                     
                     {/* Columna central (Feed) - Ocupa el 100% del espacio de forma segura sin overflow */}
-                    <main className="flex-1 w-full min-w-0 max-w-md md:max-w-none min-h-[100dvh] pb-24 md:pb-0 md:px-12 border-x border-white/10 shadow-2xl md:shadow-none transition-colors duration-300">
+                    <main className="flex-1 w-full min-w-0 max-w-md md:max-w-none min-h-[100dvh] pb-24 md:pb-0 md:px-8 lg:px-12 border-x border-white/10 shadow-2xl md:shadow-none transition-colors duration-300">
                       {children}
                     </main>
 
