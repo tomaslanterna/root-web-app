@@ -3,14 +3,14 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarIcon, CheckCircle2, MapPinIcon, Tag, XCircle } from "lucide-react";
+import { CalendarIcon, CheckCircle2, MapPinIcon, Tag } from "lucide-react";
 import type { Event } from "@/types/events";
 import { cn } from "@/lib/utils";
 import { Card } from "./Card";
 
 interface EventCardProps {
   event: Event;
-  variant?: "swimlane" | "full";
+  variant?: "swimlane" | "full" | "list";
   className?: string;
 }
 
@@ -20,10 +20,21 @@ const fallbackBanner =
 export function EventCard({ event, variant = "swimlane", className }: EventCardProps) {
   const pathname = usePathname();
   const date = new Date(event.date);
-  const formattedDate = Number.isNaN(date.getTime())
-    ? event.date
-    : new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "short" }).format(date);
+  const isValidDate = !Number.isNaN(date.getTime());
+  const formattedDate = isValidDate
+    ? new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "short" }).format(date)
+    : event.date;
+
+  const dayString = isValidDate ? date.getDate().toString() : "--";
+  const monthString = isValidDate
+    ? new Intl.DateTimeFormat("es-AR", { month: "short" }).format(date).replace(".", "")
+    : "";
+  const weekdayString = isValidDate
+    ? new Intl.DateTimeFormat("es-AR", { weekday: "short" }).format(date).replace(".", "")
+    : "";
+
   const isSwimlane = variant === "swimlane";
+  const isList = variant === "list";
   const image = event.cinematicBannerUrl?.trim() || fallbackBanner;
   const priceLabel =
     event.price == null
@@ -31,6 +42,85 @@ export function EventCard({ event, variant = "swimlane", className }: EventCardP
       : event.price === 0
         ? "Gratis"
         : `$${event.price.toLocaleString("es-AR")}`;
+
+  if (isList) {
+    return (
+      <Link
+        href={`/events/${event.id}?origin=${pathname}`}
+        className={cn(
+          "block select-none transition-all duration-300 active:scale-[0.99] w-full",
+          className,
+        )}
+      >
+        <Card className="group relative overflow-hidden rounded-2xl md:rounded-3xl border-white/10 bg-[#14171F]/90 text-white shadow-md hover:border-[#D4FF00]/40 md:hover:-translate-y-0.5 hover:shadow-xl md:hover:shadow-lg md:hover:shadow-[#D4FF00]/10 transition-all duration-300 p-3 md:p-4 backdrop-blur-sm">
+          <div className="flex items-center gap-3.5 md:gap-5">
+            {/* Calendar Date Block */}
+            <div className="flex flex-col items-center justify-center w-14 md:w-16 h-14 md:h-16 rounded-xl md:rounded-2xl bg-[#0B0D10] border border-white/10 shrink-0 text-center shadow-inner group-hover:border-[#D4FF00]/30 transition-colors">
+              <span className="text-[10px] md:text-xs font-black uppercase tracking-wider text-[#D4FF00]">
+                {monthString}
+              </span>
+              <span className="text-base md:text-xl font-black text-white leading-none">
+                {dayString}
+              </span>
+              <span className="text-[8px] md:text-[9px] font-extrabold uppercase text-neutral-400">
+                {weekdayString}
+              </span>
+            </div>
+
+            {/* Thumbnail Poster */}
+            <div className="relative w-20 md:w-28 h-14 md:h-16 rounded-xl md:rounded-2xl overflow-hidden shrink-0 border border-white/10 bg-neutral-900">
+              <div
+                role="img"
+                aria-label={`Imagen de ${event.title}`}
+                className="w-full h-full bg-cover bg-center transition-transform duration-500 ease-out group-hover:scale-110"
+                style={{ backgroundImage: `url(${image})` }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-neutral-950/60 to-transparent pointer-events-none" />
+            </div>
+
+            {/* Main Information */}
+            <div className="flex-1 min-w-0 space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="w-fit rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[9px] md:text-[10px] font-extrabold uppercase tracking-widest text-neutral-300">
+                  {event.genre?.trim() || "Sin especificar"}
+                </span>
+                <span className="hidden sm:inline-block text-[10px] text-neutral-600">
+                  •
+                </span>
+                <div className="hidden sm:flex items-center gap-1 text-neutral-400 text-[11px] truncate">
+                  <MapPinIcon className="h-3 w-3 shrink-0 text-[#D4FF00]" />
+                  <span className="truncate">{event.location}</span>
+                </div>
+              </div>
+
+              <h3 className="text-sm md:text-base font-black uppercase tracking-tight text-white truncate group-hover:text-[#D4FF00] transition-colors">
+                {event.title}
+              </h3>
+
+              <div className="flex sm:hidden items-center gap-1 text-neutral-400 text-[10px] truncate">
+                <MapPinIcon className="h-3 w-3 shrink-0 text-[#D4FF00]" />
+                <span className="truncate">{event.location}</span>
+              </div>
+            </div>
+
+            {/* Price & Social Attendance */}
+            <div className="flex flex-col items-end justify-center shrink-0 pl-2 space-y-1">
+              <span className="text-xs md:text-sm font-black text-[#D4FF00] tracking-wide">
+                {priceLabel}
+              </span>
+              {event.goingCount > 0 && (
+                <div className="flex items-center gap-1 text-[9px] md:text-[10px] font-extrabold uppercase text-neutral-300">
+                  <CheckCircle2 className="h-3 w-3 text-[#D4FF00] shrink-0" />
+                  <span>{event.goingCount}</span>
+                  <span className="hidden sm:inline">Voy</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </Card>
+      </Link>
+    );
+  }
 
   return (
     <Link
@@ -43,55 +133,80 @@ export function EventCard({ event, variant = "swimlane", className }: EventCardP
     >
       <Card
         className={cn(
-          "group relative overflow-hidden rounded-3xl border-white/10 bg-neutral-950 text-white shadow-md transition-all duration-300 hover:border-white/25 hover:shadow-xl",
-          isSwimlane ? "aspect-[2/3]" : "mx-auto aspect-[2/3] w-full max-w-md sm:aspect-[16/10]",
+          "group relative overflow-hidden rounded-3xl border border-white/10 bg-neutral-950 text-white shadow-lg transition-all duration-300 ease-out hover:border-[#D4FF00]/50 hover:shadow-2xl hover:shadow-[#D4FF00]/10 md:hover:-translate-y-1.5",
+          isSwimlane
+            ? "aspect-[3/4]"
+            : "mx-auto aspect-[4/5] w-full max-w-md md:max-w-none",
         )}
       >
+        {/* Cover Artwork (Hero) */}
         <div
           role="img"
           aria-label={`Imagen de ${event.title}`}
           className="absolute inset-0 bg-cover bg-center transition-transform duration-700 ease-out group-hover:scale-105"
           style={{ backgroundImage: `url(${image})` }}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/45 to-transparent" />
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-neutral-950/70 to-transparent" />
 
-        <div className="absolute inset-x-3 top-3 z-10 flex items-start justify-between gap-2">
-          <span className="flex max-w-[62%] items-center gap-1 rounded-full border border-white/20 bg-neutral-950/80 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-[#D4FF00] backdrop-blur-md">
+        {/* Subtle Top Vignette (allows date/price badge legibility without darkening artwork) */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-neutral-950/60 to-transparent" />
+
+        {/* Smooth Bottom Gradient (covers only bottom 40% for high text readability) */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-neutral-950 via-neutral-950/65 to-transparent" />
+
+        {/* Floating Top Badges */}
+        <div className="absolute inset-x-3.5 top-3.5 z-10 flex items-start justify-between gap-2">
+          {/* Price / Free Badge */}
+          <span
+            className={cn(
+              "flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] md:text-[11px] font-black uppercase tracking-wider backdrop-blur-md shadow-sm border",
+              event.price === 0
+                ? "bg-[#D4FF00] text-neutral-950 border-[#D4FF00]"
+                : "bg-neutral-950/75 text-[#D4FF00] border-white/15",
+            )}
+          >
             <Tag className="h-2.5 w-2.5 shrink-0" />
-            <span className="truncate">{priceLabel}</span>
+            <span>{priceLabel}</span>
           </span>
-          <span className="flex items-center gap-1 rounded-full border border-white/20 bg-neutral-950/80 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-widest text-white backdrop-blur-md">
-            <CalendarIcon className="h-3 w-3 text-neutral-300" />
-            {formattedDate}
+
+          {/* Date Badge */}
+          <span className="flex items-center gap-1.5 rounded-full border border-white/15 bg-neutral-950/75 backdrop-blur-md px-2.5 py-1 text-[10px] md:text-[11px] font-black uppercase tracking-widest text-white shadow-sm">
+            <CalendarIcon className="h-3 w-3 text-[#D4FF00] shrink-0" />
+            <span>{formattedDate}</span>
           </span>
         </div>
 
-        <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col justify-end space-y-2 p-4 sm:p-5">
-          <span className="w-fit rounded-full border border-white/10 bg-white/10 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-widest text-neutral-300 backdrop-blur-md">
-            {event.genre?.trim() || "Sin especificar"}
-          </span>
+        {/* Bottom Metadata: Focused, Clean, and Impactful */}
+        <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col justify-end p-4 sm:p-5 space-y-1.5">
+          {/* Genre + Location + Social Attendees */}
+          <div className="flex items-center gap-2 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-neutral-300">
+            {event.genre && (
+              <span className="text-[#D4FF00] font-black tracking-widest">
+                {event.genre}
+              </span>
+            )}
+            {event.genre && event.location && (
+              <span className="text-white/30">•</span>
+            )}
+            {event.location && (
+              <span className="flex items-center gap-1 truncate text-neutral-300 font-semibold">
+                <MapPinIcon className="h-3 w-3 text-neutral-400 shrink-0" />
+                <span className="truncate">{event.location}</span>
+              </span>
+            )}
+            {event.goingCount > 0 && (
+              <>
+                <span className="text-white/30 hidden sm:inline">•</span>
+                <span className="text-neutral-400 font-semibold hidden sm:inline">
+                  {event.goingCount} van
+                </span>
+              </>
+            )}
+          </div>
 
-          <h3 className="line-clamp-2 text-base font-black uppercase leading-snug tracking-tight text-white drop-shadow-md sm:text-lg">
+          {/* Event Title */}
+          <h3 className="text-base sm:text-lg md:text-xl font-black uppercase leading-tight tracking-tight text-white line-clamp-2 drop-shadow-md group-hover:text-[#D4FF00] transition-colors">
             {event.title}
           </h3>
-
-          <div className="flex items-center justify-between gap-2 border-t border-white/10 pt-2 text-neutral-300">
-            <div className="flex min-w-0 items-center gap-1">
-              <MapPinIcon className="h-3.5 w-3.5 shrink-0 text-[#D4FF00]" />
-              <span className="truncate text-[10px] font-semibold uppercase tracking-wide">
-                {event.location}
-              </span>
-            </div>
-            <div className="flex shrink-0 items-center gap-2 text-[9px] font-extrabold uppercase">
-              <span className="flex items-center gap-1 text-[#D4FF00]">
-                <CheckCircle2 className="h-3 w-3" /> {event.goingCount} Voy
-              </span>
-              <span className="flex items-center gap-1 text-neutral-400">
-                <XCircle className="h-3 w-3" /> {event.notGoingCount} No
-              </span>
-            </div>
-          </div>
         </div>
       </Card>
     </Link>
