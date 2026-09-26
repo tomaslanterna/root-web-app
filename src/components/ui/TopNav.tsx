@@ -11,7 +11,7 @@ export function TopNav({ title, showBack = true }: TopNavProps) {
   const router = useRouter();
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 h-16 bg-[#0B0D10]/80 backdrop-blur-md border-b border-white/10 flex items-center px-4">
+    <div className="fixed top-0 left-0 right-0 z-50 h-[calc(4rem+env(safe-area-inset-top,0px))] pt-[env(safe-area-inset-top,0px)] bg-[#0B0D10]/80 backdrop-blur-md border-b border-white/10 flex items-center px-4">
       {showBack && (
         <button
           onClick={() => router.back()}

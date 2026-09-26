@@ -21,6 +21,7 @@ export default function TransferDealRoomPage({ params }: { params: Promise<{ id:
   
   const [message, setMessage] = useState("");
   const [isConfirming, setIsConfirming] = useState(false);
+  const [isPaying, setIsPaying] = useState(false);
 
   // 1. Obtener los detalles del Trato (Transfer)
   useEffect(() => {
@@ -52,6 +53,8 @@ export default function TransferDealRoomPage({ params }: { params: Promise<{ id:
         
         if (latestSystemMsg.content === "TICKET_SENT" && transfer.status !== "TICKET_SENT") {
           setTransfer((prev: any) => ({ ...prev, status: "TICKET_SENT" }));
+        } else if (latestSystemMsg.content === "PAID" && transfer.status !== "PAID") {
+          setTransfer((prev: any) => ({ ...prev, status: "PAID" }));
         } else if (latestSystemMsg.content === "COMPLETED" && transfer.status !== "COMPLETED") {
           setTransfer((prev: any) => ({ ...prev, status: "COMPLETED" }));
         } else if (latestSystemMsg.content === "CANCELLED" && transfer.status !== "CANCELLED") {
@@ -94,6 +97,20 @@ export default function TransferDealRoomPage({ params }: { params: Promise<{ id:
     }
   };
 
+  const handlePayTransfer = async () => {
+    if (isPaying) return;
+    setIsPaying(true);
+    try {
+      const res = await api.post(`/v1/transfers/${transferId}/pay`);
+      if (res.data?.init_point) {
+        window.location.href = res.data.init_point;
+      }
+    } catch (err) {
+      console.error("Error initiating payment", err);
+      setIsPaying(false);
+    }
+  };
+
   if (isLoadingDeal) {
     return (
       <div className="flex justify-center items-center h-screen bg-[#0B0D10]">
@@ -113,7 +130,7 @@ export default function TransferDealRoomPage({ params }: { params: Promise<{ id:
   return (
     <div className="flex flex-col h-[100dvh] bg-[#0B0D10] text-white">
       {/* Header */}
-      <header className="shrink-0 sticky top-0 z-40 bg-[#0B0D10]/95 backdrop-blur-xl border-b border-white/10">
+      <header className="shrink-0 sticky top-0 z-40 bg-[#0B0D10]/95 backdrop-blur-xl border-b border-white/10 pt-safe-header pb-3">
         <div className="px-4 py-3 flex items-center justify-between">
           <button onClick={() => router.back()} className="p-2 -ml-2 rounded-full hover:bg-white/10 active:scale-95 transition-all">
             <ChevronLeft className="w-6 h-6" />
@@ -170,7 +187,19 @@ export default function TransferDealRoomPage({ params }: { params: Promise<{ id:
           </span>
         </div>
 
-        {isLoadingChat && messages.length === 0 ? (
+        {transfer.status === "AVAILABLE" ? (
+          <div className="flex flex-col items-center justify-center py-10 space-y-3">
+             <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center text-neutral-400">
+               <ShieldCheck className="w-6 h-6" />
+             </div>
+             <p className="text-neutral-400 text-sm font-bold uppercase tracking-wider text-center px-6">
+               Esperando a un comprador
+             </p>
+             <p className="text-xs text-neutral-500 text-center px-8">
+               Tu oferta está pública. Cuando un comprador inicie el trato, este chat se habilitará automáticamente.
+             </p>
+          </div>
+        ) : isLoadingChat && messages.length === 0 ? (
            <div className="flex justify-center py-4">
              <Loader2 className="w-5 h-5 text-neutral-500 animate-spin" />
            </div>
@@ -187,6 +216,13 @@ export default function TransferDealRoomPage({ params }: { params: Promise<{ id:
                 case "TICKET_SENT":
                   title = "Entrada Enviada";
                   description = "El vendedor ha adjuntado la entrada. Root la retendrá encriptada hasta el día del evento. Podrás revelar el código QR horas antes de la fiesta.";
+                  break;
+                case "PAID":
+                  title = "Transferencia Pagada";
+                  description = "El comprador ha realizado el pago. El dinero está asegurado por Root hasta que se confirme el ingreso.";
+                  iconColor = "text-green-400";
+                  bgColor = "bg-green-500/10";
+                  borderColor = "border-green-500/30";
                   break;
                 case "COMPLETED":
                   title = "Trato Completado";
@@ -252,15 +288,29 @@ export default function TransferDealRoomPage({ params }: { params: Promise<{ id:
 
       {/* Acción Crítica / Bottom Bar */}
       <div className="shrink-0 bg-[#0B0D10]/95 backdrop-blur-xl border-t border-white/10 p-4 pb-8 space-y-3">
+        {/* DEBUG TEMPORAL */}
+        <div className="text-xs text-neutral-500">
+          Status: {transfer.status} | Soy Vendedor: {isSeller ? "Sí" : "No"} | {user?.id}
+        </div>
         
         {/* Lógica dinámica de botones según el estado y si soy comprador o vendedor */}
-        {transfer.status === "NEGOTIATING" && isSeller && (
+        {(transfer.status === "NEGOTIATING" || transfer.status === "PAID") && isSeller && (
           <button 
             onClick={() => updateStatus("TICKET_SENT")}
             className="w-full bg-indigo-500 text-white font-black uppercase tracking-widest py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-indigo-600 active:scale-[0.98] transition-all shadow-lg shadow-indigo-500/20"
           >
             <Ticket className="w-5 h-5" />
             Marcar Entrada Como Enviada
+          </button>
+        )}
+
+        {(transfer.status === "NEGOTIATING" || transfer.status === "TICKET_SENT") && !isSeller && (
+          <button 
+            onClick={handlePayTransfer}
+            disabled={isPaying}
+            className="w-full bg-[#009EE3] text-white font-black uppercase tracking-widest py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-[#008ACB] active:scale-[0.98] transition-all shadow-lg shadow-[#009EE3]/20 disabled:opacity-50"
+          >
+            {isPaying ? <Loader2 className="w-5 h-5 animate-spin" /> : "Pagar Transfer"}
           </button>
         )}
 
@@ -307,7 +357,7 @@ export default function TransferDealRoomPage({ params }: { params: Promise<{ id:
         )}
 
         {/* Chat Input (Oculto si el trato ya cerró o hay disputa) */}
-        {transfer.status !== "COMPLETED" && transfer.status !== "DISPUTED" && transfer.status !== "CANCELLED" && (
+        {transfer.status !== "AVAILABLE" && transfer.status !== "COMPLETED" && transfer.status !== "DISPUTED" && transfer.status !== "CANCELLED" && (
           <div className="flex gap-2">
             <div className="flex-1 bg-[#14171F] border border-white/10 rounded-full px-4 py-3 flex items-center gap-2">
               <input

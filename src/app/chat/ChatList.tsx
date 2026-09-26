@@ -85,7 +85,7 @@ export function ChatList({ className }: { className?: string }) {
     <div
       className={`flex flex-col h-full bg-[#0B0D10] text-white ${className || ""}`}
     >
-      <header className="sticky top-0 z-40 glass-header-obsidian px-4 py-3 flex items-center justify-between">
+      <header className="fixed top-0 left-0 w-full z-40 glass-header-obsidian px-4 pb-3 pt-safe-header flex items-center justify-between md:max-w-none">
         <div className="flex items-center gap-2">
           <MessageSquare className="w-5 h-5 text-[#D4FF00]" />
           <h1 className="text-lg font-black uppercase tracking-wider text-white">
@@ -102,6 +102,9 @@ export function ChatList({ className }: { className?: string }) {
           </span>
         </button>
       </header>
+
+      {/* Espaciador para compensar el header fixed */}
+      <div className="pt-safe-header opacity-0 pointer-events-none pb-3"><div className="h-10"></div></div>
 
       <div className="p-4 space-y-6">
         {/* 1. Crews de Eventos Section */}

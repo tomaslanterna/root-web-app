@@ -229,7 +229,7 @@ export default function FeedPage() {
       {/* Sticky Header with Collapsible Eventos Destacados Bar */}
       <header 
         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-        className="sticky top-0 z-40 glass-header-obsidian transition-all duration-300 md:hidden cursor-pointer"
+        className="sticky top-0 z-40 glass-header-obsidian transition-all duration-300 md:hidden cursor-pointer pt-[env(safe-area-inset-top,0px)]"
       >
         <div className="px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-2">

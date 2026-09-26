@@ -64,7 +64,7 @@ export default function SquadChatPage({
   return (
     <div className="flex flex-col h-screen bg-[#0B0D10] text-white overflow-hidden">
       {/* Sticky Header with Event Banner info */}
-      <header className="sticky top-0 z-40 glass-header-obsidian px-4 py-3 border-b border-white/10 flex items-center justify-between">
+      <header className="sticky top-0 z-40 glass-header-obsidian px-4 pb-3 pt-safe-header border-b border-white/10 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link
             href="/match"

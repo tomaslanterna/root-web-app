@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
     BACKEND_PUBLIC_API_URL: process.env.BACKEND_PUBLIC_API_URL,
   },
   // @ts-ignore
-  allowedDevOrigins: ["192.168.1.47", "http://192.168.1.47:3000"],
+  allowedDevOrigins: ["192.168.1.9", "http://192.168.1.9:3000"],
 };
 
 export default nextConfig;
