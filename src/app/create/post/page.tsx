@@ -82,7 +82,7 @@ function CreatePostContent() {
   return (
     <div className="min-h-[100dvh] bg-[#0B0D10] text-white flex flex-col pb-20">
       {/* HEADER */}
-      <header className="sticky top-0 z-40 bg-[#0B0D10]/90 backdrop-blur-md px-4 py-3 flex items-center justify-between border-b border-white/5">
+      <header className="sticky top-0 z-40 bg-[#0B0D10]/90 backdrop-blur-md px-4 pb-3 pt-safe-header flex items-center justify-between border-b border-white/5">
         <button 
           onClick={() => step > 1 ? setStep(step - 1) : router.back()} 
           className="p-2 -ml-2 text-neutral-400 hover:text-white transition-colors"

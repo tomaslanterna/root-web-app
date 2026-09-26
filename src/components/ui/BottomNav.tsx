@@ -56,7 +56,7 @@ export function BottomNav() {
     <>
       <nav className={cn(
         // Estilos base (Móvil)
-        "fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-4 transition-transform duration-300",
+        "fixed bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-4 transition-transform duration-300",
         hideOnMobile ? "translate-y-32 opacity-0 pointer-events-none md:translate-y-0 md:opacity-100 md:pointer-events-auto" : "",
         // Estilos Desktop (Sidebar)
         "md:bottom-auto md:left-0 md:top-0 md:h-screen md:w-64 md:flex-col md:justify-between md:py-8 md:px-6 md:bg-[#0B0D10] md:rounded-none md:border-r md:border-white/10 md:translate-x-0",

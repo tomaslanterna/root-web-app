@@ -144,7 +144,7 @@ export default function EventsPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-[#0B0D10] text-white">
-      <header className="glass-header-obsidian sticky top-0 z-40 flex items-center justify-between px-4 py-3">
+      <header className="glass-header-obsidian sticky top-0 z-40 flex items-center justify-between px-4 pb-3 pt-safe-header">
         <div className="flex items-center gap-2">
           <Film className="h-5 w-5 text-[#D4FF00]" />
           <h1 className="text-lg font-black uppercase tracking-wider">Eventos</h1>

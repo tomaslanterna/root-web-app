@@ -31,7 +31,7 @@ export default function MatchPage() {
   return (
     <div className="flex flex-col min-h-[100dvh] bg-[#0B0D10] text-white">
       {/* Sticky Obsidian Header */}
-      <header className="sticky top-0 z-40 glass-header-obsidian px-4 py-3 flex items-center justify-between transition-all duration-300">
+      <header className="sticky top-0 z-40 glass-header-obsidian px-4 pb-3 pt-safe-header flex items-center justify-between transition-all duration-300">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full bg-[#D4FF00] text-neutral-950 flex items-center justify-center font-black italic text-sm tracking-tighter shadow-md shadow-[#D4FF00]/15">
             <Flame className="w-4 h-4 fill-neutral-950" />

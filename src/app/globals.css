@@ -14,11 +14,35 @@
   body {
     @apply bg-neutral-50 text-neutral-950 antialiased selection:bg-neutral-900 selection:text-white;
     font-feature-settings: "ss01", "ss02", "cv01", "cv02";
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+  
+  /* Ocultar barra de scroll en navegadores WebKit (Chrome, Safari, iOS) */
+  body::-webkit-scrollbar,
+  html::-webkit-scrollbar,
+  *::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent !important;
   }
 }
 
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom);
+}
+
+.pt-safe-header {
+  padding-top: calc(0.75rem + env(safe-area-inset-top, 0px)) !important;
+}
+
+.pt-safe-1 {
+  padding-top: calc(1rem + env(safe-area-inset-top, 0px)) !important;
+}
+
+.top-safe-header {
+  top: calc(1rem + env(safe-area-inset-top, 0px)) !important;
 }
 
 /* 
