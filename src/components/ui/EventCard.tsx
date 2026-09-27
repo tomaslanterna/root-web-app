@@ -43,11 +43,33 @@ export function EventCard({ event, variant = "swimlane", className }: EventCardP
         ? "Gratis"
         : `$${event.price.toLocaleString("es-AR")}`;
 
+  const linkRef = React.useRef<HTMLAnchorElement>(null);
+  const [isVisible, setIsVisible] = React.useState(true);
+
+  React.useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsVisible(entry.isIntersecting);
+      },
+      { threshold: 0.15 }
+    );
+    if (linkRef.current) {
+      observer.observe(linkRef.current);
+    }
+    return () => observer.disconnect();
+  }, []);
+
   if (isList) {
     return (
       <Link
+        ref={linkRef}
         href={`/events/${event.id}?origin=${pathname}`}
         className={cn(
+          "block transition-all duration-[600ms] ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.98]",
+          isVisible 
+            ? "scale-100 opacity-100 translate-y-0 blur-none" 
+            : "scale-[0.70] md:scale-[0.92] opacity-0 md:opacity-60 translate-y-16 md:translate-y-0 blur-sm md:blur-none",
+
           "block select-none transition-all duration-300 active:scale-[0.99] w-full",
           className,
         )}
@@ -124,9 +146,13 @@ export function EventCard({ event, variant = "swimlane", className }: EventCardP
 
   return (
     <Link
+      ref={linkRef}
       href={`/events/${event.id}?origin=${pathname}`}
       className={cn(
-        "block select-none transition-all duration-300 active:scale-[0.98]",
+        "block select-none transition-all duration-[600ms] ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.98]",
+        isVisible 
+          ? "scale-100 opacity-100 translate-y-0 blur-none" 
+          : "scale-[0.70] md:scale-[0.92] opacity-0 md:opacity-60 translate-y-16 md:translate-y-0 blur-sm md:blur-none",
         isSwimlane ? "w-[260px] sm:w-[280px] shrink-0 snap-start" : "w-full",
         className,
       )}

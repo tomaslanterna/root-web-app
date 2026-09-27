@@ -84,7 +84,7 @@ export default function SquadChatPage({
                 {squad.name}
               </h1>
               <p className="text-[10px] text-neutral-400 font-bold flex items-center gap-1">
-                <span className="text-[#D4FF00]">{squad.members.length} miembros</span> • {squad.departureZone.split("/")[0]}
+                <span className="text-[#D4FF00]">{squad.members.length} miembros</span>
               </p>
             </div>
           </div>
@@ -131,7 +131,7 @@ export default function SquadChatPage({
             {event.title}
           </p>
           <p className="text-[10px] text-neutral-400 font-bold">
-            {event.location} • Salida coordinada desde {squad.departureZone}
+            {event.location}
           </p>
         </div>
 

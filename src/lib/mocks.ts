@@ -76,8 +76,15 @@ export interface Community {
   description: string;
 }
 
-// Squad Matcher Interfaces
+export type EnergyLevel = "full_dance" | "social";
+export type AgeRange = "18_21" | "22_26" | "27_33" | "34_plus" | "any";
 export type PartyStyle = "chill_previa" | "full_night" | "main_act_only";
+export type Budget = "cheap" | "mid" | "vip";
+export type ArrivalTime = "early" | "peak" | "late";
+export type MatchTicketStatus = "has_ticket" | "looking" | "door";
+export type Transport = "driver" | "uber_split" | "public";
+export type SocialVibe = "music_head" | "make_friends" | "flirting";
+
 export type SquadStatus =
   | "forming"
   | "active"
@@ -88,8 +95,14 @@ export type SquadStatus =
 export interface UserVibeProfile {
   userId: string;
   favoriteGenres: string[];
-  departureZone: string;
   partyStyle: PartyStyle;
+  energyLevel: EnergyLevel;
+  ageRange: AgeRange;
+  budget?: Budget;
+  arrivalTime?: ArrivalTime;
+  ticketStatus?: MatchTicketStatus;
+  transport?: Transport;
+  socialVibe?: SocialVibe;
   verifiedKycOnly: boolean;
   spotifyConnected?: boolean;
 }
@@ -99,7 +112,7 @@ export interface EventSwipeAction {
   userId: string;
   eventId: string;
   direction: "like" | "pass" | "superlike";
-  lookingForSquad: boolean;
+  preferences: Partial<UserVibeProfile>;
   timestamp: string;
 }
 
@@ -116,7 +129,6 @@ export interface EventSquad {
   name: string;
   members: SquadMember[];
   matchScore: number;
-  departureZone: string;
   chatRoomId: string;
   status: SquadStatus;
   createdAt: string;
@@ -251,42 +263,37 @@ export const VIBE_GENRES = [
   "Psytrance",
 ];
 
-export const DEPARTURE_ZONES = [
-  "Palermo / Recoleta",
-  "Costanera / Puerto Madero",
-  "Zona Norte (San Isidro/Olivos)",
-  "Zona Sur (Quilmes/Lomas)",
-  "Zona Oeste (Ramos/Morón)",
-  "La Plata",
+export const ENERGY_LEVELS: { id: EnergyLevel; label: string; desc: string }[] = [
+  { id: "full_dance", label: "Full Baile", desc: "Al frente, sin parar" },
+  { id: "social", label: "Social / Tranqui", desc: "Al fondo, charlando, tomando algo" },
 ];
 
-export const PARTY_STYLES: {
-  id: PartyStyle;
-  label: string;
-  description: string;
-}[] = [
-  {
-    id: "chill_previa",
-    label: "Previa Chill",
-    description: "Juntada previa con buena música antes del club",
-  },
-  {
-    id: "full_night",
-    label: "All-Night Crew",
-    description: "Desde la apertura hasta el after hours",
-  },
-  {
-    id: "main_act_only",
-    label: "Main Act Only",
-    description: "Foco exclusivo en el horario del DJ principal",
-  },
+export const AGE_RANGES: { id: AgeRange; label: string }[] = [
+  { id: "18_21", label: "18-21" },
+  { id: "22_26", label: "22-26" },
+  { id: "27_33", label: "27-33" },
+  { id: "34_plus", label: "34+" },
+  { id: "any", label: "Me da igual" },
+];
+
+export const PARTY_STYLES: { id: PartyStyle; label: string; description: string }[] = [
+  { id: "chill_previa", label: "Previa Chill", description: "Juntada previa con buena música antes del club" },
+  { id: "full_night", label: "All-Night Crew", description: "Desde la apertura hasta el after hours" },
+  { id: "main_act_only", label: "Main Act Only", description: "Foco exclusivo en el horario del DJ principal" },
+];
+
+export const BUDGETS: { id: Budget; label: string }[] = [
+  { id: "cheap", label: "Modo Ahorro" },
+  { id: "mid", label: "Punto Medio" },
+  { id: "vip", label: "Modo VIP" },
 ];
 
 export const DEFAULT_CURRENT_VIBE_PROFILE: UserVibeProfile = {
   userId: "3", // Santi User (default current user)
   favoriteGenres: ["Melodic Techno", "Hard Techno", "Tech House"],
-  departureZone: "Palermo / Recoleta",
   partyStyle: "full_night",
+  energyLevel: "full_dance",
+  ageRange: "22_26",
   verifiedKycOnly: false,
   spotifyConnected: true,
 };
@@ -295,16 +302,18 @@ export const MOCK_VIBE_PROFILES: Record<string, UserVibeProfile> = {
   "1": {
     userId: "1",
     favoriteGenres: ["Melodic Techno", "Progressive House"],
-    departureZone: "Palermo / Recoleta",
     partyStyle: "full_night",
+    energyLevel: "full_dance",
+    ageRange: "22_26",
     verifiedKycOnly: true,
     spotifyConnected: true,
   },
   "2": {
     userId: "2",
     favoriteGenres: ["Hard Techno", "Tech House", "Minimal / Deep"],
-    departureZone: "Costanera / Puerto Madero",
     partyStyle: "chill_previa",
+    energyLevel: "social",
+    ageRange: "27_33",
     verifiedKycOnly: true,
     spotifyConnected: true,
   },
@@ -337,7 +346,6 @@ export const MOCK_SQUADS: EventSquad[] = [
       },
     ],
     matchScore: 96,
-    departureZone: "Palermo / Recoleta",
     chatRoomId: "sq_chat_1",
     status: "active",
     createdAt: "2024-02-17T10:00:00Z",
@@ -362,7 +370,6 @@ export const MOCK_SQUADS: EventSquad[] = [
       },
     ],
     matchScore: 91,
-    departureZone: "Costanera / Puerto Madero",
     chatRoomId: "sq_chat_2",
     status: "forming",
     createdAt: "2024-02-16T18:00:00Z",

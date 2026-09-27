@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Home, Calendar, Ticket, MessageSquare, User, Plus } from "lucide-react";
+import { Home, Calendar, Sparkles, MessageSquare, User, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { QuickActionMenu } from "@/components/ui/QuickActionMenu";
@@ -11,7 +11,7 @@ import { QuickActionMenu } from "@/components/ui/QuickActionMenu";
 const NAV_ITEMS = [
   { label: "Feed", href: "/feed", icon: Home },
   { label: "Eventos", href: "/events", icon: Calendar },
-  { label: "Transfer", href: "/transfers", icon: Ticket },
+  { label: "Crews", href: "/match", icon: Sparkles },
   { label: "Chat", href: "/chat", icon: MessageSquare },
   { label: "Perfil", href: "/profile", icon: User },
 ];
@@ -46,10 +46,6 @@ export function BottomNav() {
       return { ...item, href: `/profile/${user.username}` };
     }
     return item;
-  }).filter((item) => {
-    // Esconder Chat y Transfer si no hay usuario logueado
-    if ((item.href === "/chat" || item.href === "/transfers") && !user) return false;
-    return true;
   });
 
   return (
