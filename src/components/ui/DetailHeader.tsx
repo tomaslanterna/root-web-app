@@ -2,13 +2,15 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Share2, Bookmark, Search } from "lucide-react";
+import { ArrowLeft, Share2, Bookmark, Search, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface DetailHeaderProps {
   onBack?: () => void;
   onShare?: () => void;
   onSave?: () => void;
+  isSaved?: boolean;
+  isCopied?: boolean;
   showSave?: boolean;
   showShare?: boolean;
   className?: string;
@@ -23,6 +25,8 @@ export function DetailHeader({
   onBack, 
   onShare, 
   onSave, 
+  isSaved = false,
+  isCopied = false,
   showSave = true, 
   showShare = true,
   isSearch = false,
@@ -76,20 +80,34 @@ export function DetailHeader({
           {showSave && (
             <button 
               onClick={onSave}
-              className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors cursor-pointer"
-              aria-label="Guardar"
+              className={cn(
+                "w-10 h-10 rounded-full backdrop-blur-md border flex items-center justify-center transition-colors cursor-pointer",
+                isSaved
+                  ? "bg-[#D4FF00]/15 border-[#D4FF00]/50 text-[#D4FF00]"
+                  : "bg-black/40 border-white/10 text-white hover:bg-white/10"
+              )}
+              aria-label={isSaved ? "Guardado en favoritos" : "Guardar"}
             >
-              <Bookmark className="w-4 h-4 text-white" />
+              <Bookmark className={cn("w-4 h-4 transition-all", isSaved && "fill-[#D4FF00]")} />
             </button>
           )}
           
           {showShare && (
             <button 
               onClick={onShare}
-              className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors cursor-pointer"
+              className={cn(
+                "w-10 h-10 rounded-full backdrop-blur-md border flex items-center justify-center transition-colors cursor-pointer",
+                isCopied
+                  ? "bg-[#D4FF00]/15 border-[#D4FF00]/50 text-[#D4FF00]"
+                  : "bg-black/40 border-white/10 text-white hover:bg-white/10"
+              )}
               aria-label="Compartir"
             >
-              <Share2 className="w-4 h-4 text-white" />
+              {isCopied ? (
+                <Check className="w-4 h-4 text-[#D4FF00] stroke-[2.5]" />
+              ) : (
+                <Share2 className="w-4 h-4" />
+              )}
             </button>
           )}
         </div>

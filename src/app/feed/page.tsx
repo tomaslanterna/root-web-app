@@ -312,7 +312,7 @@ export default function FeedPage() {
         </div>
 
         {/* Search Bar - Sticky on Desktop */}
-        <div className="px-4 pt-4 md:pt-4 md:sticky md:top-0 md:z-40 md:bg-[#0B0D10]/85 md:backdrop-blur-xl md:pb-3 transition-all duration-300">
+        <div className="px-4 pt-4 md:pt-4 md:sticky md:top-20 md:z-40 md:bg-[#0B0D10]/85 md:backdrop-blur-xl md:pb-3 transition-all duration-300">
           <div 
             onClick={() => router.push('/search')}
             className="w-full bg-[#14171F] border border-white/10 rounded-full px-4 py-3 flex items-center gap-3 text-neutral-400 hover:bg-[#1A1F2B] transition-colors cursor-text shadow-lg"
