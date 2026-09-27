@@ -1,10 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { Card, CardContent, CardHeader, CardFooter } from "./Card";
+import { Card } from "./Card";
 import { Avatar } from "./Avatar";
-import { Heart, MessageCircle, Share2, Sparkles, Calendar, Users, BadgeCheck, ShieldAlert } from "lucide-react";
-import { MOCK_EVENTS } from "@/lib/mocks";
+import { BadgeCheck, ShieldAlert } from "lucide-react";
 import type { Post } from "@/types/posts";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -17,180 +16,88 @@ interface PostCardProps {
 
 export function PostCard({ post, variant = "light" }: PostCardProps) {
   const pathname = usePathname();
-  // Aún usamos MOCK para eventos relacionadas hasta que implementes su backend
-  const relatedEvent = MOCK_EVENTS.find((e) => e.id === post.eventId);
-  const relatedCommunity = post.communityId ? { id: post.communityId, name: "Comunidad" } : null;
-
-  const [liked, setLiked] = React.useState(false);
-  const [likesCount, setLikesCount] = React.useState(post.likesCount || 0);
-
   const isElectronic = variant === "electronic";
 
-  const toggleLike = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setLiked(!liked);
-    setLikesCount(liked ? likesCount - 1 : likesCount + 1);
-  };
+  const linkRef = React.useRef<HTMLAnchorElement>(null);
+  const [isVisible, setIsVisible] = React.useState(true);
+
+  React.useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsVisible(entry.isIntersecting);
+      },
+      { threshold: 0.15 } // Dispara cuando el 15% es visible
+    );
+    if (linkRef.current) {
+      observer.observe(linkRef.current);
+    }
+    return () => observer.disconnect();
+  }, []);
 
   return (
-    <Card
+    <Link 
+      ref={linkRef}
+      href={`/posts/${post.id}?origin=${pathname}`} 
       className={cn(
-        "w-full rounded-3xl transition-all duration-300 overflow-hidden group",
-        isElectronic
-          ? "bg-[#14171F] border border-white/10 hover:border-white/20 shadow-lg text-white"
-          : "bg-white border border-neutral-200/80 hover:border-neutral-300 shadow-xs text-neutral-950"
+        "block w-full transition-all duration-[600ms] ease-[cubic-bezier(0.23,1,0.32,1)] md:hover:scale-[1.02]",
+        isVisible 
+          ? "scale-100 opacity-100 translate-y-0 blur-none" 
+          : "scale-[0.70] md:scale-[0.92] opacity-0 md:opacity-60 translate-y-16 md:translate-y-0 blur-sm md:blur-none"
       )}
     >
-      {/* Compact Banner Header (if media exists) */}
-      {post.headerImageUrl && (
-        <CardHeader className="h-32 sm:h-36 relative overflow-hidden bg-neutral-900">
-          <Link href={`/posts/${post.id}?origin=${pathname}`} className="block w-full h-full">
-            <img
-              src={post.headerImageUrl}
-              alt="Post Header"
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            />
-          </Link>
-          <div className="absolute inset-0 bg-gradient-to-t from-neutral-950/80 via-transparent to-transparent pointer-events-none" />
-
-          {relatedEvent && (
-            <Link
-              href={`/events/${relatedEvent.id}?origin=${pathname}`}
-              className="absolute top-3 left-3 px-3 py-1 rounded-full bg-neutral-950/80 backdrop-blur-md border border-white/20 text-white text-[10px] font-extrabold uppercase tracking-wider flex items-center gap-1.5 hover:bg-neutral-950 transition-colors shadow-sm z-10"
-            >
-              <Calendar className="w-3 h-3 text-[#D4FF00]" />
-              <span className="truncate max-w-[160px]">{relatedEvent.title}</span>
-            </Link>
-          )}
-
-          {relatedCommunity && (
-            <Link
-              href={`/communities/${relatedCommunity.id}?origin=${pathname}`}
-              className="absolute top-3 right-3 px-3 py-1 rounded-full bg-[#14171F]/90 backdrop-blur-md border border-white/15 text-[#D4FF00] text-[10px] font-extrabold uppercase tracking-wider flex items-center gap-1.5 hover:bg-white hover:text-neutral-950 transition-colors shadow-sm z-10"
-            >
-              <Users className="w-3 h-3 text-[#D4FF00]" />
-              <span className="truncate max-w-[140px]">{relatedCommunity.name}</span>
-            </Link>
-          )}
-        </CardHeader>
-      )}
-
-      {/* Author & Timestamp Bar */}
-      <div className="p-4 pb-2 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Avatar
-            src={post.authorAvatar}
-            fallback={post.authorName || "U"}
-            size="sm"
-            className={cn("ring-2", isElectronic ? "ring-[#D4FF00]/40" : "ring-neutral-900/10")}
+      <Card
+        className={cn(
+          "relative w-full rounded-3xl overflow-hidden group h-48 sm:h-56 transition-all duration-300",
+          isElectronic
+            ? "border-white/10 hover:border-white/20 shadow-lg text-white"
+            : "border-neutral-200/80 hover:border-neutral-300 shadow-xs text-neutral-950"
+        )}
+      >
+        {/* Background Image */}
+        {post.headerImageUrl ? (
+          <img
+            src={post.headerImageUrl}
+            alt="Post Background"
+            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
-          <div>
-            <p className={cn("flex items-center gap-1 text-xs font-black uppercase tracking-wider", isElectronic ? "text-white" : "text-neutral-950")}>
+        ) : (
+          <div className={cn("absolute inset-0 w-full h-full", isElectronic ? "bg-neutral-900" : "bg-neutral-100")} />
+        )}
+
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none" />
+
+        {/* Content over image */}
+        <div className="absolute inset-0 p-4 flex flex-col justify-end space-y-2">
+          {/* Title */}
+          {post.title && (
+            <h3 className="text-base sm:text-lg font-black uppercase tracking-tight text-white line-clamp-2">
+              {post.title}
+            </h3>
+          )}
+
+          {/* Author Info */}
+          <div className="flex items-center gap-2">
+            <Avatar
+              src={post.authorAvatar}
+              fallback={post.authorName || "U"}
+              size="sm"
+              className="!w-6 !h-6 ring-1 ring-white/20"
+            />
+            <p className="flex items-center gap-1 text-xs text-neutral-300 font-normal">
               {post.authorName || "Usuario Desconocido"}
               {post.isVerified ? (
-                <BadgeCheck className="w-3.5 h-3.5 text-[#0B0D10] fill-[#D4FF00]" />
+                <BadgeCheck className="w-3.5 h-3.5 text-black fill-[#D4FF00]" />
               ) : (
                 <ShieldAlert className="w-3.5 h-3.5 text-amber-500" />
               )}
-            </p>
-            <p className={cn("text-[10px] font-semibold uppercase tracking-wider", isElectronic ? "text-neutral-400" : "text-neutral-400")}>
+              <span className="mx-1 opacity-50">•</span>
               {new Date(post.timestamp).toLocaleDateString("es-AR", { day: "numeric", month: "short" })}
             </p>
           </div>
         </div>
-
-        {relatedCommunity ? (
-          <Link
-            href={`/communities/${relatedCommunity.id}?origin=${pathname}`}
-            className={cn(
-              "text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-full flex items-center gap-1 transition-colors",
-              isElectronic
-                ? "bg-[#D4FF00]/15 text-[#D4FF00] border border-[#D4FF00]/30 hover:bg-[#D4FF00] hover:text-neutral-950"
-                : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
-            )}
-          >
-            <Users className="w-3 h-3" /> {relatedCommunity.name}
-          </Link>
-        ) : (
-          <span
-            className={cn(
-              "text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-full flex items-center gap-1",
-              isElectronic
-                ? "bg-white/10 text-neutral-300 border border-white/10"
-                : "bg-neutral-100 text-neutral-600"
-            )}
-          >
-            <Sparkles className={cn("w-3 h-3", isElectronic ? "text-[#D4FF00]" : "text-neutral-950")} /> General
-          </span>
-        )}
-      </div>
-
-      {/* Main Content Body Clickable */}
-      <Link href={`/posts/${post.id}?origin=${pathname}`} className="block">
-        <CardContent className="px-4 py-2 space-y-1">
-          {post.title && (
-            <h3
-              className={cn(
-                "text-sm font-black uppercase tracking-tight transition-colors",
-                isElectronic ? "text-white group-hover:text-[#D4FF00]" : "text-neutral-950 group-hover:text-neutral-700"
-              )}
-            >
-              {post.title}
-            </h3>
-          )}
-          
-        </CardContent>
-      </Link>
-
-      {/* Footer with Actions */}
-      <CardFooter
-        className={cn(
-          "px-4 py-3 border-t flex items-center justify-between",
-          isElectronic
-            ? "border-white/5 bg-neutral-950/40"
-            : "border-neutral-100 bg-neutral-50/50"
-        )}
-      >
-        <div className="flex items-center gap-2">
-          <button
-            onClick={toggleLike}
-            className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-colors group/btn active:scale-90",
-              isElectronic ? "hover:bg-white/10" : "hover:bg-neutral-200/60"
-            )}
-          >
-            <Heart
-              className={cn(
-                "w-4 h-4 transition-all duration-200",
-                liked
-                  ? isElectronic
-                    ? "fill-[#D4FF00] stroke-[#D4FF00] scale-110"
-                    : "fill-neutral-950 stroke-neutral-950 scale-110"
-                  : isElectronic
-                  ? "stroke-neutral-400 group-hover/btn:stroke-[#D4FF00]"
-                  : "stroke-neutral-600 group-hover/btn:stroke-neutral-950"
-              )}
-            />
-            <span className={cn("text-xs font-extrabold", isElectronic ? (liked ? "text-[#D4FF00]" : "text-white") : "text-neutral-950")}>
-              {likesCount}
-            </span>
-          </button>
-
-          
-        </div>
-
-        <Link
-          href={`/posts/${post.id}?origin=${pathname}`}
-          className={cn(
-            "text-xs font-extrabold uppercase tracking-wider flex items-center gap-1 hover:underline",
-            isElectronic ? "text-[#D4FF00]" : "text-neutral-950"
-          )}
-        >
-          Leer más →
-        </Link>
-      </CardFooter>
-    </Card>
+      </Card>
+    </Link>
   );
 }
 

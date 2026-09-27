@@ -11,11 +11,13 @@ import {
   Loader2,
   ChevronLeft,
   BadgeCheck,
+  Flame,
 } from "lucide-react";
 import { MOCK_POSTS } from "@/lib/mocks";
 import { PostCard } from "@/components/ui/PostCard";
 import { EventCard } from "@/components/ui/EventCard";
 import { CommunityList } from "@/components/communities/CommunityList";
+import { DanceStatsWidget } from "@/components/profile/DanceStatsWidget";
 import { cn } from "@/lib/utils";
 import { usersApi } from "@/services/users";
 import { useMutation } from "@/hooks/useMutation";
@@ -282,6 +284,13 @@ export default function UserProfilePage() {
             <ShieldAlert className="w-4 h-4" />
             Comenzar Validación KYC
           </Button>
+        </div>
+      )}
+
+      {/* Dance Stats Widget */}
+      {isMyProfile && (
+        <div className="px-4 pb-4 md:pt-4 w-full max-w-5xl mx-auto">
+          <DanceStatsWidget />
         </div>
       )}
 

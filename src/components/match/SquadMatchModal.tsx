@@ -2,17 +2,15 @@
 
 import React from "react";
 import { useMatch } from "@/context/MatchContext";
-import { MOCK_EVENTS, MOCK_USERS } from "@/lib/mocks";
+import { MOCK_USERS } from "@/lib/mocks";
 import { Sparkles, MessageSquare, ArrowRight, X, Users, MapPin } from "lucide-react";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
 
 export function SquadMatchModal() {
-  const { activeMatchedSquad, isMatchModalOpen, closeMatchModal } = useMatch();
+  const { activeMatchedSquad, isMatchModalOpen, closeMatchModal, matchedEvent: event } = useMatch();
 
   if (!isMatchModalOpen || !activeMatchedSquad) return null;
-
-  const event = MOCK_EVENTS.find((e) => e.id === activeMatchedSquad.eventId);
   const memberUsers = activeMatchedSquad.members.map((m) =>
     MOCK_USERS.find((u) => u.id === m.userId) || {
       id: m.userId,
@@ -100,9 +98,6 @@ export function SquadMatchModal() {
             ))}
           </div>
 
-          <p className="text-[11px] text-neutral-300 font-medium pt-1">
-            Salida coordinada desde <span className="font-extrabold text-[#D4FF00]">{activeMatchedSquad.departureZone}</span>
-          </p>
         </div>
 
         {/* Action Buttons */}

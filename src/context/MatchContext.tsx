@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { api } from "@/lib/api";
 import {
   UserVibeProfile,
   EventSquad,
@@ -11,17 +12,20 @@ import {
   MOCK_EVENTS,
   MOCK_USERS,
 } from "@/lib/mocks";
+import type { Event } from "@/types/events";
 
 interface MatchContextType {
   vibeProfile: UserVibeProfile;
   updateVibeProfile: (updates: Partial<UserVibeProfile>) => void;
   swipedEventIds: Record<string, "like" | "pass" | "superlike">;
-  swipeEvent: (eventId: string, direction: "like" | "pass" | "superlike") => EventSquad | null;
+  swipeEvent: (event: Event, direction: "like" | "pass" | "superlike") => Promise<void>;
   resetSwipes: () => void;
   squads: EventSquad[];
   squadMessages: Record<string, SquadChatMessage[]>;
   sendMessageToSquad: (squadId: string, content: string, type?: SquadChatMessage["type"]) => void;
   activeMatchedSquad: EventSquad | null;
+  setActiveMatchedSquad: React.Dispatch<React.SetStateAction<EventSquad | null>>;
+  matchedEvent: Event | null;
   isMatchModalOpen: boolean;
   closeMatchModal: () => void;
   isPreferencesOpen: boolean;
@@ -45,6 +49,7 @@ export function MatchProvider({ children }: { children: React.ReactNode }) {
   });
 
   const [activeMatchedSquad, setActiveMatchedSquad] = useState<EventSquad | null>(null);
+  const [matchedEvent, setMatchedEvent] = useState<Event | null>(null);
   const [isMatchModalOpen, setIsMatchModalOpen] = useState(false);
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
 
@@ -80,8 +85,8 @@ export function MatchProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
-  const swipeEvent = (eventId: string, direction: "like" | "pass" | "superlike"): EventSquad | null => {
-    const updatedSwipes = { ...swipedEventIds, [eventId]: direction };
+  const swipeEvent = async (event: Event, direction: "like" | "pass" | "superlike") => {
+    const updatedSwipes = { ...swipedEventIds, [event.id]: direction };
     setSwipedEventIds(updatedSwipes);
 
     try {
@@ -90,84 +95,50 @@ export function MatchProvider({ children }: { children: React.ReactNode }) {
       // storage error
     }
 
-    // If user passed, no squad formation
-    if (direction === "pass") return null;
+    if (direction === "pass") return;
 
-    const event = MOCK_EVENTS.find((e) => e.id === eventId);
-    if (!event) return null;
+    try {
+      const res = await api.post(`/v1/events/${event.id}/swipes`, {
+        direction,
+        preferences: vibeProfile,
+      });
 
-    // Simulate matchmaking algorithm
-    // Check if squad already exists for this event
-    const existingSquad = squads.find((s) => s.eventId === eventId);
-    let matchedSquad: EventSquad;
-
-    if (existingSquad) {
-      // Add current user to existing squad
-      const isAlreadyMember = existingSquad.members.some((m) => m.userId === vibeProfile.userId);
-      if (!isAlreadyMember) {
-        matchedSquad = {
-          ...existingSquad,
-          status: "active",
-          members: [
-            ...existingSquad.members,
-            { userId: vibeProfile.userId, hasTicket: direction === "superlike", joinedAt: new Date().toISOString(), role: "member" },
-          ],
-        };
-        const updated = squads.map((s) => (s.id === existingSquad.id ? matchedSquad : s));
+      if (res.data?.status === "matched" && res.data?.crew) {
+        // We received a match!
+        const matchedSquad = res.data.crew as EventSquad;
+        
+        // Add to local state
+        const updated = [matchedSquad, ...squads.filter(s => s.id !== matchedSquad.id)];
         setSquads(updated);
         try {
           localStorage.setItem(STORAGE_KEYS.SQUADS, JSON.stringify(updated));
         } catch {}
-      } else {
-        matchedSquad = existingSquad;
+
+        // Add initial message if provided, otherwise generic
+        const initialMsg: SquadChatMessage = {
+          id: `msg_sys_${Date.now()}`,
+          squadId: matchedSquad.id,
+          senderId: "system",
+          content: `¡Match de Crew creado para ${event.title}! 🎧 ${matchedSquad.members.length} integrantes listos. ¡Empiecen a coordinar!`,
+          type: "system_icebreaker",
+          timestamp: new Date().toISOString(),
+        };
+
+        setSquadMessages((prev) => ({
+          ...prev,
+          [matchedSquad.id]: prev[matchedSquad.id] ? [...prev[matchedSquad.id], initialMsg] : [initialMsg],
+        }));
+
+        setActiveMatchedSquad(matchedSquad);
+        setMatchedEvent(event);
+        setIsMatchModalOpen(true);
+      } else if (res.data?.status === "queued") {
+        console.log("Swipe queued: waiting for match");
+        // Could show a toast here in the future
       }
-    } else {
-      // Create new active Squad with 3-4 compatible members
-      const newSquadId = `sq_${Date.now()}`;
-      matchedSquad = {
-        id: newSquadId,
-        eventId: event.id,
-        name: `${event.title.split(" ")[0]} Crew BA`,
-        matchScore: direction === "superlike" ? 99 : 94,
-        departureZone: vibeProfile.departureZone,
-        chatRoomId: `chat_${newSquadId}`,
-        status: "active",
-        createdAt: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        members: [
-          { userId: "1", hasTicket: true, joinedAt: new Date(Date.now() - 3600000).toISOString(), role: "host" },
-          { userId: "2", hasTicket: true, joinedAt: new Date(Date.now() - 1800000).toISOString(), role: "member" },
-          { userId: vibeProfile.userId, hasTicket: direction === "superlike", joinedAt: new Date().toISOString(), role: "member" },
-        ],
-      };
-
-      const updated = [matchedSquad, ...squads];
-      setSquads(updated);
-      try {
-        localStorage.setItem(STORAGE_KEYS.SQUADS, JSON.stringify(updated));
-      } catch {}
-
-      // Generate initial icebreaker message
-      const initialMsg: SquadChatMessage = {
-        id: `msg_sys_${Date.now()}`,
-        squadId: newSquadId,
-        senderId: "system",
-        content: `¡Match de Crew creado para ${event.title}! 🎧 ${matchedSquad.members.length} integrantes listos desde ${vibeProfile.departureZone}. ¡Empiecen a coordinar la previa o el viaje!`,
-        type: "system_icebreaker",
-        timestamp: new Date().toISOString(),
-      };
-
-      setSquadMessages((prev) => ({
-        ...prev,
-        [newSquadId]: [initialMsg],
-      }));
+    } catch (err) {
+      console.error("Error making swipe:", err);
     }
-
-    // Trigger match celebration modal!
-    setActiveMatchedSquad(matchedSquad);
-    setIsMatchModalOpen(true);
-
-    return matchedSquad;
   };
 
   const sendMessageToSquad = (squadId: string, content: string, type: SquadChatMessage["type"] = "text") => {
@@ -198,6 +169,7 @@ export function MatchProvider({ children }: { children: React.ReactNode }) {
   const closeMatchModal = () => {
     setIsMatchModalOpen(false);
     setActiveMatchedSquad(null);
+    setMatchedEvent(null);
   };
 
   return (
@@ -212,6 +184,8 @@ export function MatchProvider({ children }: { children: React.ReactNode }) {
         squadMessages,
         sendMessageToSquad,
         activeMatchedSquad,
+        setActiveMatchedSquad,
+        matchedEvent,
         isMatchModalOpen,
         closeMatchModal,
         isPreferencesOpen,

@@ -2,8 +2,15 @@
 
 import { ChatList } from "./ChatList";
 import { MessageSquare } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { LoginRequired } from "@/components/ui/LoginRequired";
 
 export default function ChatPage() {
+  const { user, isLoading } = useAuth();
+
+  if (!isLoading && !user) {
+    return <LoginRequired />;
+  }
   return (
     <>
       <ChatList className="md:hidden pb-28 min-h-[100dvh]" />
