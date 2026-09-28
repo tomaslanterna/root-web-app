@@ -38,7 +38,7 @@ export function EventCard({ event, variant = "swimlane", className }: EventCardP
   const image = event.cinematicBannerUrl?.trim() || fallbackBanner;
   const priceLabel =
     event.price == null
-      ? "Precio no informado"
+      ? "Precio a confirmar"
       : event.price === 0
         ? "Gratis"
         : `$${event.price.toLocaleString("es-AR")}`;
@@ -65,19 +65,21 @@ export function EventCard({ event, variant = "swimlane", className }: EventCardP
         ref={linkRef}
         href={`/events/${event.id}?origin=${pathname}`}
         className={cn(
-          "block transition-all duration-[600ms] ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.98]",
+          "block select-none transition-all duration-300 w-full group ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.98]",
           isVisible 
             ? "scale-100 opacity-100 translate-y-0 blur-none" 
             : "scale-[0.70] md:scale-[0.92] opacity-0 md:opacity-60 translate-y-16 md:translate-y-0 blur-sm md:blur-none",
-
           "block select-none transition-all duration-300 active:scale-[0.99] w-full",
           className,
         )}
       >
-        <Card className="group relative overflow-hidden rounded-2xl md:rounded-3xl border-white/10 bg-[#14171F]/90 text-white shadow-md hover:border-[#D4FF00]/40 md:hover:-translate-y-0.5 hover:shadow-xl md:hover:shadow-lg md:hover:shadow-[#D4FF00]/10 transition-all duration-300 p-3 md:p-4 backdrop-blur-sm">
-          <div className="flex items-center gap-3.5 md:gap-5">
-            {/* Calendar Date Block */}
-            <div className="flex flex-col items-center justify-center w-14 md:w-16 h-14 md:h-16 rounded-xl md:rounded-2xl bg-[#0B0D10] border border-white/10 shrink-0 text-center shadow-inner group-hover:border-[#D4FF00]/30 transition-colors">
+        <Card className="relative overflow-hidden rounded-2xl md:rounded-3xl border border-white/[0.12] bg-gradient-to-b from-white/[0.08] via-neutral-950/80 to-[#0B0D10]/90 backdrop-blur-2xl text-white shadow-[0_15px_35px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.18)] hover:border-[#D4FF00]/60 md:hover:-translate-y-0.5 hover:shadow-[0_20px_45px_rgba(0,0,0,0.8),0_0_25px_rgba(212,255,0,0.12)] transition-all duration-300 p-3 md:p-4">
+          {/* Specular top rim light */}
+          <div className="pointer-events-none absolute inset-x-6 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/35 to-transparent opacity-70" />
+
+          <div className="flex items-center gap-3.5 md:gap-5 relative z-10">
+            {/* Calendar Date Block en Liquid Glass */}
+            <div className="flex flex-col items-center justify-center w-14 md:w-16 h-14 md:h-16 rounded-xl md:rounded-2xl bg-gradient-to-b from-white/[0.1] to-[#0B0D10] border border-white/[0.15] shrink-0 text-center shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)] group-hover:border-[#D4FF00]/40 transition-colors">
               <span className="text-[10px] md:text-xs font-black uppercase tracking-wider text-[#D4FF00]">
                 {monthString}
               </span>
@@ -103,8 +105,8 @@ export function EventCard({ event, variant = "swimlane", className }: EventCardP
             {/* Main Information */}
             <div className="flex-1 min-w-0 space-y-1">
               <div className="flex items-center gap-2">
-                <span className="w-fit rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[9px] md:text-[10px] font-extrabold uppercase tracking-widest text-neutral-300">
-                  {event.genre?.trim() || "Sin especificar"}
+                <span className="w-fit rounded-full border border-white/15 bg-white/[0.06] backdrop-blur-md px-2.5 py-0.5 text-[9px] md:text-[10px] font-extrabold uppercase tracking-widest text-[#D4FF00]">
+                  {event.genre?.trim() || "Clubbing"}
                 </span>
                 <span className="hidden sm:inline-block text-[10px] text-neutral-600">
                   •
@@ -134,7 +136,7 @@ export function EventCard({ event, variant = "swimlane", className }: EventCardP
                 <div className="flex items-center gap-1 text-[9px] md:text-[10px] font-extrabold uppercase text-neutral-300">
                   <CheckCircle2 className="h-3 w-3 text-[#D4FF00] shrink-0" />
                   <span>{event.goingCount}</span>
-                  <span className="hidden sm:inline">Voy</span>
+                  <span className="hidden sm:inline">van</span>
                 </div>
               )}
             </div>
@@ -149,7 +151,7 @@ export function EventCard({ event, variant = "swimlane", className }: EventCardP
       ref={linkRef}
       href={`/events/${event.id}?origin=${pathname}`}
       className={cn(
-        "block select-none transition-all duration-[600ms] ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.98]",
+        "block select-none transition-all duration-300 active:scale-[0.98] group ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.98]",
         isVisible 
           ? "scale-100 opacity-100 translate-y-0 blur-none" 
           : "scale-[0.70] md:scale-[0.92] opacity-0 md:opacity-60 translate-y-16 md:translate-y-0 blur-sm md:blur-none",
@@ -159,12 +161,15 @@ export function EventCard({ event, variant = "swimlane", className }: EventCardP
     >
       <Card
         className={cn(
-          "group relative overflow-hidden rounded-3xl border border-white/10 bg-neutral-950 text-white shadow-lg transition-all duration-300 ease-out hover:border-[#D4FF00]/50 hover:shadow-2xl hover:shadow-[#D4FF00]/10 md:hover:-translate-y-1.5",
+          "relative overflow-hidden rounded-3xl border border-white/[0.14] bg-gradient-to-b from-white/[0.08] via-neutral-950/80 to-[#0B0D10]/95 backdrop-blur-2xl text-white shadow-[0_20px_50px_rgba(0,0,0,0.7),inset_0_1px_1px_rgba(255,255,255,0.2)] transition-all duration-300 ease-out hover:border-[#D4FF00]/70 hover:shadow-[0_25px_60px_rgba(0,0,0,0.8),0_0_30px_rgba(212,255,0,0.18)] md:hover:-translate-y-1.5",
           isSwimlane
             ? "aspect-[3/4]"
             : "mx-auto aspect-[4/5] w-full max-w-md md:max-w-none",
         )}
       >
+        {/* Specular top rim light */}
+        <div className="pointer-events-none absolute inset-x-6 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/40 to-transparent z-20 opacity-80" />
+
         {/* Cover Artwork (Hero) */}
         <div
           role="img"
@@ -173,21 +178,18 @@ export function EventCard({ event, variant = "swimlane", className }: EventCardP
           style={{ backgroundImage: `url(${image})` }}
         />
 
-        {/* Subtle Top Vignette (allows date/price badge legibility without darkening artwork) */}
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-neutral-950/60 to-transparent" />
+        {/* Ambient glow behind card */}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/50 to-transparent opacity-90" />
 
-        {/* Smooth Bottom Gradient (covers only bottom 40% for high text readability) */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-neutral-950 via-neutral-950/65 to-transparent" />
-
-        {/* Floating Top Badges */}
+        {/* Floating Top Badges en Liquid Glass */}
         <div className="absolute inset-x-3.5 top-3.5 z-10 flex items-start justify-between gap-2">
           {/* Price / Free Badge */}
           <span
             className={cn(
-              "flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] md:text-[11px] font-black uppercase tracking-wider backdrop-blur-md shadow-sm border",
+              "flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] md:text-[11px] font-black uppercase tracking-wider backdrop-blur-xl shadow-md border",
               event.price === 0
-                ? "bg-[#D4FF00] text-neutral-950 border-[#D4FF00]"
-                : "bg-neutral-950/75 text-[#D4FF00] border-white/15",
+                ? "bg-[#D4FF00] text-neutral-950 border-[#D4FF00] shadow-[0_4px_15px_rgba(212,255,0,0.35)]"
+                : "bg-gradient-to-b from-white/[0.15] to-black/75 text-[#D4FF00] border-white/20 shadow-[inset_0_1px_1px_rgba(255,255,255,0.25)]",
             )}
           >
             <Tag className="h-2.5 w-2.5 shrink-0" />
@@ -195,7 +197,7 @@ export function EventCard({ event, variant = "swimlane", className }: EventCardP
           </span>
 
           {/* Date Badge */}
-          <span className="flex items-center gap-1.5 rounded-full border border-white/15 bg-neutral-950/75 backdrop-blur-md px-2.5 py-1 text-[10px] md:text-[11px] font-black uppercase tracking-widest text-white shadow-sm">
+          <span className="flex items-center gap-1.5 rounded-full border border-white/20 bg-gradient-to-b from-white/[0.15] to-black/75 backdrop-blur-xl px-2.5 py-1 text-[10px] md:text-[11px] font-black uppercase tracking-widest text-white shadow-[inset_0_1px_1px_rgba(255,255,255,0.25)]">
             <CalendarIcon className="h-3 w-3 text-[#D4FF00] shrink-0" />
             <span>{formattedDate}</span>
           </span>
@@ -215,7 +217,7 @@ export function EventCard({ event, variant = "swimlane", className }: EventCardP
             )}
             {event.location && (
               <span className="flex items-center gap-1 truncate text-neutral-300 font-semibold">
-                <MapPinIcon className="h-3 w-3 text-neutral-400 shrink-0" />
+                <MapPinIcon className="h-3 w-3 text-[#D4FF00] shrink-0" />
                 <span className="truncate">{event.location}</span>
               </span>
             )}
