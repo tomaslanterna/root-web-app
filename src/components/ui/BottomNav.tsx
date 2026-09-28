@@ -109,7 +109,12 @@ export function BottomNav() {
   ];
 
   // Items para el dock móvil (abajo)
-  const visibleMobileItems = NAV_ITEMS.map((item) => {
+  const visibleMobileItems = NAV_ITEMS.filter((item) => {
+    if (!user && (item.label === "Crews" || item.label === "Chat")) {
+      return false;
+    }
+    return true;
+  }).map((item) => {
     if (item.label === "Perfil") {
       if (user?.username) {
         return { ...item, href: `/profile/${user.username}` };
@@ -245,14 +250,20 @@ export function BottomNav() {
         </div>
       </header>
 
-      {/* 2. Mobile Floating Bottom Dock (Pill inferior para móviles) */}
+      {/* 2. Mobile Floating Bottom Dock (Pill inferior en Liquid Glass) */}
       <nav
         className={cn(
-          "fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-4 transition-transform duration-300 md:hidden",
-          hideOnMobile ? "translate-y-32 opacity-0 pointer-events-none" : "",
+          "fixed bottom-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-3.5 transition-all duration-300 md:hidden",
+          hideOnMobile ? "translate-y-32 opacity-0 pointer-events-none" : "translate-y-0 opacity-100",
         )}
       >
-        <div className="glass-obsidian w-full rounded-full p-1.5 flex items-center justify-around shadow-2xl backdrop-blur-2xl border border-white/10">
+        <div className="relative overflow-hidden w-full rounded-full p-1.5 flex items-center justify-around bg-gradient-to-b from-white/[0.12] via-neutral-950/85 to-[#0B0D10]/95 backdrop-blur-2xl backdrop-saturate-150 border border-white/[0.16] shadow-[0_20px_50px_rgba(0,0,0,0.85),inset_0_1px_1px_0_rgba(255,255,255,0.25),inset_0_-1px_1px_0_rgba(0,0,0,0.6)] select-none">
+          {/* Liquid Glass: Specular top edge rim light */}
+          <div className="pointer-events-none absolute inset-x-6 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/50 to-transparent opacity-90" />
+          
+          {/* Liquid Glass: Ambient soft refraction glow */}
+          <div className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 w-48 h-12 bg-white/[0.05] blur-xl rounded-full" />
+
           {visibleMobileItems.map((item) => {
             const isActive =
               pathname === item.href ||
@@ -267,32 +278,45 @@ export function BottomNav() {
                 title={item.label}
                 aria-label={item.label}
                 className={cn(
-                  "relative flex flex-col items-center justify-center py-1.5 px-3.5 rounded-full select-none transition-all duration-200 group",
+                  "relative flex flex-col items-center justify-center py-1.5 px-3 rounded-full select-none transition-all duration-200 group active:scale-95",
                   isActive
-                    ? "text-neutral-950 font-black"
+                    ? "text-[#D4FF00] font-black"
                     : "text-neutral-400 hover:text-white",
                 )}
               >
+                {/* Active Liquid Glass Capsule */}
                 {isActive && (
-                  <span className="absolute inset-0 bg-[#D4FF00] rounded-full shadow-md shadow-[#D4FF00]/20 animate-fade-in -z-10" />
+                  <span className="absolute inset-0 rounded-full bg-gradient-to-b from-white/[0.18] to-white/[0.04] border border-white/[0.22] shadow-[inset_0_1px_1px_0_rgba(255,255,255,0.3),0_4px_14px_rgba(0,0,0,0.5)] -z-10 animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
+                    {/* Specular top rim light inside active capsule */}
+                    <span className="pointer-events-none absolute inset-x-2 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/60 to-transparent" />
+                    {/* Soft Volt glow inside glass */}
+                    <span className="pointer-events-none absolute -bottom-3 inset-x-0 h-5 bg-[#D4FF00]/15 blur-xs rounded-full" />
+                  </span>
                 )}
 
                 <Icon
                   className={cn(
-                    "w-5 h-5 transition-transform duration-200 group-active:scale-90 flex-shrink-0",
-                    isActive ? "stroke-[2.5] text-neutral-950" : "stroke-[1.8]",
+                    "w-5 h-5 transition-all duration-200 flex-shrink-0",
+                    isActive
+                      ? "stroke-[2.4] text-[#D4FF00] drop-shadow-[0_0_8px_rgba(212,255,0,0.55)] scale-105"
+                      : "stroke-[1.8] text-neutral-400 group-hover:text-white",
                   )}
                 />
                 <span
                   className={cn(
-                    "text-[9px] uppercase tracking-wider font-black mt-0.5 transition-colors",
+                    "text-[9px] uppercase tracking-wider font-extrabold mt-0.5 transition-colors",
                     isActive
-                      ? "text-neutral-950"
+                      ? "text-[#D4FF00] drop-shadow-[0_0_6px_rgba(212,255,0,0.35)]"
                       : "text-neutral-400 group-hover:text-white",
                   )}
                 >
                   {item.label}
                 </span>
+
+                {/* Subtitle active dot in Electric Volt */}
+                {isActive && (
+                  <span className="w-1 h-1 rounded-full bg-[#D4FF00] shadow-[0_0_6px_#D4FF00] mt-0.5 -mb-1 animate-pulse" />
+                )}
               </Link>
             );
           })}
