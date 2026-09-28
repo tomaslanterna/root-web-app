@@ -719,8 +719,11 @@ export default function EventsPage() {
         {!hasActiveChips && !debouncedQuery && !isDateActive && !isGenreActive && featuredEvent && (
           <Link
             href={`/events/${featuredEvent.id}?origin=/events`}
-            className="group relative block w-full rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-neutral-950 transition-all duration-300 hover:border-[#D4FF00]/40 cursor-pointer animate-in fade-in"
+            className="group relative block w-full rounded-3xl overflow-hidden border border-white/[0.14] shadow-[0_20px_50px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.18)] bg-neutral-950 transition-all duration-300 hover:border-[#D4FF00]/50 cursor-pointer animate-in fade-in"
           >
+            {/* Specular top rim light */}
+            <div className="pointer-events-none absolute inset-x-8 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/40 to-transparent z-20 opacity-80" />
+
             {/* Background Artwork Image (Alto amplio y nítido para apreciar el póster) */}
             <div
               role="img"
@@ -737,12 +740,12 @@ export default function EventsPage() {
 
             {/* Badge Flotante Superior: Destacado / Asistencia */}
             <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
-              <span className="flex items-center gap-1.5 rounded-full bg-neutral-950/80 backdrop-blur-md border border-white/15 px-3 py-1 text-[11px] font-black uppercase tracking-wider text-[#D4FF00] shadow-lg">
+              <span className="flex items-center gap-1.5 rounded-full bg-gradient-to-b from-white/[0.15] to-black/75 backdrop-blur-xl border border-white/20 px-3 py-1 text-[11px] font-black uppercase tracking-wider text-[#D4FF00] shadow-[inset_0_1px_1px_rgba(255,255,255,0.25)]">
                 <Flame className="h-3.5 w-3.5 fill-[#D4FF00] text-[#D4FF00]" />
                 Destacado
               </span>
               {featuredEvent.goingCount > 0 && (
-                <span className="flex items-center gap-1.5 rounded-full bg-neutral-950/75 backdrop-blur-md border border-white/10 px-2.5 py-1 text-[10px] font-extrabold uppercase text-neutral-300 shadow-sm">
+                <span className="flex items-center gap-1.5 rounded-full bg-gradient-to-b from-white/[0.15] to-black/75 backdrop-blur-xl border border-white/20 px-2.5 py-1 text-[10px] font-extrabold uppercase text-neutral-200 shadow-[inset_0_1px_1px_rgba(255,255,255,0.25)]">
                   <CheckCircle2 className="h-3 w-3 text-[#D4FF00]" />
                   {featuredEvent.goingCount} confirmados
                 </span>
@@ -786,10 +789,10 @@ export default function EventsPage() {
                 )}
               </div>
 
-              {/* 4. Call to Action Claro: "Más información" con Flecha interactiva */}
+              {/* 4. Call to Action Claro: "Conseguir Entradas" con Flecha interactiva */}
               <div className="pt-2 sm:pt-3 flex items-center gap-3">
-                <div className="inline-flex items-center gap-2 rounded-full bg-[#D4FF00] px-4 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-black uppercase tracking-wider text-neutral-950 shadow-lg shadow-[#D4FF00]/20 group-hover:bg-[#e2ff4d] transition-all">
-                  <span>Más información</span>
+                <div className="inline-flex items-center gap-2 rounded-full bg-gradient-to-b from-[#D4FF00] to-lime-400 px-4 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-black uppercase tracking-wider text-neutral-950 shadow-[0_4px_15px_rgba(212,255,0,0.3)] group-hover:brightness-105 transition-all">
+                  <span>Conseguir Entradas</span>
                   <ArrowRight className="h-4 w-4 stroke-[2.5] transition-transform duration-300 group-hover:translate-x-1" />
                 </div>
               </div>

@@ -278,7 +278,7 @@ export default function TransferDealRoomPage({ params }: { params: Promise<{ id:
               <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
                  <button 
                   onClick={() => updateStatus("COMPLETED")}
-                  className="w-full bg-green-500 text-black font-black uppercase tracking-widest py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-green-400 active:scale-[0.98] transition-all mb-2"
+                  className="w-full bg-[#D4FF00] text-neutral-950 font-black uppercase tracking-widest py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-[#c2ea00] active:scale-[0.98] transition-all mb-2 shadow-[0_0_20px_rgba(212,255,0,0.25)]"
                  >
                    Sí, Ya Ingresé Bien
                  </button>
@@ -295,8 +295,8 @@ export default function TransferDealRoomPage({ params }: { params: Promise<{ id:
         )}
 
         {transfer.status === "COMPLETED" && (
-           <div className="bg-green-500/10 border border-green-500/30 p-3 rounded-xl text-center">
-             <span className="text-green-400 font-bold text-xs uppercase tracking-wider">Trato Completado Exitosamente</span>
+           <div className="bg-[#D4FF00]/10 border border-[#D4FF00]/30 p-3 rounded-xl text-center">
+             <span className="text-[#D4FF00] font-bold text-xs uppercase tracking-wider">Trato Completado Exitosamente</span>
            </div>
         )}
 

@@ -20,6 +20,7 @@ import {
   Loader2,
   MapPin,
   Music,
+  Radio,
   Share2,
   ShieldCheck,
   Sparkles,
@@ -33,7 +34,6 @@ import { CommentSection } from "@/components/ui/CommentSection";
 import { EventAttendanceVote } from "@/components/ui/EventAttendanceVote";
 import { Button } from "@/components/ui/Button";
 import { useMutation } from "@/hooks/useMutation";
-import { api } from "@/lib/api";
 import { eventsApi } from "@/services/events";
 import type { Event, RSVPResponse } from "@/types/events";
 import { cn } from "@/lib/utils";
@@ -44,7 +44,7 @@ const fallbackBanner =
 export default function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const origin = searchParams.get('origin');
+  const origin = searchParams.get("origin");
   const { id: eventId } = use(params);
   const [event, setEvent] = useState<Event | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
@@ -52,6 +52,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const [copiedShare, setCopiedShare] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [selectedTier, setSelectedTier] = useState<string>("general");
+  const [activeTab, setActiveTab] = useState<"lineup" | "info" | "venue" | "community">("lineup");
 
   const {
     mutate: fetchEvent,
@@ -132,12 +133,12 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       return [
         {
           id: "free",
-          name: "Acceso General - Entrada Libre",
-          description: "Ingreso sin cargo válido hasta completar capacidad del recinto",
+          name: "Acceso General Libre",
+          description: "Entrada sin cargo válida hasta agotar capacidad del predio",
           priceLabel: "Gratis",
-          status: "available",
+          status: "available" as const,
           statusLabel: "Disponible",
-          perk: "Acceso con registro y DNI",
+          perk: "Ingreso con registro previo y DNI físico",
         },
       ];
     }
@@ -145,39 +146,61 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     return [
       {
         id: "early_bird",
-        name: "Early Bird - Lote 1",
-        description: "Acceso anticipado primera etapa",
+        name: "Early Bird Pass",
+        description: "Acceso promocional para los primeros en llegar",
         priceLabel: `$${Math.round(basePrice * 0.75).toLocaleString("es-AR")}`,
-        status: "sold_out",
+        status: "sold_out" as const,
         statusLabel: "Agotado",
-        perk: "Ingreso en cualquier horario",
+        perk: "Ingreso sin restricción horaria",
       },
       {
         id: "general",
-        name: "General - Preventa Oficial",
-        description: "Acceso a pista general toda la noche",
+        name: "General Access",
+        description: "Acceso a pista principal y barras oficiales toda la noche",
         priceLabel: `$${basePrice.toLocaleString("es-AR")}`,
-        status: "available",
-        statusLabel: "Últimos disponibles",
-        perk: "Acceso a pista principal + barras",
+        status: "available" as const,
+        statusLabel: "Disponible",
+        perk: "Pase completo sin límite de permanencia",
       },
       {
         id: "vip",
-        name: "VIP / Backstage Experience",
-        description: "Acceso preferencial, tarima elevada y barra exclusiva",
+        name: "VIP Backstage Experience",
+        description: "Tarima preferencial elevada, barra dedicada y sanitarios exclusivos",
         priceLabel: `$${Math.round(basePrice * 1.6).toLocaleString("es-AR")}`,
-        status: "limited",
-        statusLabel: "Cupos limitados",
-        perk: "Baños VIP + Fast pass sin filas",
+        status: "limited" as const,
+        statusLabel: "Últimos pases",
+        perk: "Fast pass prioritario sin filas de espera",
       },
     ];
   }, [event]);
+
+  // Selección automática del primer tier disponible
+  useEffect(() => {
+    if (ticketTiers.length > 0) {
+      const available = ticketTiers.find((t) => t.status !== "sold_out") || ticketTiers[0];
+      if (available && !ticketTiers.some((t) => t.id === selectedTier && t.status !== "sold_out")) {
+        setSelectedTier(available.id);
+      }
+    }
+  }, [ticketTiers, selectedTier]);
+
+  const hasLineup = useMemo(() => {
+    if (!event) return false;
+    return (event.artists && event.artists.length > 0) || (event.lineup && event.lineup.length > 0);
+  }, [event]);
+
+  // Ajuste de pestaña si no hay lineup
+  useEffect(() => {
+    if (event && !hasLineup && activeTab === "lineup") {
+      setActiveTab("info");
+    }
+  }, [event, hasLineup, activeTab]);
 
   if (!hasLoaded && isLoadingEvent) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-[#0B0D10] p-6 text-white">
         <Loader2 className="h-8 w-8 animate-spin text-[#D4FF00]" />
-        <p className="text-xs font-black uppercase tracking-wider text-neutral-400">Cargando evento...</p>
+        <p className="text-xs font-semibold tracking-wide text-neutral-400">Cargando fecha...</p>
       </div>
     );
   }
@@ -185,16 +208,16 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   if (!event) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#0B0D10] p-6 text-center text-white">
-        <p className="text-sm font-bold uppercase text-neutral-300">No pudimos encontrar el evento</p>
+        <p className="text-base font-bold text-neutral-200">No encontramos esta fecha</p>
         <p className="max-w-xs text-xs text-neutral-500">
-          Puede que ya no esté disponible o que haya ocurrido un error al cargarlo.
+          Es posible que el evento haya concluido o el enlace ya no se encuentre disponible.
         </p>
         <div className="flex gap-2">
           <Link
             href="/events"
-            className="rounded-full border border-white/20 px-4 py-2 text-xs font-bold uppercase tracking-wider text-white"
+            className="rounded-full border border-white/20 px-5 py-2 text-xs font-bold text-white hover:bg-white/10 transition-colors"
           >
-            Volver
+            Volver a cartelera
           </Link>
           <Button size="sm" onClick={() => void fetchEvent(eventId)}>
             Reintentar
@@ -211,16 +234,17 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         weekday: "long",
         day: "numeric",
         month: "long",
-        hour: "2-digit",
-        minute: "2-digit",
       }).format(eventDate);
+
   const priceLabel =
     event.price == null
-      ? "Precio no informado"
+      ? "Precio a confirmar"
       : event.price === 0
-        ? "Entrada gratuita"
+        ? "Entrada libre"
         : `$${event.price.toLocaleString("es-AR")}`;
+
   const banner = event.cinematicBannerUrl?.trim() || fallbackBanner;
+  const currentTierObj = ticketTiers.find((t) => t.id === selectedTier) || ticketTiers[0];
 
   const updateAttendance = (response: RSVPResponse) => {
     setEvent((current) =>
@@ -236,15 +260,15 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   };
 
   return (
-    <div className="min-h-screen bg-[#0B0D10] pb-28 text-white relative">
+    <div className="min-h-screen bg-[#0B0D10] pb-28 md:pb-24 text-white relative selection:bg-[#D4FF00] selection:text-neutral-950">
       {/* Toast Feedback de Compartir */}
       {copiedShare && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 rounded-full bg-[#D4FF00] px-4 py-2 text-xs font-black uppercase tracking-wider text-neutral-950 shadow-2xl shadow-[#D4FF00]/30 animate-in fade-in slide-in-from-top-4 duration-200">
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 rounded-full bg-[#D4FF00] px-5 py-2.5 text-xs font-black tracking-wide text-neutral-950 shadow-2xl shadow-[#D4FF00]/40 animate-in fade-in slide-in-from-top-4 duration-200">
           ✓ Enlace copiado al portapapeles
         </div>
       )}
 
-      {/* Header Superior con botones de acción funcionales (Solo móvil) */}
+      {/* Header Superior Móvil */}
       <DetailHeader
         className="md:hidden"
         onBack={() => router.push(origin || "/events")}
@@ -256,327 +280,358 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         showShare
       />
 
-      <div className="w-full mx-auto p-4 sm:p-6 md:px-0 pt-16 md:pt-2 space-y-6 md:space-y-8">
-        {/* Desktop Breadcrumb Navigation Bar */}
+      {/* Contenedor Principal: Columna Central Editorial (Estilo Resident Advisor / DICE / Boiler Room) */}
+      <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 md:px-8 pt-16 md:pt-6 space-y-8 sm:space-y-10">
+        {/* Barra Superior Desktop: Navegación Limpia y Botones Táctiles en Liquid Glass */}
         <div className="hidden md:flex items-center justify-between text-xs text-neutral-400 border-b border-white/5 pb-4">
-          <div className="flex items-center gap-2">
-            <Link href="/events" className="hover:text-white transition-colors">
-              Eventos
-            </Link>
-            <span>/</span>
-            {event.genre && (
-              <>
-                <span className="text-[#D4FF00] font-black uppercase tracking-wider">
-                  {event.genre}
-                </span>
-                <span>/</span>
-              </>
-            )}
-            <span className="text-white font-bold truncate max-w-md uppercase tracking-tight">
-              {event.title}
-            </span>
-          </div>
+          <Link
+            href={origin || "/events"}
+            className="flex items-center gap-2 hover:text-white transition-colors group"
+          >
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            <span className="font-medium tracking-wide">Volver a eventos</span>
+          </Link>
 
-          {/* Action Icons Minimalistas (Sin texto redundante, iconos amplios y táctiles con micro-interacciones) */}
-          <div className="flex items-center gap-2">
-            {/* Botón Compartir */}
+          <div className="flex items-center gap-2.5">
             <button
               type="button"
               onClick={handleShare}
               aria-label="Compartir evento"
               title="Compartir evento"
               className={cn(
-                "relative group w-11 h-11 rounded-full border transition-all duration-200 flex items-center justify-center cursor-pointer active:scale-95 shadow-md",
+                "relative group w-10 h-10 rounded-full border transition-all duration-200 flex items-center justify-center cursor-pointer active:scale-95 shadow-md",
                 copiedShare
                   ? "border-[#D4FF00]/60 bg-[#D4FF00]/15 text-[#D4FF00]"
-                  : "border-white/10 bg-[#14171F] hover:border-[#D4FF00]/40 hover:bg-white/10 text-neutral-300 hover:text-white",
+                  : "border-white/[0.12] bg-gradient-to-b from-white/[0.08] to-white/[0.02] backdrop-blur-xl hover:border-[#D4FF00]/40 hover:bg-white/10 text-neutral-300 hover:text-white",
               )}
             >
               {copiedShare ? (
-                <Check className="w-5 h-5 text-[#D4FF00] stroke-[2.5] animate-in zoom-in-50 duration-150" />
+                <Check className="w-4.5 h-4.5 text-[#D4FF00] stroke-[2.5]" />
               ) : (
-                <Share2 className="w-5 h-5 text-neutral-300 group-hover:text-[#D4FF00] transition-colors" />
+                <Share2 className="w-4.5 h-4.5 text-neutral-300 group-hover:text-[#D4FF00] transition-colors" />
               )}
-              {/* Tooltip flotante */}
-              <span className="pointer-events-none absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-neutral-900/95 border border-white/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-neutral-200 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity z-30">
-                {copiedShare ? "¡Copiado!" : "Compartir"}
-              </span>
             </button>
 
-            {/* Botón Agendar en Calendario */}
             <a
               href={generateGoogleCalendarUrl()}
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Agendar en Google Calendar"
               title="Agendar en Google Calendar"
-              className="relative group w-11 h-11 rounded-full border border-white/10 bg-[#14171F] hover:border-[#D4FF00]/40 hover:bg-white/10 text-neutral-300 hover:text-white transition-all duration-200 flex items-center justify-center active:scale-95 shadow-md"
+              className="w-10 h-10 rounded-full border border-white/[0.12] bg-gradient-to-b from-white/[0.08] to-white/[0.02] backdrop-blur-xl hover:border-[#D4FF00]/40 hover:bg-white/10 text-neutral-300 hover:text-white transition-all duration-200 flex items-center justify-center active:scale-95 shadow-md"
             >
-              <Calendar className="w-5 h-5 text-neutral-300 group-hover:text-[#D4FF00] transition-colors" />
-              <span className="pointer-events-none absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-neutral-900/95 border border-white/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-neutral-200 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity z-30">
-                Agendar
-              </span>
+              <Calendar className="w-4.5 h-4.5" />
             </a>
 
-            {/* Botón Guardar Favorito */}
             <button
               type="button"
               onClick={() => setIsSaved(!isSaved)}
               aria-label={isSaved ? "Guardado en favoritos" : "Guardar evento"}
               title={isSaved ? "Guardado en favoritos" : "Guardar evento"}
               className={cn(
-                "relative group w-11 h-11 rounded-full border transition-all duration-200 flex items-center justify-center cursor-pointer active:scale-95 shadow-md",
+                "w-10 h-10 rounded-full border transition-all duration-200 flex items-center justify-center cursor-pointer active:scale-95 shadow-md",
                 isSaved
                   ? "border-[#D4FF00]/60 bg-[#D4FF00]/15 text-[#D4FF00]"
-                  : "border-white/10 bg-[#14171F] hover:border-white/25 hover:bg-white/10 text-neutral-300 hover:text-white",
+                  : "border-white/[0.12] bg-gradient-to-b from-white/[0.08] to-white/[0.02] backdrop-blur-xl hover:border-white/25 hover:bg-white/10 text-neutral-300 hover:text-white",
               )}
             >
               <Bookmark
                 className={cn(
-                  "w-5 h-5 transition-all",
-                  isSaved
-                    ? "fill-[#D4FF00] text-[#D4FF00]"
-                    : "text-neutral-300 group-hover:text-white",
+                  "w-4.5 h-4.5 transition-all",
+                  isSaved ? "fill-[#D4FF00] text-[#D4FF00]" : "text-neutral-300 group-hover:text-white",
                 )}
               />
-              <span className="pointer-events-none absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-neutral-900/95 border border-white/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-neutral-200 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity z-30">
-                {isSaved ? "Guardado" : "Guardar"}
-              </span>
             </button>
           </div>
         </div>
 
-        {/* Grilla Principal de 12 Columnas (8 Contenido / 4 Sticky Conversión) */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 lg:gap-8 items-start">
-          {/* Columna Izquierda: Contenido Principal de Experiencia y Tickets */}
-          <div className="md:col-span-7 lg:col-span-8 space-y-6 md:space-y-8">
-            {/* 1. Hero Poster Artwork Cinematográfico */}
-            <div className="relative group rounded-3xl overflow-hidden border border-white/15 bg-neutral-950 shadow-2xl">
-              {/* Resplandor Ambiental Blur en Desktop */}
-              <div
-                className="absolute -inset-4 bg-cover bg-center rounded-3xl opacity-20 blur-3xl pointer-events-none hidden md:block"
-                style={{ backgroundImage: `url(${banner})` }}
-              />
+        {/* 1. Hero Poster Cinemático & Atmosférico en Liquid Glass */}
+        <div className="relative group rounded-3xl overflow-hidden border border-white/[0.14] bg-neutral-950 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.2)]">
+          {/* Specular top rim light */}
+          <div className="pointer-events-none absolute inset-x-8 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/40 to-transparent z-20 opacity-80" />
 
-              {/* Contenedor del Póster */}
-              <div className="relative aspect-[4/3] sm:aspect-[16/9] lg:aspect-[21/9] min-h-[260px] sm:min-h-[340px] md:min-h-[400px] w-full overflow-hidden">
-                <div
-                  role="img"
-                  aria-label={`Portada de ${event.title}`}
-                  className="w-full h-full bg-cover bg-center transition-transform duration-700 ease-out group-hover:scale-[1.02]"
-                  style={{ backgroundImage: `url(${banner})` }}
-                />
-                {/* Viñeta superior e inferior sutiles */}
-                <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-neutral-950/70 to-transparent" />
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-neutral-950 via-neutral-950/75 to-transparent" />
+          {/* Ambient light glow */}
+          <div
+            className="absolute -inset-6 bg-cover bg-center rounded-3xl opacity-25 blur-3xl pointer-events-none hidden md:block"
+            style={{ backgroundImage: `url(${banner})` }}
+          />
 
-                {/* Badges Flotantes Superiores */}
-                <div className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="flex items-center gap-1.5 rounded-full bg-[#D4FF00] px-3 py-1 text-[10px] md:text-[11px] font-black uppercase tracking-wider text-neutral-950 shadow-lg shadow-[#D4FF00]/20">
-                      {priceLabel}
-                    </span>
-                    {event.genre && (
-                      <span className="rounded-full border border-white/15 bg-neutral-950/80 backdrop-blur-md px-3 py-1 text-[10px] md:text-[11px] font-black uppercase tracking-wider text-neutral-200">
-                        {event.genre}
-                      </span>
-                    )}
-                  </div>
+          <div className="relative aspect-[16/9] sm:aspect-[18/9] md:aspect-[21/9] w-full overflow-hidden">
+            <div
+              role="img"
+              aria-label={`Portada de ${event.title}`}
+              className="w-full h-full bg-cover bg-center transition-transform duration-1000 ease-out group-hover:scale-[1.02]"
+              style={{ backgroundImage: `url(${banner})` }}
+            />
+            {/* Viñeta cinematográfica envolvente */}
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-[#0B0D10] via-[#0B0D10]/70 to-transparent" />
 
-                  {event.goingCount > 0 && (
-                    <span className="flex items-center gap-1.5 rounded-full bg-neutral-950/80 backdrop-blur-md border border-white/15 px-3 py-1 text-[10px] md:text-[11px] font-extrabold uppercase text-neutral-200 shadow-md">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-[#D4FF00]" />
-                      {event.goingCount} confirmados
-                    </span>
-                  )}
-                </div>
-
-                {/* Metadata inferior sobre la portada */}
-                <div className="absolute inset-x-4 md:inset-x-6 bottom-4 md:bottom-6 z-10 space-y-1">
-                  <p className="flex items-center gap-1.5 text-xs font-bold text-neutral-300">
-                    <MapPin className="h-3.5 w-3.5 text-[#D4FF00]" />
-                    <span>{event.location}</span>
-                  </p>
-                  <h2 className="text-xl sm:text-2xl md:text-3xl font-black uppercase tracking-tight text-white line-clamp-1 drop-shadow-md">
-                    {event.title}
-                  </h2>
-                </div>
-              </div>
-            </div>
-
-            {/* 2. Módulo de Lotes y Entradas Oficiales (Boletería RRPP Directa) */}
-            <section id="tickets-section" className="space-y-4 rounded-3xl border border-white/10 bg-[#14171F] p-5 sm:p-6 shadow-xl scroll-mt-28">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-[#D4FF00]/15 flex items-center justify-center text-[#D4FF00] border border-[#D4FF00]/30 shadow-md shadow-[#D4FF00]/10">
-                    <Ticket className="h-5 w-5 stroke-[2.2]" />
-                  </div>
-                  <div>
-                    <h2 className="text-sm font-black uppercase tracking-widest text-white flex items-center gap-2">
-                      Lotes y Entradas Oficiales
-                    </h2>
-                    <p className="text-[11px] text-neutral-400">
-                      Boletería oficial con código RRPP Root • Acreditación digital directa
-                    </p>
-                  </div>
-                </div>
-                <span className="self-start sm:self-auto inline-flex items-center gap-1.5 rounded-full border border-[#D4FF00]/40 bg-[#D4FF00]/10 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-[#D4FF00] shadow-sm">
-                  <ShieldCheck className="h-3.5 w-3.5" /> RRPP Autorizado
+            {/* Micro-etiqueta de género musical en Liquid Glass */}
+            {event.genre && (
+              <div className="absolute top-4 left-4 z-10">
+                <span className="rounded-full border border-white/20 bg-gradient-to-b from-white/[0.15] to-black/60 backdrop-blur-xl px-3.5 py-1 text-xs font-semibold tracking-wide text-white shadow-[0_8px_20px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.25)]">
+                  {event.genre}
                 </span>
               </div>
+            )}
+          </div>
+        </div>
 
-              {/* Lista Interactiva de Lotes con Redirección Directa */}
-              <div className="grid grid-cols-1 gap-3">
-                {ticketTiers.map((tier) => {
-                  const isSoldOut = tier.status === "sold_out";
-                  const isSelected = selectedTier === tier.id;
-                  return (
-                    <div
-                      key={tier.id}
-                      onClick={() => !isSoldOut && setSelectedTier(tier.id)}
+        {/* 2. Ficha de Identidad Editorial (Estilo Resident Advisor / Pitchfork) */}
+        <div className="space-y-3.5 border-b border-white/10 pb-8">
+          <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm font-semibold tracking-wide text-[#D4FF00]">
+            <span className="capitalize">{formattedDate}</span>
+            <span className="text-neutral-600">•</span>
+            <span className="text-neutral-300 font-medium">Apertura 23:00 hs</span>
+          </div>
+
+          <h1 className="text-3xl sm:text-4xl md:text-6xl font-black tracking-tight text-white leading-[1.05]">
+            {event.title}
+          </h1>
+
+          <div className="flex flex-wrap items-center justify-between gap-4 pt-1 text-sm text-neutral-300">
+            <a
+              href={googleMapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 hover:text-[#D4FF00] transition-colors group/venue"
+            >
+              <MapPin className="h-4 w-4 text-[#D4FF00] shrink-0" />
+              <span className="font-medium">{event.location}</span>
+              <ArrowUpRight className="h-3.5 w-3.5 opacity-60 group-hover/venue:opacity-100 transition-opacity" />
+            </a>
+
+            {event.goingCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setIsAttendeesOpen(true)}
+                className="inline-flex items-center gap-2 rounded-full bg-white/[0.04] border border-white/10 px-4 py-1.5 text-xs font-medium text-neutral-300 hover:border-[#D4FF00]/40 hover:text-white transition-all cursor-pointer backdrop-blur-md"
+              >
+                <span className="w-2 h-2 rounded-full bg-[#D4FF00] animate-pulse" />
+                <span>{event.goingCount} personas van a estar en pista</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* 3. Boletería de Noche (Liquid Glass Ticket Desk) */}
+        <section
+          id="tickets-section"
+          className="relative space-y-6 rounded-3xl border border-white/[0.14] bg-gradient-to-b from-white/[0.09] via-neutral-950/80 to-[#0B0D10]/90 backdrop-blur-2xl backdrop-saturate-150 p-6 sm:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.18),inset_0_-1px_1px_rgba(0,0,0,0.6)] overflow-hidden scroll-mt-28"
+        >
+          {/* Specular top rim light */}
+          <div className="pointer-events-none absolute inset-x-8 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-80" />
+          {/* Ambient soft refraction */}
+          <div className="pointer-events-none absolute -top-16 left-1/2 -translate-x-1/2 w-96 h-28 bg-[#D4FF00]/[0.08] blur-3xl rounded-full" />
+
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-4 relative z-10">
+            <div>
+              <h2 className="text-lg font-black tracking-tight text-white flex items-center gap-2">
+                Pases & Entradas Oficiales
+              </h2>
+              <p className="text-xs text-neutral-400 mt-0.5">
+                Boletería directa y autorizada con acreditación RRPP Root
+              </p>
+            </div>
+            <span className="self-start sm:self-auto inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] backdrop-blur-md px-3.5 py-1 text-xs font-semibold text-neutral-200 shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)]">
+              <ShieldCheck className="h-3.5 w-3.5 text-[#D4FF00]" /> Boletería Oficial
+            </span>
+          </div>
+
+          {/* Lotes de Pases Estilo Ticket Stub en Vidrio Ahumado (Liquid Glass Pass) */}
+          <div className="space-y-3 relative z-10">
+            {ticketTiers.map((tier) => {
+              const isSoldOut = tier.status === "sold_out";
+              const isSelected = selectedTier === tier.id;
+              return (
+                <div
+                  key={tier.id}
+                  onClick={() => !isSoldOut && setSelectedTier(tier.id)}
+                  className={cn(
+                    "group relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl border transition-all duration-300 select-none overflow-hidden",
+                    isSoldOut
+                      ? "border-white/5 bg-white/[0.01] opacity-40 cursor-not-allowed"
+                      : isSelected
+                        ? "border-[#D4FF00]/80 bg-gradient-to-r from-[#D4FF00]/15 via-[#D4FF00]/[0.04] to-transparent backdrop-blur-2xl shadow-[0_0_30px_rgba(212,255,0,0.18),inset_0_1px_1px_rgba(255,255,255,0.22)] cursor-pointer"
+                        : "border-white/[0.10] bg-gradient-to-b from-white/[0.04] to-white/[0.01] backdrop-blur-xl hover:border-white/25 hover:bg-white/[0.06] cursor-pointer shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)]",
+                  )}
+                >
+                  {/* Subtle specular line for selected pass */}
+                  {isSelected && (
+                    <div className="pointer-events-none absolute inset-x-4 top-0 h-[1px] bg-gradient-to-r from-transparent via-[#D4FF00]/50 to-transparent" />
+                  )}
+
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex items-center gap-2.5">
+                      <span className={cn(
+                        "text-base sm:text-lg font-extrabold tracking-tight transition-colors",
+                        isSelected ? "text-white" : "text-neutral-200",
+                      )}>
+                        {tier.name}
+                      </span>
+                      {isSoldOut ? (
+                        <span className="rounded-full bg-rose-500/15 border border-rose-500/30 px-2 py-0.5 text-[10px] font-bold text-rose-400">
+                          Agotado
+                        </span>
+                      ) : tier.status === "limited" ? (
+                        <span className="rounded-full bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-bold text-amber-300">
+                          Últimos pases
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="text-xs text-neutral-400 leading-relaxed">
+                      {tier.description}
+                    </p>
+                    <p className="text-[11px] text-neutral-500">
+                      • {tier.perk}
+                    </p>
+                  </div>
+
+                  <div className="flex sm:flex-col items-baseline sm:items-end justify-between sm:justify-center shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-white/5">
+                    <span
                       className={cn(
-                        "relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border p-4.5 transition-all",
-                        isSoldOut
-                          ? "border-white/5 bg-white/[0.02] opacity-50 cursor-not-allowed"
-                          : isSelected
-                            ? "border-[#D4FF00] bg-[#D4FF00]/5 shadow-lg shadow-[#D4FF00]/10 cursor-pointer"
-                            : "border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.05] cursor-pointer",
+                        "text-xl sm:text-2xl font-black tracking-tight",
+                        isSoldOut ? "text-neutral-600 line-through" : "text-[#D4FF00]",
                       )}
                     >
-                      <div className="space-y-1.5">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-black uppercase tracking-tight text-white">
-                            {tier.name}
-                          </span>
-                          <span
-                            className={cn(
-                              "rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wider",
-                              isSoldOut
-                                ? "bg-rose-500/20 text-rose-400 border border-rose-500/30"
-                                : tier.status === "limited"
-                                  ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                                  : "bg-[#D4FF00]/20 text-[#D4FF00] border border-[#D4FF00]/30",
-                            )}
-                          >
-                            {tier.statusLabel}
-                          </span>
-                        </div>
-                        <p className="text-xs text-neutral-400">{tier.description}</p>
-                        <p className="text-[10px] text-neutral-500 font-semibold">• {tier.perk}</p>
-                      </div>
+                      {tier.priceLabel}
+                    </span>
+                    <span className="text-[10px] text-neutral-500 font-medium">
+                      {isSoldOut ? "Sin cupo" : "Precio final"}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
 
-                      <div className="flex items-center sm:items-end justify-between sm:justify-center gap-3 shrink-0 pt-3 sm:pt-0 border-t sm:border-t-0 border-white/5">
-                        <div className="text-left sm:text-right">
-                          <span
-                            className={cn(
-                              "text-lg sm:text-xl font-black tracking-tight block",
-                              isSoldOut ? "text-neutral-500 line-through" : "text-[#D4FF00]",
-                            )}
-                          >
-                            {tier.priceLabel}
-                          </span>
-                          <span className="text-[9px] uppercase font-bold text-neutral-500">
-                            {isSoldOut ? "Agotado" : "Precio final"}
-                          </span>
-                        </div>
+          {/* Botón Principal Dominante de Compra */}
+          <div className="pt-2 space-y-3 relative z-10">
+            <button
+              type="button"
+              onClick={() => handleBuyTicket(selectedTier)}
+              disabled={currentTierObj?.status === "sold_out"}
+              className={cn(
+                "flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-sm font-black uppercase tracking-wider transition-all duration-200 shadow-2xl cursor-pointer active:scale-[0.99]",
+                currentTierObj?.status === "sold_out"
+                  ? "bg-neutral-800 text-neutral-500 cursor-not-allowed shadow-none"
+                  : "bg-gradient-to-b from-[#D4FF00] to-lime-400 text-neutral-950 shadow-[0_10px_35px_rgba(212,255,0,0.35),inset_0_1px_1px_rgba(255,255,255,0.5)] hover:brightness-105 active:scale-[0.99]",
+              )}
+            >
+              <Ticket className="h-4.5 w-4.5 stroke-[2.5]" />
+              <span>
+                {event.isFree
+                  ? "Obtener Pase Gratuito ↗"
+                  : `Conseguir Ticket — ${currentTierObj?.name} (${currentTierObj?.priceLabel}) ↗`}
+              </span>
+            </button>
 
-                        {/* Botón directo de Compra / Redirección RRPP */}
-                        {isSoldOut ? (
-                          <span className="px-3.5 py-2 rounded-xl text-neutral-500 font-bold text-xs bg-white/5 border border-white/5">
-                            Sin cupo
-                          </span>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleBuyTicket(tier.id);
-                            }}
-                            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#D4FF00] hover:bg-[#c4ec00] text-neutral-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-[#D4FF00]/20 active:scale-95 transition-all cursor-pointer"
-                          >
-                            <span>Comprar Entrada</span>
-                            <ExternalLink className="w-3.5 h-3.5 stroke-[2.5]" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+            {/* Gancho Social: Ticket = Match de Squad Desbloqueado */}
+            <div className="flex items-center justify-center gap-2 pt-1 text-center text-xs font-semibold text-neutral-300">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#D4FF00]/20 text-[#D4FF00] shrink-0">
+                <Flame className="h-3 w-3 fill-[#D4FF00]" />
+              </span>
+              <span>
+                Al conseguir tu entrada desbloqueás tu match en el <strong>Squad de Previa</strong> de este evento.
+              </span>
+            </div>
+
+            <p className="text-center text-[11px] text-neutral-500 font-medium">
+              Acceso digital nominal e intransferible • Redirección directa y segura con código RRPP Root
+            </p>
+          </div>
+        </section>
+
+        {/* 4. Pestañas de Contenido Progresivo en Liquid Glass */}
+        <div className="space-y-6">
+          {/* Segmented Control Liquid Glass */}
+          <div className="flex items-center gap-2 border-b border-white/10 pb-4 overflow-x-auto scrollbar-none">
+            {hasLineup && (
+              <button
+                type="button"
+                onClick={() => setActiveTab("lineup")}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold tracking-wide transition-all duration-200 shrink-0 cursor-pointer",
+                  activeTab === "lineup"
+                    ? "bg-gradient-to-b from-white to-neutral-200 text-neutral-950 font-black shadow-[0_4px_15px_rgba(255,255,255,0.25)]"
+                    : "text-neutral-400 hover:text-white hover:bg-white/[0.06] backdrop-blur-md"
+                )}
+              >
+                <Disc3 className="w-3.5 h-3.5" />
+                <span>Lineup & Horarios</span>
+                <span className="text-[10px] opacity-75">
+                  ({event.artists?.length || event.lineup.length})
+                </span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("info")}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold tracking-wide transition-all duration-200 shrink-0 cursor-pointer",
+                activeTab === "info"
+                  ? "bg-gradient-to-b from-white to-neutral-200 text-neutral-950 font-black shadow-[0_4px_15px_rgba(255,255,255,0.25)]"
+                  : "text-neutral-400 hover:text-white hover:bg-white/[0.06] backdrop-blur-md"
+              )}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>La Fiesta & Concepto</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("venue")}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold tracking-wide transition-all duration-200 shrink-0 cursor-pointer",
+                activeTab === "venue"
+                  ? "bg-gradient-to-b from-white to-neutral-200 text-neutral-950 font-black shadow-[0_4px_15px_rgba(255,255,255,0.25)]"
+                  : "text-neutral-400 hover:text-white hover:bg-white/[0.06] backdrop-blur-md"
+              )}
+            >
+              <MapPin className="w-3.5 h-3.5" />
+              <span>Predio & Acceso</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("community")}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold tracking-wide transition-all duration-200 shrink-0 cursor-pointer",
+                activeTab === "community"
+                  ? "bg-gradient-to-b from-white to-neutral-200 text-neutral-950 font-black shadow-[0_4px_15px_rgba(255,255,255,0.25)]"
+                  : "text-neutral-400 hover:text-white hover:bg-white/[0.06] backdrop-blur-md"
+              )}
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>Muro & Comunidad</span>
+            </button>
+          </div>
+
+          {/* Pestaña: Lineup (Cartelera de Festival Real en Liquid Glass) */}
+          {activeTab === "lineup" && hasLineup && (
+            <section className="space-y-5 rounded-3xl border border-white/[0.12] bg-gradient-to-b from-white/[0.06] via-neutral-950/70 to-[#0B0D10]/85 backdrop-blur-2xl p-6 sm:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.7),inset_0_1px_1px_rgba(255,255,255,0.15)] animate-in fade-in duration-200">
+              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                <h3 className="text-sm font-black tracking-tight text-white">
+                  Lineup Confirmado & Set Times
+                </h3>
+                <span className="text-xs text-neutral-400">Timetable Oficial</span>
               </div>
 
-              {/* 3 Pilares de Seguridad y RRPP de Root */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-3 border-t border-white/10">
-                <div className="flex items-start gap-2 text-neutral-300">
-                  <ShieldCheck className="h-4 w-4 text-[#D4FF00] shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-[11px] font-black uppercase tracking-wider text-white">
-                      Tickets Nominales KYC
-                    </p>
-                    <p className="text-[10px] text-neutral-400 leading-tight">
-                      Vinculados a tu identidad para erradicar estafas de reventa.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-2 text-neutral-300">
-                  <Flame className="h-4 w-4 text-[#D4FF00] shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-[11px] font-black uppercase tracking-wider text-white">
-                      Comisión RRPP Oficial
-                    </p>
-                    <p className="text-[10px] text-neutral-400 leading-tight">
-                      Acreditación directa garantizada y acceso al Squad Matcher.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-2 text-neutral-300">
-                  <Sparkles className="h-4 w-4 text-[#D4FF00] shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-[11px] font-black uppercase tracking-wider text-white">
-                      QR Dinámico In-App
-                    </p>
-                    <p className="text-[10px] text-neutral-400 leading-tight">
-                      Código encriptado anticopia accesible desde tu celular.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* 3. Lineup Confirmado & Timetable */}
-            {(event.artists?.length ? event.artists.length > 0 : event.lineup.length > 0) && (
-              <section className="space-y-4 rounded-3xl border border-white/10 bg-[#14171F] p-5 sm:p-6 shadow-xl">
-                <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                  <div className="flex items-center gap-2">
-                    <Disc3 className="h-5 w-5 text-[#D4FF00]" />
-                    <div>
-                      <h2 className="text-sm font-black uppercase tracking-widest text-white">
-                        Lineup Confirmado & Horarios
-                      </h2>
-                      <p className="text-[11px] text-neutral-400">
-                        Artistas y set times oficiales del evento
-                      </p>
-                    </div>
-                  </div>
-                  <span className="rounded-full bg-white/5 border border-white/10 px-2.5 py-0.5 text-[10px] font-bold text-neutral-400">
-                    {event.artists?.length || event.lineup.length} artistas
-                  </span>
-                </div>
-
-                {event.artists && event.artists.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                    {event.artists.map((ea) => (
-                      <div
-                        key={ea.artistId}
-                        className={cn(
-                          "flex items-center gap-3.5 rounded-2xl border p-3 transition-all",
-                          ea.isHeadliner
-                            ? "border-[#D4FF00]/40 bg-[#D4FF00]/5 shadow-sm"
-                            : "border-white/10 bg-white/[0.02] hover:border-white/20",
-                        )}
-                      >
-                        <div className="relative w-12 h-12 rounded-full overflow-hidden bg-neutral-900 shrink-0 border border-white/10">
+              {event.artists && event.artists.length > 0 ? (
+                <div className="space-y-3">
+                  {event.artists.map((ea) => (
+                    <div
+                      key={ea.artistId}
+                      className={cn(
+                        "flex items-center justify-between gap-4 p-4 rounded-2xl border transition-all",
+                        ea.isHeadliner
+                          ? "border-[#D4FF00]/40 bg-[#D4FF00]/[0.05] shadow-[inset_0_1px_1px_rgba(212,255,0,0.2)]"
+                          : "border-white/5 bg-white/[0.02]",
+                      )}
+                    >
+                      <div className="flex items-center gap-4 min-w-0">
+                        <div className="relative w-12 h-12 rounded-full overflow-hidden bg-neutral-900 shrink-0 border border-white/15">
                           {ea.artist?.avatarUrl ? (
                             <img
                               src={ea.artist.avatarUrl}
@@ -589,332 +644,196 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                             </div>
                           )}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <p className="font-black text-sm text-white truncate">{ea.artist?.name}</p>
+
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h4 className={cn(
+                              "font-black tracking-tight truncate",
+                              ea.isHeadliner ? "text-lg text-white" : "text-base text-neutral-200",
+                            )}>
+                              {ea.artist?.name}
+                            </h4>
                             {ea.isHeadliner && (
-                              <span className="flex items-center gap-1 rounded-full bg-[#D4FF00] px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider text-neutral-950">
-                                <Crown className="h-2.5 w-2.5" /> Headliner
+                              <span className="rounded-full bg-[#D4FF00] px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-neutral-950">
+                                Headliner
                               </span>
                             )}
                           </div>
-                          <p className="text-[10px] uppercase font-bold text-neutral-400 tracking-wider">
+                          <p className="text-xs text-neutral-400">
                             {ea.artist?.artistType || "DJ Set"}
                           </p>
-                          {ea.performanceTime && (
-                            <p className="flex items-center gap-1 text-[10px] font-semibold text-[#D4FF00] mt-0.5">
-                              <Clock className="h-2.5 w-2.5" /> {ea.performanceTime}
-                            </p>
-                          )}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+
+                      {ea.performanceTime && (
+                        <div className="text-right shrink-0">
+                          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#D4FF00]">
+                            <Clock className="w-3.5 h-3.5" />
+                            {ea.performanceTime}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-6 rounded-2xl border border-white/5 bg-white/[0.01] text-center space-y-3">
+                  <div className="flex flex-wrap items-center justify-center gap-3">
                     {event.lineup.map((artist, idx) => (
-                      <div
+                      <span
                         key={artist}
-                        className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.02] p-3 hover:border-[#D4FF00]/30 transition-colors"
+                        className="text-lg sm:text-xl font-black text-white hover:text-[#D4FF00] transition-colors"
                       >
-                        <div className="w-10 h-10 rounded-full bg-neutral-900 border border-white/10 flex items-center justify-center text-xs font-black text-[#D4FF00]">
-                          #{idx + 1}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-black uppercase text-white truncate">{artist}</p>
-                          <p className="text-[10px] font-semibold text-neutral-400">DJ Set Confirmado</p>
-                        </div>
-                      </div>
+                        {artist}
+                        {idx < event.lineup.length - 1 && (
+                          <span className="text-neutral-600 ml-3">•</span>
+                        )}
+                      </span>
                     ))}
                   </div>
-                )}
-              </section>
-            )}
-
-            {/* 4. Información del Evento (Sobre la Fiesta & Experiencia - Diseño Elegante) */}
-            <section className="space-y-5 rounded-3xl border border-white/10 bg-gradient-to-b from-[#14171F] to-[#0E1015] p-6 sm:p-7 shadow-xl">
-              <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[#D4FF00]">
-                    <Sparkles className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <h2 className="text-sm font-black uppercase tracking-widest text-white">
-                      Información del Evento
-                    </h2>
-                    <p className="text-[11px] text-neutral-400">
-                      Concepto artístico, propuesta musical y reglas de la fiesta
-                    </p>
-                  </div>
+                  <p className="text-xs text-neutral-400">Set Times y horarios a confirmar por la organización.</p>
                 </div>
-                {event.genre && (
-                  <span className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-neutral-300">
-                    {event.genre}
-                  </span>
-                )}
+              )}
+            </section>
+          )}
+
+          {/* Pestaña: Sobre la Fiesta & Concepto en Liquid Glass */}
+          {activeTab === "info" && (
+            <section className="space-y-6 rounded-3xl border border-white/[0.12] bg-gradient-to-b from-white/[0.06] via-neutral-950/70 to-[#0B0D10]/85 backdrop-blur-2xl p-6 sm:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.7),inset_0_1px_1px_rgba(255,255,255,0.15)] animate-in fade-in duration-200">
+              <div className="space-y-2">
+                <h3 className="text-lg font-black tracking-tight text-white">
+                  Concepto & Propuesta Musical
+                </h3>
+                <p className="whitespace-pre-line text-sm sm:text-base leading-relaxed text-neutral-300">
+                  {event.description || "Este evento todavía no tiene una descripción editorial disponible."}
+                </p>
               </div>
 
-              {/* Ficha Técnica Minimalista */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-3.5 space-y-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">Fecha</span>
-                  <p className="font-extrabold text-white capitalize">{formattedDate.split(",")[0] || "Confirmada"}</p>
-                </div>
-                <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-3.5 space-y-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">Curaduría</span>
-                  <p className="font-extrabold text-[#D4FF00] uppercase">{event.genre || "Clubbing"}</p>
-                </div>
-                <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-3.5 space-y-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">Zona</span>
-                  <p className="font-extrabold text-white truncate">{event.location.split(",")[0] || "Buenos Aires"}</p>
-                </div>
-                <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-3.5 space-y-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">Admisión</span>
-                  <p className="font-extrabold text-white">+18 con DNI</p>
-                </div>
-              </div>
-
-              {/* Descripción Editorial de la Fiesta */}
-              <div className="pt-2 border-t border-white/5">
-                <p className="whitespace-pre-line text-xs sm:text-sm leading-relaxed text-neutral-300 font-normal">
-                  {event.description || "Este evento todavía no tiene una descripción disponible."}
+              <div className="pt-4 border-t border-white/10 space-y-2 text-xs text-neutral-400">
+                <p>
+                  <strong className="text-white">Ingreso y permanencia:</strong> Exclusivo para mayores de 18 años con documento de identidad físico vigente.
+                </p>
+                <p>
+                  <strong className="text-white">Dress code & Vibe:</strong> Expresión libre y cuidada. Respeto mutuo y convivencia en pista son indispensables.
                 </p>
               </div>
             </section>
+          )}
 
-            {/* 5. Ubicación & Logística del Predio (Venue Card) */}
-            <section className="space-y-4 rounded-3xl border border-white/10 bg-[#14171F] p-5 sm:p-6 shadow-xl">
-              <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5 text-[#D4FF00]" />
-                  <div>
-                    <h2 className="text-sm font-black uppercase tracking-widest text-white">
-                      Ubicación & Logística del Predio
-                    </h2>
-                    <p className="text-[11px] text-neutral-400">
-                      Información de acceso, transporte y reglas de ingreso
-                    </p>
-                  </div>
+          {/* Pestaña: Predio & Acceso en Liquid Glass */}
+          {activeTab === "venue" && (
+            <section className="space-y-5 rounded-3xl border border-white/[0.12] bg-gradient-to-b from-white/[0.06] via-neutral-950/70 to-[#0B0D10]/85 backdrop-blur-2xl p-6 sm:p-7 shadow-[0_20px_50px_rgba(0,0,0,0.7),inset_0_1px_1px_rgba(255,255,255,0.15)] animate-in fade-in duration-200">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-md p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <span className="text-xs font-bold text-[#D4FF00]">
+                    Predio Confirmado
+                  </span>
+                  <h3 className="text-lg font-black text-white">
+                    {event.location}
+                  </h3>
+                  <p className="text-xs text-neutral-400">
+                    Accesos señalizados, estacionamiento en zonas habilitadas y transporte público próximo.
+                  </p>
                 </div>
                 <a
                   href={googleMapsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-full border border-[#D4FF00]/40 bg-[#D4FF00]/10 px-3 py-1.5 text-xs font-black uppercase tracking-wider text-[#D4FF00] hover:bg-[#D4FF00] hover:text-neutral-950 transition-all"
+                  className="inline-flex items-center gap-2 rounded-full border border-[#D4FF00]/40 bg-[#D4FF00]/10 px-4 py-2 text-xs font-bold text-[#D4FF00] hover:bg-[#D4FF00] hover:text-neutral-950 transition-all shrink-0"
                 >
-                  <span>Google Maps</span>
+                  <span>Abrir en Google Maps</span>
                   <ArrowUpRight className="h-3.5 w-3.5" />
                 </a>
               </div>
 
-              {/* Detalle del Venue */}
-              <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="space-y-1">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-[#D4FF00]">
-                    Lugar Confirmado
-                  </span>
-                  <h3 className="text-base font-black uppercase tracking-tight text-white">
-                    {event.location}
-                  </h3>
-                  <p className="text-xs text-neutral-400">
-                    Zona con accesos rápidos y paradas de transporte público habilitadas.
-                  </p>
-                </div>
-                <a
-                  href={googleMapsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs font-bold text-[#D4FF00] hover:underline shrink-0"
-                >
-                  Cómo llegar paso a paso →
-                </a>
-              </div>
-
-              {/* Grid de Logística 4 Bloques */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-3 text-center space-y-1">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-neutral-300">
+                <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 space-y-1 text-center">
                   <Clock className="h-4 w-4 mx-auto text-[#D4FF00]" />
-                  <p className="text-[10px] font-black uppercase tracking-wider text-neutral-400">
-                    Apertura
-                  </p>
-                  <p className="text-xs font-black text-white">23:00 hs</p>
+                  <p className="text-neutral-400">Apertura de Puertas</p>
+                  <p className="font-bold text-white text-sm">23:00 hs</p>
                 </div>
-
-                <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-3 text-center space-y-1">
+                <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 space-y-1 text-center">
                   <Clock className="h-4 w-4 mx-auto text-amber-400" />
-                  <p className="text-[10px] font-black uppercase tracking-wider text-neutral-400">
-                    Límite Ingreso
-                  </p>
-                  <p className="text-xs font-black text-white">02:30 hs</p>
+                  <p className="text-neutral-400">Límite de Ingreso</p>
+                  <p className="font-bold text-white text-sm">02:30 hs</p>
                 </div>
-
-                <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-3 text-center space-y-1">
+                <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 space-y-1 text-center">
                   <ShieldCheck className="h-4 w-4 mx-auto text-[#D4FF00]" />
-                  <p className="text-[10px] font-black uppercase tracking-wider text-neutral-400">
-                    Restricción
-                  </p>
-                  <p className="text-xs font-black text-white">+18 años (DNI)</p>
-                </div>
-
-                <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-3 text-center space-y-1">
-                  <Sparkles className="h-4 w-4 mx-auto text-[#D4FF00]" />
-                  <p className="text-[10px] font-black uppercase tracking-wider text-neutral-400">
-                    Dress Code
-                  </p>
-                  <p className="text-xs font-black text-white">Casual / Libre</p>
+                  <p className="text-neutral-400">Requisito Obligatorio</p>
+                  <p className="font-bold text-white text-sm">DNI Físico (+18)</p>
                 </div>
               </div>
             </section>
+          )}
 
-            {/* 5. Muro de Comentarios de la Comunidad */}
-            <div>
-              <CommentSection targetId={event.id} title="Muro de comentarios" />
+          {/* Pestaña: Muro de Comentarios */}
+          {activeTab === "community" && (
+            <div className="animate-in fade-in duration-200">
+              <CommentSection targetId={event.id} title="Muro de la fecha" />
             </div>
+          )}
+        </div>
+
+        {/* 5. Previa & Radar de Asistencia en Pista (Liquid Glass Hub) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-4">
+          {/* Tarjeta Squad de Previa (Liquid Glass) */}
+          <div className="relative rounded-3xl border border-white/[0.14] bg-gradient-to-br from-white/[0.08] via-neutral-950/80 to-[#121A0F] backdrop-blur-2xl p-6 sm:p-7 shadow-[0_20px_50px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.18)] space-y-5 flex flex-col justify-between overflow-hidden group">
+            {/* Top specular rim light */}
+            <div className="pointer-events-none absolute inset-x-6 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/35 to-transparent" />
+            {/* Neon lime ambient corner glow */}
+            <div className="pointer-events-none absolute -top-12 -right-12 w-44 h-44 bg-[#D4FF00]/10 blur-3xl rounded-full group-hover:bg-[#D4FF00]/15 transition-all duration-500" />
+
+            <div className="space-y-3.5 relative z-10">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#D4FF00] text-neutral-950 shadow-md shadow-[#D4FF00]/25">
+                    <Flame className="h-3.5 w-3.5 fill-neutral-950" />
+                  </span>
+                  <span className="text-xs font-black uppercase tracking-wider text-[#D4FF00]">
+                    Squad de Previa
+                  </span>
+                </div>
+                <span className="rounded-full bg-white/10 border border-white/10 px-2.5 py-0.5 text-[10px] font-semibold text-neutral-300">
+                  Root Match
+                </span>
+              </div>
+
+              <div className="space-y-1.5">
+                <h4 className="text-lg font-black tracking-tight text-white">
+                  ¿Armamos previa o vas solo?
+                </h4>
+                <p className="text-xs text-neutral-300 leading-relaxed">
+                  Conectá con un Squad afín de 3 a 5 personas con tu misma zona y estilo de fiesta para coordinar previa, viaje y pista.
+                </p>
+              </div>
+            </div>
+
+            <Link
+              href="/match"
+              className="relative z-10 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-b from-[#D4FF00] to-lime-400 text-neutral-950 hover:brightness-105 py-3.5 text-xs font-black uppercase tracking-wider transition-all shadow-[0_8px_25px_rgba(212,255,0,0.3)] active:scale-[0.98]"
+            >
+              <span>Buscar mi Squad de Previa</span>
+              <ArrowRight className="h-3.5 w-3.5 stroke-[2.5]" />
+            </Link>
           </div>
 
-          {/* Columna Derecha: Panel de Compra, Social Proof y Squad Matcher (Sticky en Desktop) */}
-          <div className="md:col-span-5 lg:col-span-4 md:sticky md:top-24 space-y-6">
-            {/* Panel de Compra & Acción Principal */}
-            <section className="space-y-4 rounded-3xl border border-white/15 bg-gradient-to-b from-[#14171F] to-[#0E1015] p-5 sm:p-6 shadow-2xl">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-[#D4FF00] mb-1">
-                    <Calendar className="h-3.5 w-3.5" />
-                    <span>{formattedDate}</span>
-                  </div>
-                  <h1 className="text-2xl sm:text-3xl font-black uppercase leading-tight tracking-tight text-white">
-                    {event.title}
-                  </h1>
-                </div>
-                <div className="flex items-center gap-2 shrink-0 pt-0.5">
-                  <button
-                    type="button"
-                    onClick={handleShare}
-                    aria-label="Compartir evento"
-                    title="Compartir evento"
-                    className={cn(
-                      "w-10 h-10 rounded-full border transition-all duration-200 flex items-center justify-center cursor-pointer active:scale-95 shadow-md",
-                      copiedShare
-                        ? "border-[#D4FF00]/60 bg-[#D4FF00]/15 text-[#D4FF00]"
-                        : "border-white/10 bg-white/5 hover:border-[#D4FF00]/40 hover:bg-white/10 text-neutral-300 hover:text-white",
-                    )}
-                  >
-                    {copiedShare ? (
-                      <Check className="w-4.5 h-4.5 text-[#D4FF00] stroke-[2.5]" />
-                    ) : (
-                      <Share2 className="w-4.5 h-4.5" />
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsSaved(!isSaved)}
-                    aria-label={isSaved ? "Guardado en favoritos" : "Guardar evento"}
-                    title={isSaved ? "Guardado en favoritos" : "Guardar evento"}
-                    className={cn(
-                      "w-10 h-10 rounded-full border transition-all duration-200 flex items-center justify-center cursor-pointer active:scale-95 shadow-md",
-                      isSaved
-                        ? "border-[#D4FF00]/60 bg-[#D4FF00]/15 text-[#D4FF00]"
-                        : "border-white/10 bg-white/5 hover:border-white/25 hover:bg-white/10 text-neutral-300 hover:text-white",
-                    )}
-                  >
-                    <Bookmark className={cn("w-4.5 h-4.5 transition-all", isSaved && "fill-[#D4FF00]")} />
-                  </button>
-                </div>
-              </div>
+          {/* Tarjeta Radar de la Pista (Liquid Glass con VOY / NO VOY directo) */}
+          <div className="relative rounded-3xl border border-white/[0.14] bg-gradient-to-b from-white/[0.08] via-neutral-950/80 to-[#0B0D10]/90 backdrop-blur-2xl p-6 sm:p-7 shadow-[0_20px_50px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.18)] space-y-5 flex flex-col justify-between overflow-hidden">
+            {/* Top specular rim light */}
+            <div className="pointer-events-none absolute inset-x-6 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/35 to-transparent" />
 
-              {/* Precio y Disponibilidad */}
-              <div className="flex items-baseline justify-between rounded-2xl bg-white/[0.03] border border-white/5 p-3.5">
-                <div>
-                  <span className="block text-[10px] font-bold uppercase tracking-wider text-neutral-400">
-                    Entrada General
-                  </span>
-                  <span className="text-2xl font-black text-[#D4FF00] tracking-tight">
-                    {priceLabel}
-                  </span>
-                </div>
-                <span className="rounded-full bg-[#D4FF00]/15 border border-[#D4FF00]/30 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-[#D4FF00]">
-                  {event.isFree ? "Acceso Libre" : "Venta Activa"}
-                </span>
-              </div>
-
-              {/* CTA Principal: Comprar Entrada Oficial RRPP */}
-              <div className="space-y-2">
-                <button
-                  type="button"
-                  onClick={() => handleBuyTicket()}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#D4FF00] py-3.5 text-xs font-black uppercase tracking-wider text-neutral-950 shadow-xl shadow-[#D4FF00]/25 hover:bg-[#bce400] active:scale-[0.98] transition-all cursor-pointer"
-                >
-                  <Ticket className="h-4 w-4 stroke-[2.5]" />
-                  <span>Comprar Entrada Oficial (RRPP) ↗</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const el = document.getElementById("tickets-section");
-                    el?.scrollIntoView({ behavior: "smooth" });
-                  }}
-                  className="w-full text-center text-[11px] font-semibold text-neutral-400 hover:text-[#D4FF00] transition-colors py-1 cursor-pointer"
-                >
-                  Ver lotes y etapas disponibles ↓
-                </button>
-                <p className="text-[10px] text-center text-neutral-500 font-medium leading-tight">
-                  Pase directo a boletería oficial con acreditación y código RRPP Root
-                </p>
-              </div>
-
-              {/* Botón directo de Agendar */}
-              <a
-                href={generateGoogleCalendarUrl()}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 w-full rounded-2xl border border-white/10 bg-white/5 py-2.5 text-xs font-bold uppercase tracking-wider text-neutral-300 hover:border-white/20 hover:text-white transition-all"
-              >
-                <Calendar className="h-3.5 w-3.5 text-[#D4FF00]" />
-                <span>Añadir a Google Calendar</span>
-              </a>
-
-              {/* Garantías de Seguridad Oficial */}
-              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/10 text-[10px] text-neutral-400 font-semibold">
-                <div className="flex items-center gap-1.5">
-                  <ShieldCheck className="h-3.5 w-3.5 text-[#D4FF00] shrink-0" />
-                  <span>Tickets Nominales KYC</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Check className="h-3.5 w-3.5 text-[#D4FF00] shrink-0" />
-                  <span>Acceso QR In-App</span>
-                </div>
-              </div>
-            </section>
-
-            {/* 2. MÓDULO DEDICADO: Encuesta & Interacción de Comunidad */}
-            <section className="space-y-4 rounded-3xl border border-[#D4FF00]/30 bg-gradient-to-b from-[#14171F] via-[#161B23] to-[#0E1015] p-5 sm:p-6 shadow-2xl relative overflow-hidden group">
-              {/* Glow ambiental superior */}
-              <div className="pointer-events-none absolute -top-16 -right-16 h-36 w-36 rounded-full bg-[#D4FF00]/10 blur-3xl group-hover:bg-[#D4FF00]/15 transition-all duration-700" />
-
+            <div className="space-y-3.5 relative z-10">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#D4FF00]/20 text-[#D4FF00]">
-                    <Sparkles className="h-3.5 w-3.5" />
-                  </span>
-                  <span className="text-[11px] font-black uppercase tracking-widest text-[#D4FF00]">
-                    Encuesta en Vivo
+                  <span className="flex h-2 w-2 rounded-full bg-[#D4FF00] animate-pulse" />
+                  <span className="text-xs font-black uppercase tracking-wider text-white">
+                    Radar de la Pista
                   </span>
                 </div>
-                <span className="rounded-full bg-white/10 border border-white/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-neutral-300">
-                  Comunidad Root
-                </span>
+                <span className="text-xs font-bold text-[#D4FF00]">En Vivo</span>
               </div>
 
-              <div className="space-y-1">
-                <h3 className="text-base font-black uppercase tracking-tight text-white">
-                  ¿Vas a este fiestón? Registrá tu voto
-                </h3>
-                <p className="text-xs text-neutral-400 leading-relaxed">
-                  Participá en la encuesta para conectar con otros asistentes y ver quiénes de tu red ya confirmaron.
-                </p>
-              </div>
-
-              {/* Votación interactiva con métricas comunitarias */}
+              {/* Votación Limpia y Directa: VOY / NO VOY */}
               <EventAttendanceVote
                 eventId={event.id}
                 initialGoing={event.goingCount}
@@ -923,88 +842,49 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 onChange={updateAttendance}
                 showMetrics
               />
+            </div>
 
-              {/* Social Proof: Personas que seguís y van */}
-              <button
-                type="button"
-                onClick={() => setIsAttendeesOpen(true)}
-                className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.02] p-3 text-left transition-colors hover:border-[#D4FF00]/40 cursor-pointer"
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#D4FF00]/20 text-[#D4FF00]">
-                    <UserCheck className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <span className="block text-xs font-black uppercase tracking-wider text-white">
-                      Personas que seguís y van
-                    </span>
-                    <span className="block text-[10px] text-neutral-400 font-semibold">
-                      {event.goingCount} confirmaron presencia
-                    </span>
-                  </div>
-                </div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-[#D4FF00]">Ver →</span>
-              </button>
+            <div className="flex items-center justify-between pt-2 border-t border-white/10 text-xs relative z-10">
+              {event.goingCount > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setIsAttendeesOpen(true)}
+                  className="text-neutral-300 hover:text-[#D4FF00] transition-colors cursor-pointer font-medium"
+                >
+                  Ver quiénes van en pista ({event.goingCount}) →
+                </button>
+              ) : (
+                <span className="text-neutral-500">Sé el primero en confirmar</span>
+              )}
 
-              {/* Enlace directo a Encuesta de Reseña si ya asistió */}
               <Link
                 href={`/events/${event.id}/survey`}
-                className="flex items-center justify-between rounded-2xl border border-white/5 bg-white/[0.02] px-3.5 py-2.5 text-xs text-neutral-400 hover:text-white hover:border-white/20 transition-all group/survey"
+                className="text-neutral-400 hover:text-white transition-colors"
               >
-                <span className="text-[11px] font-bold">¿Ya estuviste en esta fiesta?</span>
-                <span className="text-[10px] font-black uppercase tracking-wider text-[#D4FF00] group-hover/survey:translate-x-0.5 transition-transform">
-                  Dejar reseña →
-                </span>
+                Dejar reseña →
               </Link>
-            </section>
-
-            {/* Squad Matcher Spotlight (El valor diferencial de Root) */}
-            <section className="relative overflow-hidden rounded-3xl border border-[#D4FF00]/30 bg-gradient-to-br from-[#14171F] via-[#161B24] to-[#1E251A] p-5 shadow-2xl space-y-3.5 group">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#D4FF00] text-neutral-950 shadow-md shadow-[#D4FF00]/20">
-                    <Flame className="h-4 w-4 fill-neutral-950" />
-                  </span>
-                  <span className="text-[11px] font-black uppercase tracking-widest text-[#D4FF00]">
-                    Squad Matcher Oficial
-                  </span>
-                </div>
-                <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-bold text-neutral-300">
-                  Root Match
-                </span>
-              </div>
-
-              <div className="space-y-1">
-                <h3 className="text-base font-black uppercase tracking-tight text-white">
-                  ¿No tenés con quién ir o querés armar previa?
-                </h3>
-                <p className="text-xs text-neutral-300 leading-relaxed">
-                  Matcheá con un squad de 3 a 5 personas afines con tu misma zona y estilo de fiesta para ir a este evento.
-                </p>
-              </div>
-
-              <Link
-                href="/match"
-                className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#D4FF00] py-3 text-xs font-black uppercase tracking-wider text-neutral-950 shadow-lg shadow-[#D4FF00]/20 hover:bg-[#bce400] transition-all"
-              >
-                <span>Encontrar mi Squad para este evento</span>
-                <ArrowRight className="h-3.5 w-3.5 stroke-[2.5]" />
-              </Link>
-            </section>
-
-            {/* Badges de Tranquilidad y Soporte */}
-            <div className="rounded-2xl border border-white/5 bg-white/[0.01] p-3.5 space-y-2 text-[11px] text-neutral-400">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="h-3.5 w-3.5 text-[#D4FF00] shrink-0" />
-                <span>Compra directa oficial sin intermediarios fraudulentos</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Check className="h-3.5 w-3.5 text-[#D4FF00] shrink-0" />
-                <span>Ingreso directo con QR dinámico en tu app</span>
-              </div>
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Mobile Sticky Checkout Bar en Liquid Glass (Pase Rápido Nativo) */}
+      <div className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-gradient-to-b from-white/[0.09] via-neutral-950/85 to-[#0B0D10]/95 backdrop-blur-2xl border-t border-white/[0.14] px-4 py-3 shadow-[0_-15px_40px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.2)] flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <span className="block text-[11px] font-bold text-neutral-300 truncate">
+            {currentTierObj?.name || "General Access"}
+          </span>
+          <span className="text-lg font-black text-[#D4FF00] tracking-tight">
+            {currentTierObj?.priceLabel || priceLabel}
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={() => handleBuyTicket(selectedTier)}
+          className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-gradient-to-b from-[#D4FF00] to-lime-400 text-neutral-950 font-black text-xs uppercase tracking-wider shadow-[0_5px_20px_rgba(212,255,0,0.35)] active:scale-95 transition-all cursor-pointer shrink-0"
+        >
+          <span>Conseguir Ticket ↗</span>
+        </button>
       </div>
 
       <FollowedAttendeesModal
