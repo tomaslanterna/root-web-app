@@ -164,7 +164,7 @@ export function EventCard({ event, variant = "swimlane", className }: EventCardP
           "relative overflow-hidden rounded-3xl border border-white/[0.14] bg-gradient-to-b from-white/[0.08] via-neutral-950/80 to-[#0B0D10]/95 backdrop-blur-2xl text-white shadow-[0_20px_50px_rgba(0,0,0,0.7),inset_0_1px_1px_rgba(255,255,255,0.2)] transition-all duration-300 ease-out hover:border-[#D4FF00]/70 hover:shadow-[0_25px_60px_rgba(0,0,0,0.8),0_0_30px_rgba(212,255,0,0.18)] md:hover:-translate-y-1.5",
           isSwimlane
             ? "aspect-[3/4]"
-            : "mx-auto aspect-[4/5] w-full max-w-md md:max-w-none",
+            : "mx-auto aspect-[16/11] sm:aspect-[4/5] w-full max-w-md md:max-w-none",
         )}
       >
         {/* Specular top rim light */}
@@ -204,19 +204,19 @@ export function EventCard({ event, variant = "swimlane", className }: EventCardP
         </div>
 
         {/* Bottom Metadata: Focused, Clean, and Impactful */}
-        <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col justify-end p-4 sm:p-5 space-y-1.5">
+        <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col justify-end p-3.5 sm:p-5 space-y-1 sm:space-y-1.5">
           {/* Genre + Location + Social Attendees */}
-          <div className="flex items-center gap-2 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-neutral-300">
+          <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-neutral-300">
             {event.genre && (
-              <span className="text-[#D4FF00] font-black tracking-widest">
+              <span className="text-[#D4FF00] font-black tracking-widest shrink-0">
                 {event.genre}
               </span>
             )}
             {event.genre && event.location && (
-              <span className="text-white/30">•</span>
+              <span className="text-white/30 shrink-0">•</span>
             )}
             {event.location && (
-              <span className="flex items-center gap-1 truncate text-neutral-300 font-semibold">
+              <span className="flex items-center gap-1 min-w-0 truncate text-neutral-300 font-semibold">
                 <MapPinIcon className="h-3 w-3 text-[#D4FF00] shrink-0" />
                 <span className="truncate">{event.location}</span>
               </span>
@@ -224,7 +224,7 @@ export function EventCard({ event, variant = "swimlane", className }: EventCardP
             {event.goingCount > 0 && (
               <>
                 <span className="text-white/30 hidden sm:inline">•</span>
-                <span className="text-neutral-400 font-semibold hidden sm:inline">
+                <span className="text-neutral-400 font-semibold hidden sm:inline shrink-0">
                   {event.goingCount} van
                 </span>
               </>
@@ -232,7 +232,7 @@ export function EventCard({ event, variant = "swimlane", className }: EventCardP
           </div>
 
           {/* Event Title */}
-          <h3 className="text-base sm:text-lg md:text-xl font-black uppercase leading-tight tracking-tight text-white line-clamp-2 drop-shadow-md group-hover:text-[#D4FF00] transition-colors">
+          <h3 className="text-[15px] sm:text-lg md:text-xl font-black uppercase leading-snug tracking-tight text-white line-clamp-2 drop-shadow-md group-hover:text-[#D4FF00] transition-colors">
             {event.title}
           </h3>
         </div>
