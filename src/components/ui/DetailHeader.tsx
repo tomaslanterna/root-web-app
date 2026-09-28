@@ -47,7 +47,7 @@ export function DetailHeader({
   };
 
   return (
-    <header className={cn("fixed top-0 inset-x-0 z-50 bg-gradient-to-b from-black/80 to-transparent pb-4 pt-4 px-4 flex items-center gap-3 pointer-events-none", className)}>
+    <header className={cn("fixed top-0 inset-x-0 z-50 bg-gradient-to-b from-black/80 to-transparent pb-4 pt-safe-1 px-4 flex items-center gap-3 pointer-events-none", className)}>
       <button 
         onClick={handleBack}
         className="w-10 h-10 shrink-0 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors pointer-events-auto cursor-pointer"

@@ -4,20 +4,16 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { ChatList } from './ChatList';
+import { LoginRequired } from '@/components/ui/LoginRequired';
 
 export default function ChatLayout({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
-  const router = useRouter();
 
-  useEffect(() => {
-    if (!isLoading && !user) {
-      router.push('/feed');
-    }
-  }, [user, isLoading, router]);
-
-  if (isLoading || !user) {
-    return null; // Or a loading spinner
+  if (!isLoading && !user) {
+    return <LoginRequired />;
   }
+
+  if (isLoading) return null;
 
   return (
     <div className="flex w-full h-[100dvh] overflow-hidden">

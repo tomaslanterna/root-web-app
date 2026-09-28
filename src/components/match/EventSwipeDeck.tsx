@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { Event, UserVibeProfile } from "@/lib/mocks";
+import { UserVibeProfile } from "@/lib/mocks";
+import type { Event } from "@/types/events";
 import { SwipeCard } from "./SwipeCard";
 import { SwipeControls } from "./SwipeControls";
 import { Sparkles, RotateCcw, SlidersHorizontal, Compass } from "lucide-react";
@@ -10,7 +11,7 @@ import { cn } from "@/lib/utils";
 interface EventSwipeDeckProps {
   events: Event[];
   vibeProfile: UserVibeProfile;
-  onSwipe: (eventId: string, direction: "like" | "pass" | "superlike") => void;
+  onSwipe: (event: Event, direction: "like" | "pass" | "superlike") => void;
   onOpenPreferences: () => void;
   onResetSwipes: () => void;
   swipedIds: Record<string, string>;
@@ -56,7 +57,7 @@ export function EventSwipeDeck({
     setExitAnimation(direction);
 
     setTimeout(() => {
-      onSwipe(currentEvent.id, direction);
+      onSwipe(currentEvent, direction);
       setDragOffset({ x: 0, y: 0 });
       setExitAnimation(null);
       setIsDragging(false);

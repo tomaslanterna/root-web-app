@@ -25,7 +25,19 @@ export default function ChatConversationPage({ params }: { params: Promise<{ id:
     const fetchChatInfo = async () => {
       try {
         const res = await api.get(`/v1/chats/${chatId}`);
-        setChatInfo(res.data);
+        const data = res.data;
+        
+        if (data.type === "TRANSFER") {
+          // If it's a transfer chat, find the transfer ID and redirect
+          const transfersRes = await api.get('/v1/transfers');
+          const transfer = transfersRes.data.find((t: any) => t.chat_id === chatId);
+          if (transfer) {
+            window.location.href = `/transfers/${transfer.id}`;
+            return;
+          }
+        }
+        
+        setChatInfo(data);
       } catch (err) {
         console.error("Error fetching chat info", err);
       } finally {
@@ -67,7 +79,7 @@ export default function ChatConversationPage({ params }: { params: Promise<{ id:
 
   return (
     <div className="flex flex-col h-[100dvh] bg-[#0B0D10] text-white">
-      <header className="px-4 py-3 border-b border-white/10 flex items-center gap-3 glass-header-obsidian sticky top-0 z-40 shrink-0">
+      <header className="px-4 pb-3 pt-safe-header border-b border-white/10 flex items-center gap-3 glass-header-obsidian sticky top-0 z-40 shrink-0">
         <Link href="/chat" className="p-1 rounded-full hover:bg-white/10 text-white transition-colors md:hidden">
           <ChevronLeft className="w-5 h-5" />
         </Link>

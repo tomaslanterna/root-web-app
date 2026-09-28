@@ -137,7 +137,7 @@ export default function TransfersPage() {
       />
 
       {/* Header */}
-      <header className="sticky top-0 z-40 glass-header-obsidian">
+      <header className="sticky top-0 z-40 glass-header-obsidian pt-safe-header pb-3">
         <div className="px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center shadow-inner">

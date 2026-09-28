@@ -32,9 +32,12 @@ function CreatePostContent() {
     }
   }, [content, enhancedContent]);
 
+  const [imageFile, setImageFile] = useState<File | null>(null);
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setImageFile(file);
       const url = URL.createObjectURL(file);
       setImagePreview(url);
     }
@@ -58,11 +61,20 @@ function CreatePostContent() {
   const submitPost = async () => {
     setIsSubmitting(true);
     try {
+      let headerImageUrl = "";
+      if (imageFile) {
+        const formData = new FormData();
+        formData.append("image", imageFile);
+        const uploadRes = await api.post("/v1/posts/image", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        headerImageUrl = uploadRes.data.key;
+      }
+
       const payload = {
         title: title.trim(),
         content: enhancedContent || content.trim(),
-        // Mock image if none for now (since we don't have real S3 upload setup yet in this snippet)
-        header_image_url: imagePreview ? "https://images.unsplash.com/photo-1459749411177-042180ce673c?q=80&w=2070&auto=format&fit=crop" : "",
+        header_image_url: headerImageUrl,
         community_id: communityId || undefined,
       };
       await api.post("/v1/posts", payload);
@@ -82,7 +94,7 @@ function CreatePostContent() {
   return (
     <div className="min-h-[100dvh] bg-[#0B0D10] text-white flex flex-col pb-20">
       {/* HEADER */}
-      <header className="sticky top-0 z-40 bg-[#0B0D10]/90 backdrop-blur-md px-4 py-3 flex items-center justify-between border-b border-white/5">
+      <header className="sticky top-0 z-40 bg-[#0B0D10]/90 backdrop-blur-md px-4 pb-3 pt-safe-header flex items-center justify-between border-b border-white/5">
         <button 
           onClick={() => step > 1 ? setStep(step - 1) : router.back()} 
           className="p-2 -ml-2 text-neutral-400 hover:text-white transition-colors"

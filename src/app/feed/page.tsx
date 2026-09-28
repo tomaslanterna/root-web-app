@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { PostCard } from "@/components/ui/PostCard";
 import { EventCard } from "@/components/ui/EventCard";
+import { SurveyCard } from "@/components/ui/SurveyCard";
+import { CommunityBanner } from "@/components/ui/CommunityBanner";
 import { QuickActionMenu } from "@/components/ui/QuickActionMenu";
 import { MOCK_EVENTS } from "@/lib/mocks";
 import type { Event } from "@/types/events";
@@ -12,6 +14,7 @@ import { Plus, Sparkles, Compass, ChevronUp, Globe, Flame, UserCheck, Users, Loa
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { useMutation } from "@/hooks/useMutation";
+import { useAuth } from "@/context/AuthContext";
 import { postsApi } from "@/services/posts";
 import { surveysApi } from "@/services/surveys";
 import { Star } from "lucide-react";
@@ -82,10 +85,14 @@ export default function FeedPage() {
     }
   );
 
+  const { user } = useAuth();
+
   useEffect(() => {
     void fetchUpcomingEvents().catch(() => undefined);
-    void fetchPendingSurveys().catch(() => undefined);
-  }, [fetchUpcomingEvents, fetchPendingSurveys]);
+    if (user) {
+      void fetchPendingSurveys().catch(() => undefined);
+    }
+  }, [fetchUpcomingEvents, fetchPendingSurveys, user]);
 
   // 2. Fetch Initial Posts (Option 1)
   const { mutate: loadInitialFeeds, isLoading: isLoadingInitialPosts } = useMutation(
@@ -229,7 +236,7 @@ export default function FeedPage() {
       {/* Sticky Header with Collapsible Eventos Destacados Bar */}
       <header 
         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-        className="sticky top-0 z-40 glass-header-obsidian transition-all duration-300 md:hidden cursor-pointer"
+        className="sticky top-0 z-40 glass-header-obsidian transition-all duration-300 md:hidden cursor-pointer pt-[env(safe-area-inset-top,0px)]"
       >
         <div className="px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-2">
@@ -330,30 +337,7 @@ export default function FeedPage() {
               pendingSurveys.length === 1 ? "justify-center" : "justify-start"
             )}>
               {pendingSurveys.map((surveyEvent) => (
-                <div 
-                  key={surveyEvent.id}
-                  onClick={() => router.push(`/events/${surveyEvent.id}/survey`)}
-                  className="relative overflow-hidden w-full shrink-0 snap-center rounded-3xl bg-gradient-to-r from-indigo-900 via-purple-900 to-[#14171F] border border-purple-500/30 p-5 md:p-6 cursor-pointer hover:scale-[1.01] active:scale-[0.98] transition-all group shadow-xl shadow-purple-900/20"
-                >
-                  <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-purple-500/30 transition-colors" />
-                  <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="space-y-1.5 flex-1">
-                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 mb-1 w-fit">
-                        <Star className="w-3.5 h-3.5 text-[#D4FF00] fill-[#D4FF00]" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-[#D4FF00]">Feedback</span>
-                      </div>
-                      <h3 className="text-lg md:text-xl font-black italic tracking-tight text-white leading-tight">
-                        Queremos saber tu opinión
-                      </h3>
-                      <p className="text-sm text-neutral-300 font-medium max-w-lg">
-                        ¿Cómo te fue en <span className="font-bold text-white line-clamp-1">{surveyEvent.title}</span>? Tu reseña ayuda a la comunidad.
-                      </p>
-                    </div>
-                    <button className="whitespace-nowrap w-full md:w-auto px-6 py-2.5 rounded-full bg-white text-black font-black uppercase tracking-wider text-xs shadow-lg hover:bg-neutral-200 transition-colors">
-                      Evaluar
-                    </button>
-                  </div>
-                </div>
+                <SurveyCard key={surveyEvent.id} surveyEvent={surveyEvent} />
               ))}
             </div>
           </div>
@@ -409,54 +393,7 @@ export default function FeedPage() {
         
         <div className="px-4 pt-4">
 {/* Banner de Comunidades */}
-            <div 
-              onClick={() => router.push('/communities')}
-              className="relative w-full h-32 sm:h-40 rounded-3xl overflow-hidden cursor-pointer group shadow-lg shadow-black/20 border border-white/10 hover:border-white/20 transition-all duration-300 active:scale-[0.98]"
-            >
-              <div 
-                className="absolute inset-0 bg-cover bg-center transition-transform duration-700 ease-out group-hover:scale-105"
-                style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=80&w=1974&auto=format&fit=crop")' }}
-              />
-              <div className="absolute inset-0 bg-gradient-to-r from-neutral-950/90 via-neutral-950/60 to-transparent" />
-              <div className="absolute inset-0 p-4 sm:p-5 flex flex-col justify-center">
-                <span className="w-fit rounded-full border border-white/20 bg-white/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-[#D4FF00] backdrop-blur-md mb-2 flex items-center gap-1">
-                  <Sparkles className="w-3 h-3" /> Descubrir
-                </span>
-                <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tighter text-white drop-shadow-md mb-1 leading-none">
-                  Comunidades RRPP
-                </h2>
-                <p className="text-xs text-neutral-300 font-medium max-w-[200px] leading-snug drop-shadow-sm flex items-center gap-1">
-                  Únete y conecta <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-                </p>
-              </div>
-            </div>
-        </div>
-
-        <div
-          className="sticky z-30 transition-all duration-300 bg-[#0B0D10]/85 backdrop-blur-xl py-2 px-4 md:!top-[72px]"
-          style={{ top: isSwimlaneHidden ? "100px" : "56px" }}
-        >
-          <div className="w-full bg-[#14171F]/90 p-1 rounded-full border border-white/10 shadow-lg flex items-center gap-1 overflow-x-auto hide-scrollbar">
-            {filterOptions.map((option) => {
-              const isActive = filter === option.id;
-              const Icon = option.icon;
-              return (
-                <button
-                  key={option.id}
-                  onClick={() => setFilter(option.id)}
-                  className={cn(
-                    "flex-1 py-1.5 px-3 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all duration-200 select-none cursor-pointer",
-                    isActive
-                      ? "bg-[#D4FF00] text-neutral-950 shadow-md shadow-[#D4FF00]/15 scale-[1.01]"
-                      : "text-neutral-400 hover:text-white hover:bg-white/5"
-                  )}
-                >
-                  <Icon className={cn("w-3.5 h-3.5", isActive ? "stroke-[2.5]" : "stroke-2")} />
-                  <span className={cn(isActive ? "inline" : "hidden sm:inline")}>{option.label}</span>
-                </button>
-              );
-            })}
-          </div>
+            <CommunityBanner />
         </div>
 
         <section className="px-4 space-y-4 pt-1">
@@ -464,7 +401,7 @@ export default function FeedPage() {
 
             <div className="flex items-center justify-between pt-2">
                 <h2 className="text-xs font-black uppercase tracking-widest text-neutral-400 flex items-center gap-1.5">
-                  <Compass className="w-3.5 h-3.5 text-[#D4FF00]" /> Publicaciones
+                  <Compass className="w-3.5 h-3.5 text-[#D4FF00]" /> Últimas noticias
                 </h2>
                 <span className="text-[10px] font-extrabold uppercase tracking-wider text-neutral-500">
                   {currentPosts.length} {currentPosts.length === 1 ? "publicación" : "publicaciones"}

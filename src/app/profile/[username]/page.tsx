@@ -11,11 +11,13 @@ import {
   Loader2,
   ChevronLeft,
   BadgeCheck,
+  Flame,
 } from "lucide-react";
 import { MOCK_POSTS } from "@/lib/mocks";
 import { PostCard } from "@/components/ui/PostCard";
 import { EventCard } from "@/components/ui/EventCard";
 import { CommunityList } from "@/components/communities/CommunityList";
+import { DanceStatsWidget } from "@/components/profile/DanceStatsWidget";
 import { cn } from "@/lib/utils";
 import { usersApi } from "@/services/users";
 import { useMutation } from "@/hooks/useMutation";
@@ -149,24 +151,33 @@ export default function UserProfilePage() {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-[#0B0D10] to-transparent" />
 
-        {fromSearch && (
-          <button
-            onClick={() => router.back()}
-            className="absolute top-4 left-4 p-2.5 rounded-full bg-black/40 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-colors z-20 active:scale-95"
-          >
-            <ChevronLeft className="w-5 h-5 text-white" />
-          </button>
-        )}
-
-        {isMyProfile && (
-          <Link
-            href="/settings"
-            className="absolute top-4 right-4 p-2.5 rounded-full bg-black/40 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-colors z-20 active:scale-95 block"
-          >
-            <Settings className="w-5 h-5 text-white" />
-          </Link>
-        )}
+        {/* Espacio reservado superior ya no es necesario aquí porque el header será fixed por fuera del banner */}
       </div>
+
+      {/* Header Fixed Transparente para el Perfil */}
+      <header className="fixed top-0 left-0 w-full z-50 bg-transparent px-4 pb-3 pt-safe-header flex items-center justify-between pointer-events-none">
+        <div className="flex items-center pointer-events-auto">
+          {fromSearch && (
+            <button
+              onClick={() => router.back()}
+              className="p-2.5 rounded-full bg-black/40 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-colors active:scale-95"
+            >
+              <ChevronLeft className="w-5 h-5 text-white" />
+            </button>
+          )}
+        </div>
+        
+        <div className="pointer-events-auto">
+          {isMyProfile && (
+            <Link
+              href="/settings"
+              className="p-2.5 rounded-full bg-black/40 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-colors active:scale-95 block"
+            >
+              <Settings className="w-5 h-5 text-white" />
+            </Link>
+          )}
+        </div>
+      </header>
 
       <div className="flex flex-col md:flex-row md:items-end justify-between px-4 md:px-8 -mt-16 sm:-mt-20 md:-mt-24 relative z-10 w-full max-w-5xl mx-auto">
         <div className="flex flex-col md:flex-row items-center md:items-end gap-4 md:gap-6">
@@ -273,6 +284,13 @@ export default function UserProfilePage() {
             <ShieldAlert className="w-4 h-4" />
             Comenzar Validación KYC
           </Button>
+        </div>
+      )}
+
+      {/* Dance Stats Widget */}
+      {isMyProfile && (
+        <div className="px-4 pb-4 md:pt-4 w-full max-w-5xl mx-auto">
+          <DanceStatsWidget />
         </div>
       )}
 

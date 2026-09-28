@@ -86,7 +86,7 @@ export default function SearchPage() {
         onSearchChange={setQuery}
         onClearSearch={() => setQuery("")}
         searchInputRef={inputRef}
-        className="sticky top-0 bg-[#0B0D10]/95 backdrop-blur-xl border-b border-white/10 pb-3"
+        className="sticky top-0 bg-[#0B0D10]/95 backdrop-blur-xl border-b border-white/10 pb-3 pt-safe-header"
       />
 
       {/* Tabs */}
