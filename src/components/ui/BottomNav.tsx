@@ -250,76 +250,65 @@ export function BottomNav() {
         </div>
       </header>
 
-      {/* 2. Mobile Floating Bottom Dock (Pill inferior en Liquid Glass) */}
+      {/* 2. Mobile Native iOS Liquid Glass Tab Bar (Human Interface Guidelines) */}
       <nav
         className={cn(
-          "fixed bottom-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-3.5 transition-all duration-300 md:hidden",
-          hideOnMobile ? "translate-y-32 opacity-0 pointer-events-none" : "translate-y-0 opacity-100",
+          "fixed bottom-0 inset-x-0 z-50 md:hidden transition-transform duration-300 ease-out select-none",
+          hideOnMobile ? "translate-y-full opacity-0 pointer-events-none" : "translate-y-0 opacity-100",
         )}
       >
-        <div className="relative overflow-hidden w-full rounded-full p-1.5 flex items-center justify-around bg-gradient-to-b from-white/[0.12] via-neutral-950/85 to-[#0B0D10]/95 backdrop-blur-2xl backdrop-saturate-150 border border-white/[0.16] shadow-[0_20px_50px_rgba(0,0,0,0.85),inset_0_1px_1px_0_rgba(255,255,255,0.25),inset_0_-1px_1px_0_rgba(0,0,0,0.6)] select-none">
-          {/* Liquid Glass: Specular top edge rim light */}
-          <div className="pointer-events-none absolute inset-x-6 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/50 to-transparent opacity-90" />
-          
-          {/* Liquid Glass: Ambient soft refraction glow */}
-          <div className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 w-48 h-12 bg-white/[0.05] blur-xl rounded-full" />
+        {/* iOS Frosted Glass Layer con Specular Hairline Rim */}
+        <div className="relative w-full border-t border-white/[0.1] bg-[#0B0D10]/80 backdrop-blur-3xl backdrop-saturate-200 pt-2 pb-[max(env(safe-area-inset-bottom,0px),16px)] shadow-[0_-10px_30px_rgba(0,0,0,0.6)]">
+          {/* Specular hairline top rim light (0.5px Apple feel) */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/35 to-transparent" />
 
-          {visibleMobileItems.map((item) => {
-            const isActive =
-              pathname === item.href ||
-              (item.href !== "/" && pathname.startsWith(`${item.href}/`)) ||
-              (item.label === "Perfil" && isProfileActive);
-            const Icon = item.icon;
+          <div className="flex items-center justify-around w-full max-w-md mx-auto px-1">
+            {visibleMobileItems.map((item) => {
+              const isActive =
+                pathname === item.href ||
+                (item.href !== "/" && pathname.startsWith(`${item.href}/`)) ||
+                (item.label === "Perfil" && isProfileActive);
+              const Icon = item.icon;
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                title={item.label}
-                aria-label={item.label}
-                className={cn(
-                  "relative flex flex-col items-center justify-center py-1.5 px-3 rounded-full select-none transition-all duration-200 group active:scale-95",
-                  isActive
-                    ? "text-[#D4FF00] font-black"
-                    : "text-neutral-400 hover:text-white",
-                )}
-              >
-                {/* Active Liquid Glass Capsule */}
-                {isActive && (
-                  <span className="absolute inset-0 rounded-full bg-gradient-to-b from-white/[0.18] to-white/[0.04] border border-white/[0.22] shadow-[inset_0_1px_1px_0_rgba(255,255,255,0.3),0_4px_14px_rgba(0,0,0,0.5)] -z-10 animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
-                    {/* Specular top rim light inside active capsule */}
-                    <span className="pointer-events-none absolute inset-x-2 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/60 to-transparent" />
-                    {/* Soft Volt glow inside glass */}
-                    <span className="pointer-events-none absolute -bottom-3 inset-x-0 h-5 bg-[#D4FF00]/15 blur-xs rounded-full" />
-                  </span>
-                )}
-
-                <Icon
-                  className={cn(
-                    "w-5 h-5 transition-all duration-200 flex-shrink-0",
-                    isActive
-                      ? "stroke-[2.4] text-[#D4FF00] drop-shadow-[0_0_8px_rgba(212,255,0,0.55)] scale-105"
-                      : "stroke-[1.8] text-neutral-400 group-hover:text-white",
-                  )}
-                />
-                <span
-                  className={cn(
-                    "text-[9px] uppercase tracking-wider font-extrabold mt-0.5 transition-colors",
-                    isActive
-                      ? "text-[#D4FF00] drop-shadow-[0_0_6px_rgba(212,255,0,0.35)]"
-                      : "text-neutral-400 group-hover:text-white",
-                  )}
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  title={item.label}
+                  aria-label={item.label}
+                  className="relative flex-1 flex flex-col items-center justify-center py-1 transition-transform duration-150 active:scale-[0.88] cursor-pointer group"
                 >
-                  {item.label}
-                </span>
+                  {/* Subtle Electric Volt radial glow behind active icon */}
+                  {isActive && (
+                    <span className="pointer-events-none absolute top-0 w-8 h-8 rounded-full bg-[#D4FF00]/12 blur-md -z-10 animate-fade-in" />
+                  )}
 
-                {/* Subtitle active dot in Electric Volt */}
-                {isActive && (
-                  <span className="w-1 h-1 rounded-full bg-[#D4FF00] shadow-[0_0_6px_#D4FF00] mt-0.5 -mb-1 animate-pulse" />
-                )}
-              </Link>
-            );
-          })}
+                  <div className="relative flex items-center justify-center">
+                    <Icon
+                      className={cn(
+                        "w-[22px] h-[22px] transition-all duration-200",
+                        isActive
+                          ? "stroke-[2.2] text-[#D4FF00] drop-shadow-[0_0_8px_rgba(212,255,0,0.45)]"
+                          : "stroke-[1.75] text-[#8E8E93] group-hover:text-white",
+                      )}
+                    />
+                  </div>
+
+                  {/* Native iOS SF Pro Title Case Label */}
+                  <span
+                    className={cn(
+                      "text-[10px] tracking-tight mt-1 transition-colors leading-none",
+                      isActive
+                        ? "font-semibold text-[#D4FF00]"
+                        : "font-medium text-[#8E8E93] group-hover:text-white",
+                    )}
+                  >
+                    {item.label}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
         </div>
       </nav>
 
