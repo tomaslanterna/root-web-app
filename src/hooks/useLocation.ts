@@ -24,6 +24,7 @@ export function useLocation() {
       const position = await Geolocation.getCurrentPosition({
         enableHighAccuracy: true,
         timeout: 10000,
+        maximumAge: 15000,
       });
       setLocation(position);
       return position;

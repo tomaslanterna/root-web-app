@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { LiveEventBanner } from "@/components/LiveEventBanner";
+import { PullToRefresh } from "@/components/ui/PullToRefresh";
 import { PostCard } from "@/components/ui/PostCard";
 import { EventCard } from "@/components/ui/EventCard";
 import { SurveyCard } from "@/components/ui/SurveyCard";
@@ -133,6 +135,17 @@ export default function FeedPage() {
   }, [loadInitialFeeds]);
 
   // 3. Load More Posts (Pagination)
+  const handleRefresh = async () => {
+    try {
+      await loadInitialFeeds({ 
+        include_feeds: "global,featured,following",
+        global_limit: 10,
+        featured_limit: 10,
+        following_limit: 10
+      });
+    } catch (e) { console.error(e); }
+  };
+
   const { mutate: loadMorePosts, isLoading: isLoadingMore } = useMutation(
     postsApi.getFeeds,
     {
@@ -294,7 +307,9 @@ export default function FeedPage() {
       </header>
 
       <div className="flex-1 pb-28 space-y-4">
-        
+        <PullToRefresh onRefresh={handleRefresh}>
+        <div className="space-y-4 w-full h-full">
+        <LiveEventBanner />
         {/* Desktop Hero Banner */}
         <div className="relative w-full h-[350px] md:h-[450px] lg:h-[500px] overflow-hidden hidden md:flex items-center">
            <img 
@@ -443,6 +458,8 @@ export default function FeedPage() {
               )}
             </>
         </section>
+        </div>
+        </PullToRefresh>
       </div>
 
       <QuickActionMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
