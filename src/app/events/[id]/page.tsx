@@ -271,6 +271,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       {/* Header Superior Móvil */}
       <DetailHeader
         className="md:hidden"
+        showBrand
         onBack={() => router.push(origin || "/events")}
         onShare={handleShare}
         onSave={() => setIsSaved(!isSaved)}
@@ -281,7 +282,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       />
 
       {/* Contenedor Principal: Columna Central Editorial (Estilo Resident Advisor / DICE / Boiler Room) */}
-      <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 md:px-8 pt-16 md:pt-6 space-y-8 sm:space-y-10">
+      <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 md:px-8 pt-28 md:pt-6 space-y-8 sm:space-y-10">
         {/* Barra Superior Desktop: Navegación Limpia y Botones Táctiles en Liquid Glass */}
         <div className="hidden md:flex items-center justify-between text-xs text-neutral-400 border-b border-white/5 pb-4">
           <Link
@@ -869,7 +870,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       </div>
 
       {/* Mobile Sticky Checkout Bar en Liquid Glass (Pase Rápido Nativo) */}
-      <div className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-gradient-to-b from-white/[0.09] via-neutral-950/85 to-[#0B0D10]/95 backdrop-blur-2xl border-t border-white/[0.14] px-4 py-3 shadow-[0_-15px_40px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.2)] flex items-center justify-between gap-3">
+      <div className="md:hidden fixed bottom-0 inset-x-0 z-40 mx-auto w-full max-w-md bg-gradient-to-b from-white/[0.09] via-neutral-950/85 to-[#0B0D10]/95 backdrop-blur-2xl border-t border-white/[0.14] px-4 py-3 shadow-[0_-15px_40px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.2)] flex items-center justify-between gap-3">
         <div className="min-w-0">
           <span className="block text-[11px] font-bold text-neutral-300 truncate">
             {currentTierObj?.name || "General Access"}

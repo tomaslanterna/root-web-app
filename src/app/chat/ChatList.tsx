@@ -1,7 +1,6 @@
 "use client";
 
 import { useMatch } from "@/context/MatchContext";
-import { MOCK_EVENTS } from "@/lib/mocks";
 import { Avatar } from "@/components/ui/Avatar";
 import {
   MessageSquare,
@@ -13,69 +12,42 @@ import {
   Loader2,
 } from "lucide-react";
 import Link from "next/link";
-import { useState, useEffect } from "react";
-import { api } from "@/lib/api";
-import { searchApi } from "@/services/search";
+import { useState } from "react";
+import { useChatDirectory, type ChatSearchUser } from "@/hooks/useChatDirectory";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 
 export function ChatList({ className }: { className?: string }) {
-  const { squads, vibeProfile } = useMatch();
+  const { squads } = useMatch();
   const { user: currentUser } = useAuth();
   const router = useRouter();
 
-  const [chats, setChats] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { chats, isLoading, error, refresh, createDirect, searchUsers, isSearching } = useChatDirectory();
 
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<ChatSearchUser[]>([]);
 
   const userSquads = squads.filter((s) =>
-    s.members.some((m) => m.userId === vibeProfile.userId),
+    s.members.some((m) => m.userId === currentUser?.id) && !chats.some((chat) => chat.id === s.chatRoomId),
   );
-
-  useEffect(() => {
-    const fetchChats = async () => {
-      try {
-        const res = await api.get("/v1/chats");
-        // Filtramos solo los chats de tipo DIRECT para la sección "Mensajes Directos"
-        const directChats =
-          res.data?.filter((c: any) => c.type === "DIRECT") || [];
-        setChats(directChats);
-      } catch (err) {
-        console.error("Error fetching chats", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    if (currentUser) {
-      fetchChats();
-    }
-  }, [currentUser]);
 
   const handleSearchUsers = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
-    setIsSearching(true);
     try {
-      const users = await searchApi.searchUsers(searchQuery);
+      const users = await searchUsers(searchQuery);
       setSearchResults(users);
     } catch (err) {
       console.error(err);
-    } finally {
-      setIsSearching(false);
     }
   };
 
   const handleStartChat = async (targetUserId: string) => {
     try {
-      const res = await api.post("/v1/chats/direct", {
-        target_user_id: targetUserId,
-      });
+      const chat = await createDirect(targetUserId);
       setIsSearchModalOpen(false);
-      router.push(`/chat/${res.data.id}`);
+      router.push(`/chat/${chat.id}`);
     } catch (err) {
       console.error("Error creating chat", err);
     }
@@ -85,7 +57,7 @@ export function ChatList({ className }: { className?: string }) {
     <div
       className={`flex flex-col h-full bg-[#0B0D10] text-white ${className || ""}`}
     >
-      <header className="fixed top-0 left-0 w-full z-40 glass-header-obsidian px-4 pb-3 pt-safe-header flex items-center justify-between md:max-w-none">
+      <header className="fixed top-0 inset-x-0 z-40 mx-auto w-full max-w-md glass-header-obsidian px-4 pb-3 pt-safe-header flex items-center justify-between md:static md:max-w-none">
         <div className="flex items-center gap-2">
           <MessageSquare className="w-5 h-5 text-[#D4FF00]" />
           <h1 className="text-lg font-black uppercase tracking-wider text-white">
@@ -104,7 +76,7 @@ export function ChatList({ className }: { className?: string }) {
       </header>
 
       {/* Espaciador para compensar el header fixed */}
-      <div className="pt-safe-header opacity-0 pointer-events-none pb-3"><div className="h-10"></div></div>
+      <div className="pt-safe-header opacity-0 pointer-events-none pb-3 md:hidden"><div className="h-10"></div></div>
 
       <div className="p-4 space-y-6">
         {/* 1. Crews de Eventos Section */}
@@ -119,7 +91,6 @@ export function ChatList({ className }: { className?: string }) {
             <div className="space-y-2.5">
               {/* Squad items unchanged for brevity, reusing old render */}
               {userSquads.map((sq) => {
-                const event = MOCK_EVENTS.find((e) => e.id === sq.eventId);
                 return (
                   <Link
                     key={sq.id}
@@ -131,7 +102,7 @@ export function ChatList({ className }: { className?: string }) {
                         {sq.name}
                       </p>
                       <p className="text-[10px] text-neutral-400 truncate">
-                        {event?.title}
+                        {sq.eventTitle}
                       </p>
                     </div>
                   </Link>
@@ -143,8 +114,9 @@ export function ChatList({ className }: { className?: string }) {
 
         {/* 2. Direct Messages Section */}
         <div className="space-y-3">
+          {error && <button onClick={() => void refresh()} className="text-xs text-red-300">{error} Reintentar</button>}
           <h2 className="text-xs font-black uppercase tracking-widest text-neutral-400 flex items-center gap-1.5">
-            <Users className="w-3.5 h-3.5 text-neutral-400" /> Mensajes Directos
+            <Users className="w-3.5 h-3.5 text-neutral-400" /> Conversaciones
           </h2>
 
           <div className="space-y-2.5">
@@ -157,11 +129,11 @@ export function ChatList({ className }: { className?: string }) {
                 No tienes chats aún.
               </p>
             ) : (
-              chats.map((chat) => {
+              chats.filter((chat) => chat.type !== "TRANSFER").map((chat) => {
                 // Find the other participant
                 const otherUser =
                   chat.participants?.find(
-                    (p: any) => p.id !== currentUser?.id,
+                    (p) => p.id !== currentUser?.id,
                   ) || chat.participants?.[0];
                 return (
                   <Link
@@ -179,7 +151,7 @@ export function ChatList({ className }: { className?: string }) {
                     <div className="flex-1 overflow-hidden">
                       <div className="flex justify-between items-center mb-0.5">
                         <p className="text-xs font-black uppercase tracking-wider text-white">
-                          {otherUser?.name || "Usuario"}
+                          {chat.type === "CREWS" ? chat.name || `Crew · ${chat.participants?.length ?? 0} integrantes` : otherUser?.name || "Usuario"}
                         </p>
                         <span className="text-[10px] font-bold text-neutral-400">
                           {new Date(chat.updated_at).toLocaleTimeString([], {
@@ -192,6 +164,7 @@ export function ChatList({ className }: { className?: string }) {
                         {chat.last_message ||
                           "Haz clic para iniciar la conversación"}
                       </p>
+                      {!!chat.unread_count && <span className="mt-1 inline-flex rounded-full bg-[#D4FF00] px-2 text-[10px] font-bold text-black">{chat.unread_count}</span>}
                     </div>
                   </Link>
                 );

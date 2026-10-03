@@ -6,6 +6,7 @@ import { BottomNav } from "@/components/ui/BottomNav";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { MatchProvider } from "@/context/MatchContext";
 import { AuthProvider } from "@/context/AuthContext";
+import { ChatRealtimeProvider } from "@/context/ChatRealtimeContext";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { CapacitorSetup } from "@/components/CapacitorSetup";
 
@@ -47,6 +48,7 @@ export default function RootLayout({
         <GoogleOAuthProvider clientId={process.env.GOOGLE_CLIENT_ID || ""}>
           <ThemeProvider>
             <AuthProvider>
+              <ChatRealtimeProvider>
               <MatchProvider>
                 <div className="flex flex-col min-h-[100dvh] w-full bg-[#0B0D10]">
                   <React.Suspense fallback={null}>
@@ -64,6 +66,7 @@ export default function RootLayout({
                   </div>
                 </div>
               </MatchProvider>
+              </ChatRealtimeProvider>
             </AuthProvider>
           </ThemeProvider>
         </GoogleOAuthProvider>

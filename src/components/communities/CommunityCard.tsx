@@ -2,9 +2,10 @@
 
 import * as React from "react";
 import { Card } from "@/components/ui/Card";
-import { ArrowRight, Users, CheckCircle2 } from "lucide-react";
+import { ArrowRight, Users, CheckCircle2, MapPin, Radio } from "lucide-react";
 import type { Community } from "@/types/communities";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
@@ -30,7 +31,7 @@ export function CommunityCard({ community }: CommunityCardProps) {
     return () => observer.disconnect();
   }, []);
 
-  const detailUrl = `/communities/${community.id}?origin=${pathname}`;
+  const detailUrl = `/communities/${community.slug || community.id}?origin=${encodeURIComponent(pathname)}`;
 
   return (
     <Link 
@@ -48,13 +49,18 @@ export function CommunityCard({ community }: CommunityCardProps) {
       >
         {/* Background Image */}
         {community.coverImageUrl ? (
-          <img
+          <Image
             src={community.coverImageUrl}
             alt={community.name}
-            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            fill
+            unoptimized
+            sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
-          <div className="absolute inset-0 w-full h-full bg-neutral-900" />
+          <div className="absolute inset-0 w-full h-full bg-[radial-gradient(circle_at_20%_20%,rgba(212,255,0,0.22),transparent_35%),linear-gradient(135deg,#171b22,#08090b)]">
+            <Radio className="absolute right-7 top-12 h-20 w-20 text-[#D4FF00]/10" />
+          </div>
         )}
 
         {/* Gradient Overlay */}
@@ -68,6 +74,14 @@ export function CommunityCard({ community }: CommunityCardProps) {
 
         {/* Content over image */}
         <div className="absolute inset-0 p-4 flex flex-col justify-end space-y-1.5">
+          <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.18em] text-[#D4FF00]">
+            <span>{community.category || "Comunidad"}</span>
+            {community.zone && (
+              <span className="flex items-center gap-1 text-neutral-300">
+                <MapPin className="h-3 w-3" /> {community.zone}
+              </span>
+            )}
+          </div>
           {/* Title */}
           <h3 className="text-base sm:text-lg font-black uppercase tracking-tight text-white flex items-center gap-2 group-hover:text-[#D4FF00] transition-colors">
             {community.name}

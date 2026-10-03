@@ -1,4 +1,5 @@
 import type { Event } from "@/types/events";
+import type { EventSquad } from "@/types/match";
 export type { Event } from "@/types/events";
 
 export type UserRole = "USER" | "RRPP" | "ADMIN";
@@ -116,24 +117,7 @@ export interface EventSwipeAction {
   timestamp: string;
 }
 
-export interface SquadMember {
-  userId: string;
-  hasTicket: boolean;
-  joinedAt: string;
-  role: "member" | "host";
-}
-
-export interface EventSquad {
-  id: string;
-  eventId: string;
-  name: string;
-  members: SquadMember[];
-  matchScore: number;
-  chatRoomId: string;
-  status: SquadStatus;
-  createdAt: string;
-  expiresAt: string;
-}
+export type { EventSquad, SquadMember } from "@/types/match";
 
 export interface SquadChatMessage {
   id: string;

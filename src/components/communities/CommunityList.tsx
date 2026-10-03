@@ -1,5 +1,5 @@
 import { CommunityCard } from "./CommunityCard";
-import { Users, Loader2 } from "lucide-react";
+import { Users } from "lucide-react";
 import type { Community } from "@/types/communities";
 
 interface CommunityListProps {

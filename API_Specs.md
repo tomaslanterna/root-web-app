@@ -75,15 +75,27 @@ Se estiman entre **20 y 25 endpoints principales** para cubrir la funcionalidad 
 
 ### Comunidades
 
-- `GET /v1/communities` (Listado general para la pestaña en el feed).
-  - **Response (200 OK)**: `{ "data": [ { "id": "c1", "name": "Techno Argentina", "prOwnerId": "2", "coverImageUrl": "https://...", "membersCount": 1250, "description": "Comunidad oficial..." } ] }`
+- `GET /v1/communities?country=UY&category=electronica&department=Rio%20Negro&query=reggaeton&limit=12&offset=0` (Descubrimiento público con filtros combinables y paginación; texto, categorías y departamentos ignoran mayúsculas y tildes).
+  - **Response (200 OK)**: `{ "data": [ { "id": "c1", "slug": "electronica", "name": "Electrónica", "category": "electrónica", "zone": "Uruguay", "countryId": "UY", "coverImageUrl": "", "membersCount": 1250, "description": "...", "isMember": false, "canPublish": false, "isActive": true } ], "meta": { "total": 1, "limit": 12, "offset": 0, "hasMore": false } }`
 
-- `GET /v1/communities/:id` (Detalle de la comunidad y posteos internos).
-  - **Response (200 OK)**: `{ "id": "c1", "name": "Techno Argentina", "prOwnerId": "2", "coverImageUrl": "https://...", "membersCount": 1250, "description": "Comunidad oficial...", "posts": [ ... ] }`
+- `GET /v1/communities/:id-or-slug` (Detalle público; con JWT opcional incluye `isMember` y `canPublish`).
 
-- `POST /v1/communities/:id/join` (Ingresar a una comunidad).
-  - **Request Body**: `{ "action": "join" }`
-  - **Response (200 OK)**: `{ "success": true, "membersCount": 1251 }`
+- `POST /v1/communities/:id-or-slug/join` (Membresía autenticada e idempotente; no lleva body).
+  - **Response (200 OK)**: `{ "isMember": true, "membersCount": 1251 }`
+
+- `DELETE /v1/communities/:id-or-slug/membership` (Salir de forma autenticada e idempotente).
+  - **Response (200 OK)**: `{ "isMember": false, "membersCount": 1250 }`
+
+- `GET /v1/users/me/communities` (Comunidades del usuario autenticado).
+
+- `GET /v1/communities/:id-or-slug/announcements?limit=10&offset=0` (Canal de anuncios público, ordenado del más reciente al más antiguo).
+  - **Response (200 OK)**: `{ "data": [ { "id": "p1", "communityId": "c1", "authorId": "rrpp1", "title": "Nueva fecha", "content": "...", "timestamp": "2026-10-01T18:00:00Z" } ], "meta": { "total": 1, "limit": 10, "offset": 0, "hasMore": false } }`
+
+- `POST /v1/communities/:id-or-slug/announcements` (Solo `ADMIN`, propietario legado o RRPP asignado en `community_managers`).
+  - **Request Body**: `{ "title": "Nueva fecha", "content": "...", "headerImageUrl": "posts/...jpg", "eventId": "e1" }`
+  - **Response**: `201 Created`; `403` para miembros sin permiso y `404` si la comunidad no existe.
+
+Las comunidades son predefinidas por el sistema. No existe un endpoint público para crearlas y las Crews conservan su flujo independiente.
 
 ### Crews Matcher (Event Squads)
 
@@ -94,8 +106,19 @@ Se estiman entre **20 y 25 endpoints principales** para cubrir la funcionalidad 
   - **Request Body**: `{ "eventId": "e1", "direction": "like" | "pass" | "superlike", "lookingForSquad": true }`
   - **Response (200 OK)**: `{ "success": true, "isMatch": true, "matchDetails": { "squadId": "sq1", "chatRoomId": "sq_chat_1" } }`
 
-- `GET /v1/crews/matches` (Listado de Squads confirmados a los que pertenecés).
-  - **Response (200 OK)**: `{ "data": [ { "id": "sq1", "name": "Afterlife Melodic Crew BA", "chatRoomId": "sq_chat_1", "status": "active" } ] }`
+- `GET /v1/crews/matches` (JWT obligatorio; squads reales del usuario autenticado).
+  - **Response (200 OK)**: `{ "data": [{ "id": "UUID", "eventId": "UUID", "name": "New Crew", "eventTitle": "Evento", "eventImage": "", "location": "Lugar", "chatRoomId": "UUID", "status": "forming", "createdAt": "RFC3339", "expiresAt": "RFC3339", "members": [{ "userId": "UUID", "name": "Nombre", "username": "alias", "avatarUrl": null, "hasTicket": false, "joinedAt": "RFC3339", "role": "member" }] }] }`.
+  - No incluye usuarios/grupos mock ni un porcentaje de compatibilidad inventado. El usuario se obtiene del JWT, no del perfil de preferencias.
+- `POST /v1/events/{eventId}/swipes` (JWT obligatorio).
+  - Body: `{ "direction": "like" | "pass" | "superlike", "preferences": { ... } }`.
+  - Respuesta: `{ "status": "queued" }` o `{ "status": "matched", "crew": <squad del contrato anterior> }`.
+  - Mantiene la política actual de emparejamiento por pares; no implementa un nuevo algoritmo de afinidades. Squad, conversación CREWS, integrantes y swipes reclamados se guardan en una transacción. Las solicitudes concurrentes/repetidas reutilizan el match existente.
+- `POST /v1/crews/{id}/chat` (JWT obligatorio, sin body).
+  - Respuesta: `{ "chatId": "UUID" }`. Resuelve/repara idempotentemente el chat de un squad histórico usando `squads.chat_room_id` y `squad_members` reales. No acepta integrantes enviados por el cliente.
+  - `400` ID inválido, `401` sin sesión, `403` no miembro, `404` inexistente, `409` relación incompatible con otro chat.
+  - Publica `chat.created` al crear la conversación o incorporar participantes faltantes. Solo sus participantes reciben el evento.
+
+`/chat/squad/[id]` y `/chat/[id]` reutilizan la misma pantalla y el mismo transporte WebSocket, historial, recibos y reintentos. Los endpoints antiguos `/crews/deck` y `/crews/swipe` permanecen como legado mock y no son utilizados por este flujo.
 
 ---
 
@@ -115,20 +138,20 @@ Se recomienda un **enfoque Híbrido (Server State + Global State)** para mantene
 
 ## 3. Arquitectura y Abstracción del Sistema de Chats
 
-El chat es un ecosistema que requiere comunicación bidireccional y tiempo real. Se abstraerá de las peticiones REST tradicionales para evitar la sobrecarga del servidor (_polling_).
+El chat utiliza HTTP para enviar mensajes y cargar historial, y WebSocket nativo para recibir mensajes nuevos y cambios de recibos. No realiza polling.
 
 ### Estrategia de Conexión
 
-1. **Protocolo WebSockets:**
-   Implementar `Socket.io` (si el backend es Node.js) o conectores administrados (Supabase Realtime, Pusher).
-2. **Endpoints Híbridos (REST de respaldo):**
-   - `GET /v1/chats` (Listar bandeja de entrada).
-     - **Response (200 OK)**: `{ "data": [ { "id": "ch1", "participants": [ { "id": "1", "name": "Admin Root" }, { "id": "2", "name": "Alex RRPP" } ], "lastMessage": "Perfecto, te paso el ticket por acá.", "updatedAt": "2024-02-17T15:30:00Z" } ] }`
-   - `GET /v1/chats/:id/messages?page=1` (Cargar historial antiguo).
-     - **Response (200 OK)**: `{ "data": [ { "id": "sqm_1", "squadId": "sq1", "senderId": "system", "content": "¡Match de Crew completado!", "type": "system_icebreaker", "timestamp": "2024-02-17T10:30:00Z" } ], "meta": { "nextPage": 2 } }`
+1. `GET /v1/chats/ws`: upgrade a WebSocket. El primer frame es `{ "type": "authenticate", "token": "<JWT actual>" }`. No se aceptan tokens ni otros parámetros en la URL. La conexión cierra con `4401` si la sesión es inválida o expira.
+2. Eventos: `ready`, `resync`, `chat.created`, `message.created` y `message.updated`. `chat.created` incluye `chat_id`; los dos últimos contienen `chat_id` y `message` con los campos `id`, `sender_id`, `content`, `timestamp`, `type`, `status`, `read_at` y `delivered_at`. El servidor restringe cada evento a participantes actuales.
+3. `GET /v1/chats`: array de conversaciones con `participants`, `last_message`, `updated_at` y `unread_count`.
+4. `GET /v1/chats/:id/messages`: array de los últimos 50 mensajes, cronológico con desempate por ID. `before=<RFC3339>|<UUID>` permite cargar mensajes anteriores. Consultar el historial no marca lectura.
+5. `POST /v1/chats/:id/messages`: `{ "content": "Hola", "type": "text", "client_message_id": "<UUID>" }`. El mismo UUID se reutiliza en reintentos para evitar duplicados. Máximo 4000 caracteres; `system` queda reservado al servidor.
+6. `POST /v1/chats/:id/receipts`: `{ "message_ids": ["<UUID>"], "read": false }` confirma entrega; `read: true` confirma lectura. Máximo 100 IDs, identidad del JWT y validación de pertenencia al chat.
 
 ### Arquitectura de UI
 
-- **ChatEngineProvider:** Un provider global que establece y mantiene activa la conexión WebSocket desde el login. Escucha eventos globales (ej. `onNewMessage`) y actualiza silenciosamente los contadores de notificaciones (bagdes en la navegación).
-- **Almacenamiento Local (Caché):** Utilizar `IndexedDB` o `LocalStorage` para persistir los últimos mensajes. Esto permite un renderizado instantáneo (como WhatsApp) al abrir un chat, mientras sincroniza cambios asincrónicamente de fondo.
-- **Componentes Orientados a Eventos:** Renderizado dinámico de burbujas. En los Crews, se desarrollarán `SystemBubble` y `IcebreakerBubble` para destacar visualmente acciones administrativas o "rompehielos" automatizados, en contraposición a los simples mensajes de texto.
+- `ChatRealtimeProvider` abre una conexión por sesión, limpia al salir y reconecta con espera progresiva. Los hooks se suscriben antes de cargar el historial y sincronizan al reconectar para recuperar mensajes perdidos.
+- `src/services/chat.ts` concentra HTTP y transporte. `useChat` combina respuestas por UUID, mantiene estados monotónicos y pagina el historial. `useChatDirectory` actualiza la bandeja en respuesta a eventos.
+- `sent` significa guardado; `delivered`, recibido por los otros participantes; `read`, leído por ellos. `sending` y `failed` son locales. La lectura depende de visibilidad del mensaje y de una pestaña visible/enfocada; una respuesta no implica lectura.
+- PostgreSQL LISTEN/NOTIFY distribuye eventos entre instancias después del commit. Configuración de orígenes, conexión directa a la base, TLS/proxy y pruebas se documenta en `root-backend-service/CHAT_REALTIME.md`.

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import {
@@ -85,19 +86,31 @@ export default function CrewDetailPage() {
   return (
     <div className="min-h-[100dvh] bg-[#0B0D10] text-white flex flex-col pb-20">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-[#0B0D10]/90 backdrop-blur-md px-4 pb-3 pt-safe-header flex items-center justify-between border-b border-white/5">
-        <button onClick={() => router.back()} className="p-2 -ml-2 text-neutral-400 hover:text-white transition-colors">
-          <ChevronLeft className="w-6 h-6" />
-        </button>
-        <h1 className="text-base font-black uppercase tracking-widest flex items-center gap-2">
-          <Flame className="w-4 h-4 text-[#D4FF00]" /> {crew.name}
-        </h1>
-        <button
-          onClick={() => router.push(`/chat/squad/${id}`)}
-          className="p-2 -mr-2 text-neutral-400 hover:text-[#D4FF00] transition-colors"
-        >
-          <MessageSquare className="w-5 h-5" />
-        </button>
+      <header className="sticky top-0 z-40 bg-[#0B0D10]/95 backdrop-blur-md px-4 pb-3 pt-safe-header border-b border-white/5">
+        <div className="flex h-9 items-center">
+          <Link href="/feed" className="flex items-center gap-2" aria-label="Ir al feed de root">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#D4FF00] text-sm font-black italic tracking-tighter text-neutral-950 shadow-md shadow-[#D4FF00]/15">
+              r
+            </span>
+            <span className="text-xl font-black italic tracking-tighter text-white">root</span>
+          </Link>
+        </div>
+        <div className="mt-2 flex items-center justify-between">
+          <div className="flex min-w-0 items-center gap-2">
+            <button onClick={() => router.back()} className="shrink-0 rounded-full p-2 text-neutral-400 transition-colors hover:bg-white/10 hover:text-white">
+              <ChevronLeft className="h-6 w-6" />
+            </button>
+            <h1 className="truncate text-base font-black uppercase tracking-widest flex items-center gap-2">
+              <Flame className="h-4 w-4 shrink-0 text-[#D4FF00]" /> {crew.name}
+            </h1>
+          </div>
+          <button
+            onClick={() => router.push(`/chat/squad/${id}`)}
+            className="shrink-0 rounded-full p-2 text-neutral-400 transition-colors hover:bg-white/10 hover:text-[#D4FF00]"
+          >
+            <MessageSquare className="h-5 w-5" />
+          </button>
+        </div>
       </header>
 
       <div className="p-4 space-y-4 animate-fade-in">
