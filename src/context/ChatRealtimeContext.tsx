@@ -30,7 +30,7 @@ export function ChatRealtimeProvider({ children }: { children: ReactNode }) {
         void acknowledge({ chatId: event.chat_id, ids: [event.message.id] }).catch(() => undefined);
       }
       for (const listener of listeners.current) listener(event);
-    }, setState, () => logoutRef.current());
+    }, setState, () => { void logoutRef.current().catch(() => undefined); });
   }, [token, userId, acknowledge]);
   return <ChatRealtimeContext.Provider value={{ subscribe, state: token ? state : "disconnected" }}>{children}</ChatRealtimeContext.Provider>;
 }

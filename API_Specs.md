@@ -155,3 +155,13 @@ El chat utiliza HTTP para enviar mensajes y cargar historial, y WebSocket nativo
 - `src/services/chat.ts` concentra HTTP y transporte. `useChat` combina respuestas por UUID, mantiene estados monotónicos y pagina el historial. `useChatDirectory` actualiza la bandeja en respuesta a eventos.
 - `sent` significa guardado; `delivered`, recibido por los otros participantes; `read`, leído por ellos. `sending` y `failed` son locales. La lectura depende de visibilidad del mensaje y de una pestaña visible/enfocada; una respuesta no implica lectura.
 - PostgreSQL LISTEN/NOTIFY distribuye eventos entre instancias después del commit. Configuración de orígenes, conexión directa a la base, TLS/proxy y pruebas se documenta en `root-backend-service/CHAT_REALTIME.md`.
+
+## 4. Notificaciones push Android
+
+- `GET /v1/push/status` (JWT) → `{ "enabled": boolean }`.
+- `PUT /v1/push/devices/{installationUUID}` (JWT) → 204. Body: `{ "token": "<FCM token>", "platform": "android" }`. No acepta identidad del usuario en el body. 400 para campos/token/plataforma/UUID inválidos, 503 si Firebase no está configurado, 500 para errores de persistencia.
+- `DELETE /v1/push/devices/{installationUUID}` (JWT) → 204 idempotente, restringido a la cuenta actual.
+
+Las notificaciones se generan desde los mensajes persistidos de chats/squads con una cola transaccional. Payload: `type=chat.message`, `chat_id`, `message_id`, `recipient_id`. No muestran texto privado ni alteran recibos de entrega/lectura. El frontend pide permiso explícito desde Configuración, registra/renueva tokens y revoca al cerrar sesión. Navegar desde una notificación valida destinatario y UUID, y el chat conserva su autorización del backend.
+
+Esta integración no incluye Web Push ni iOS/APNs. Preparación de Firebase y prueba por USB sin Google Play: `ANDROID_PUSH.md`; arquitectura/variables del servidor: `root-backend-service/PUSH_NOTIFICATIONS.md`.

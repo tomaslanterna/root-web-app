@@ -1,5 +1,9 @@
 import axios from "axios";
 
+declare module "axios" {
+  interface AxiosRequestConfig { skipAuthRedirect?: boolean }
+}
+
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_BACKEND_API_URL ||
   process.env.BACKEND_PUBLIC_API_URL ||
@@ -14,7 +18,7 @@ api.interceptors.request.use(
   (config) => {
     if (typeof window !== "undefined") {
       const token = localStorage.getItem("root_jwt_token");
-      if (token && config.headers) {
+      if (token && config.headers && !config.headers.Authorization) {
         if (typeof config.headers.set === 'function') {
           config.headers.set("Authorization", `Bearer ${token}`);
         } else {
@@ -30,8 +34,9 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
-      if (typeof window !== "undefined" && !window.location.pathname.includes('/login')) {
+    if (error.response && error.response.status === 401 && !error.config?.skipAuthRedirect) {
+      if (typeof window !== "undefined" && !window.location.pathname.includes('/login') &&
+          error.config?.headers?.Authorization === `Bearer ${localStorage.getItem('root_jwt_token')}`) {
         localStorage.removeItem('root_jwt_token');
         localStorage.removeItem('root_user');
         window.location.href = '/login';

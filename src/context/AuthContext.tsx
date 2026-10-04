@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import { revokePushForLogout } from '@/services/notifications';
 
 interface User {
   id: string;
@@ -19,7 +20,7 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   login: (token: string, user: User) => void;
-  logout: () => void;
+  logout: () => Promise<void>;
   isLoading: boolean;
 }
 
@@ -32,19 +33,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    // Load from local storage on mount
-    const storedToken = localStorage.getItem('root_jwt_token');
-    const storedUser = localStorage.getItem('root_user');
+    let active = true;
+    queueMicrotask(() => {
+      if (!active) return;
+      // Load browser storage after hydration.
+      const storedToken = localStorage.getItem('root_jwt_token');
+      const storedUser = localStorage.getItem('root_user');
 
-    if (storedToken && storedUser) {
-      try {
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser));
-      } catch (e) {
-        console.error('Error parsing stored user data', e);
+      if (storedToken && storedUser) {
+        try {
+          setToken(storedToken);
+          setUser(JSON.parse(storedUser));
+        } catch (e) {
+          console.error('Error parsing stored user data', e);
+        }
       }
-    }
-    setIsLoading(false);
+      setIsLoading(false);
+    });
+    return () => { active = false; };
   }, []);
 
   const login = (newToken: string, newUser: User) => {
@@ -54,7 +60,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('root_user', JSON.stringify(newUser));
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await revokePushForLogout();
     setToken(null);
     setUser(null);
     localStorage.removeItem('root_jwt_token');
