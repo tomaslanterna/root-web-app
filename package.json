@@ -9,6 +9,8 @@
     "lint": "eslint",
     "android:sync": "cap sync android",
     "android:open": "cap open android",
+    "android:icons": "node scripts/android-icons.mjs",
+    "test:android-icons": "node --test scripts/android-icons.test.mjs",
     "test:push": "node --test src/services/notifications.test.mjs"
   },
   "dependencies": {

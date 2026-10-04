@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android 7 fallback; newer versions use the adaptive resource. -->
+    <item type="mipmap" name="ic_root_launcher">@drawable/ic_root_logo</item>
+</resources>
