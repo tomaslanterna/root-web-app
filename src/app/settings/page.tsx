@@ -1,15 +1,17 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { TopNav } from '@/components/ui/TopNav';
 import { useAuth } from '@/context/AuthContext';
-import { LogOut, ChevronRight, Zap, X } from 'lucide-react';
+import { LogOut, ChevronRight, Zap, X, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { usePushNotifications } from '@/context/PushNotificationsContext';
 
 export default function SettingsPage() {
-  const router = useRouter();
   const { logout } = useAuth();
+  const push = usePushNotifications();
+  const [logoutError, setLogoutError] = useState<string>();
+  const [loggingOut, setLoggingOut] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   // Form states
@@ -18,8 +20,12 @@ export default function SettingsPage() {
   const [contact, setContact] = useState('');
   const [productora, setProductora] = useState('');
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    setLogoutError(undefined);
+    try { await logout(); }
+    catch (error) { setLogoutError(error instanceof Error ? error.message : 'No pudimos cerrar sesión.'); }
+    finally { setLoggingOut(false); }
   };
 
   const handleUpgradeSubmit = (e: React.FormEvent) => {
@@ -35,6 +41,17 @@ export default function SettingsPage() {
       <TopNav title="Configuración" showBack={true} />
 
       <div className="flex-1 mt-20 px-4 space-y-4">
+        <section className="rounded-2xl border border-white/5 bg-[#14171F]/80 p-4 space-y-3">
+          <div className="flex items-center gap-3"><Bell className="w-5 h-5 text-[#D4FF00]" /><h2 className="font-semibold">Notificaciones de mensajes</h2></div>
+          <p className="text-sm text-neutral-400">Recibí avisos de tus chats y squads aunque no tengas la app abierta.</p>
+          {push.state === 'unsupported' ? <p className="text-sm text-neutral-400">Disponible en la app instalada en Android. Por ahora no se activa desde el navegador ni en iPhone.</p> : (
+            <button type="button" disabled={push.isLoading || loggingOut} onClick={() => { void (push.state === 'enabled' ? push.disable() : push.enable()); }} className="rounded-xl bg-[#D4FF00] px-4 py-2 text-sm font-bold text-black disabled:opacity-50">
+              {push.isLoading ? 'Configurando…' : push.state === 'enabled' ? 'Desactivar notificaciones' : 'Activar notificaciones'}
+            </button>
+          )}
+          {push.state === 'enabled' && <p className="text-sm text-[#D4FF00]" role="status">Notificaciones activadas en este dispositivo.</p>}
+          {push.error && <p className="text-sm text-red-400" role="alert">{push.error}</p>}
+        </section>
         
         {/* Settings Options */}
         <div className="bg-[#14171F]/80 backdrop-blur-md border border-white/5 rounded-2xl overflow-hidden divide-y divide-white/5">
@@ -54,18 +71,20 @@ export default function SettingsPage() {
 
           <button
             onClick={handleLogout}
+            disabled={loggingOut}
             className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors active:bg-white/10"
           >
             <div className="flex items-center gap-3">
               <div className="p-2 bg-red-500/10 rounded-xl">
                 <LogOut className="w-5 h-5 text-red-500" />
               </div>
-              <span className="font-semibold text-red-500">Cerrar sesión</span>
+              <span className="font-semibold text-red-500">{loggingOut ? 'Cerrando sesión…' : 'Cerrar sesión'}</span>
             </div>
             <ChevronRight className="w-5 h-5 text-neutral-500" />
           </button>
 
         </div>
+        {logoutError && <p className="text-sm text-red-400" role="alert">{logoutError}</p>}
       </div>
 
       {/* Upgrade Modal Overlay */}

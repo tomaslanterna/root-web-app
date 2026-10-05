@@ -1,10 +1,11 @@
 import type { CapacitorConfig } from "@capacitor/cli";
+import type {} from "@capacitor/push-notifications";
 
 const config: CapacitorConfig = {
   appId: "com.emnetwork.root",
   appName: "root-electronic-network",
-  // Cambiamos 'public' por 'out' porque es el estándar cuando se exporta Next.js (aunque para el Live Reload no se usará)
-  webDir: "out",
+  // Next uses dynamic routes: the native shell loads server.url, not a static export.
+  webDir: "native-shell",
   server: {
     // Aquí ponemos la IP de tu red local y el puerto de Next.js
     url: "https://root-web-app.vercel.app",
@@ -12,6 +13,9 @@ const config: CapacitorConfig = {
     allowNavigation: ["*"],
   },
   plugins: {
+    PushNotifications: {
+      presentationOptions: ["sound", "alert"],
+    },
     GoogleSignIn: {
       scopes: ["profile", "email"],
       serverClientId: process.env.GOOGLE_CLIENT_ID,

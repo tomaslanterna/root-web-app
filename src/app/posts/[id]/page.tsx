@@ -86,7 +86,7 @@ export default function PostDetailPage({
   return (
     <div className="min-h-screen bg-[#0B0D10] text-white pb-24">
       {/* 1. Header Fijo/Transparente */}
-      <DetailHeader />
+      <DetailHeader showBrand />
 
       {/* 2. Hero Section Editorial */}
       <div className="relative w-full h-[55vh] sm:h-[65vh] bg-neutral-900 overflow-hidden">

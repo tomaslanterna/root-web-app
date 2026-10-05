@@ -240,6 +240,11 @@
   resolved "https://registry.yarnpkg.com/@capacitor/motion/-/motion-8.0.1.tgz#d44c1f9b78995ffa52e254bb37b39972b7727710"
   integrity sha512-kON6AwzCzMmyw6A76G0zLF/Q7xVPMC66HSfTSCgpMNwoQkRMMMEDHQbfFxZYLmCcS/4apy3lzG/HTvE5coAZiw==
 
+"@capacitor/push-notifications@^8.1.3":
+  version "8.1.3"
+  resolved "https://registry.npmjs.org/@capacitor/push-notifications/-/push-notifications-8.1.3.tgz"
+  integrity sha512-UlOCTS3uiw8ZUJ1rkFKJgoqPADipHDNn0lq5mNRwtXALVxQXIeIoRd3iqpzC+962R2LpCRJRkCTjPX2OHK3tBA==
+
 "@capacitor/status-bar@^8.0.3":
   version "8.0.3"
   resolved "https://registry.yarnpkg.com/@capacitor/status-bar/-/status-bar-8.0.3.tgz#b638524f021cb3147e6f36ad55e7e5171aee4fd6"

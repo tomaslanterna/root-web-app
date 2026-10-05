@@ -1,179 +1,291 @@
 "use client";
 
-import { useState, use, useEffect } from "react";
-import { MOCK_POSTS } from "@/lib/mocks";
-import { api } from "@/lib/api";
-import { PostCard } from "@/components/ui/PostCard";
-import { Button } from "@/components/ui/Button";
-import { QuickActionMenu } from "@/components/ui/QuickActionMenu";
-import { Users, UserPlus, ArrowLeft, Plus, Sparkles, MessageSquare } from "lucide-react";
+import { use, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
+import {
+  CheckCircle2,
+  Loader2,
+  MapPin,
+  Megaphone,
+  Radio,
+  UserMinus,
+  UserPlus,
+  Users,
+} from "lucide-react";
+import { CommunityAnnouncementCard } from "@/components/communities/CommunityAnnouncementCard";
+import { CommunityAnnouncementComposer } from "@/components/communities/CommunityAnnouncementComposer";
+import { Button } from "@/components/ui/Button";
 import { DetailHeader } from "@/components/ui/DetailHeader";
-export default function CommunityDetailPage({ params }: { params: Promise<{ id: string }> | { id: string } }) {
+import { useAuth } from "@/context/AuthContext";
+import {
+  useCommunityAnnouncements,
+  useCommunityDetail,
+} from "@/hooks/useCommunities";
+import type { CreateCommunityAnnouncementInput } from "@/types/communities";
+
+interface CommunityDetailPageProps {
+  params: Promise<{ id: string }>;
+}
+
+function getErrorMessage(error: unknown, fallback: string) {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "response" in error
+  ) {
+    const response = (error as { response?: { data?: { message?: string } } }).response;
+    return response?.data?.message || fallback;
+  }
+  return fallback;
+}
+
+export default function CommunityDetailPage({ params }: CommunityDetailPageProps) {
+  const { id } = use(params);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const origin = searchParams.get('origin');
-  const resolvedParams = typeof (params as any)?.then === "function" ? use(params as Promise<{ id: string }>) : (params as { id: string });
-  
-  const [community, setCommunity] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingJoin, setIsLoadingJoin] = useState(false);
-  const [isJoined, setIsJoined] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const origin = searchParams.get("origin");
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const {
+    community,
+    refresh,
+    membership,
+    isLoading,
+    isChangingMembership,
+    error,
+    membershipError,
+  } = useCommunityDetail(id);
+  const {
+    announcements,
+    meta,
+    load,
+    publish,
+    isLoading: isLoadingAnnouncements,
+    isPublishing,
+    error: announcementsError,
+    publishError,
+  } = useCommunityAnnouncements(id);
 
   useEffect(() => {
-    const fetchCommunity = async () => {
-      try {
-        const res = await api.get(`/v1/communities/${resolvedParams.id}`);
-        if (res.data) {
-          setCommunity(res.data);
-          setIsJoined(res.data.isMember || false);
-        }
-      } catch (err) {
-        console.error("Error fetching community detail:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchCommunity();
-  }, [resolvedParams.id]);
+    void refresh().catch(() => undefined);
+    void load({ offset: 0, append: false }).catch(() => undefined);
+  }, [load, refresh]);
 
-  if (isLoading) {
+  const changeMembership = () => {
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+    if (!community) return;
+    void membership(community.isMember ? "leave" : "join").catch(() => undefined);
+  };
+
+  const createAnnouncement = (
+    input: CreateCommunityAnnouncementInput,
+    image?: File,
+  ) => publish({ input, image });
+
+  if (isLoading && !community) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#0B0D10] text-white">
-        <p className="text-sm font-bold uppercase text-neutral-400 animate-pulse">Cargando comunidad...</p>
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#0B0D10] text-white">
+        <Loader2 className="mb-3 h-7 w-7 animate-spin text-[#D4FF00]" />
+        <p className="text-xs font-black uppercase tracking-widest text-neutral-400">
+          Cargando comunidad
+        </p>
       </div>
     );
   }
-
-
-  const handleToggleJoin = async () => {
-    if (!community || isLoadingJoin) return;
-    setIsLoadingJoin(true);
-    try {
-      const res = await api.post(`/v1/communities/${community.id}/join`);
-      if (res.data) {
-        setIsJoined(res.data.isMember);
-        setCommunity({ ...community, membersCount: res.data.membersCount });
-      }
-    } catch (err) {
-      console.error("Error toggling join community:", err);
-    } finally {
-      setIsLoadingJoin(false);
-    }
-  };
 
   if (!community) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center bg-[#0B0D10] text-white">
-        <p className="text-sm font-bold uppercase text-neutral-400">Comunidad no encontrada</p>
-        <Link href="/communities" className="mt-4">
-          <Button variant="outline" size="sm">Volver a comunidades</Button>
-        </Link>
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#0B0D10] p-6 text-center text-white">
+        <Radio className="mb-4 h-10 w-10 text-neutral-600" />
+        <p className="text-sm font-bold uppercase text-neutral-300">
+          {error
+            ? "No pudimos cargar esta comunidad"
+            : "Comunidad no encontrada"}
+        </p>
+        <div className="mt-4 flex gap-2">
+          {error && (
+            <Button
+              size="sm"
+              onClick={() => void refresh().catch(() => undefined)}
+            >
+              Reintentar
+            </Button>
+          )}
+          <Link href="/communities">
+            <Button variant="outline" size="sm">
+              Volver
+            </Button>
+          </Link>
+        </div>
       </div>
     );
   }
 
-  // Dejamos los posts mockeados por ahora, ya que el request fue solo para la data de la comunidad.
-  const communityPosts = MOCK_POSTS.filter((p) => p.communityId === community.id);
-
   return (
-    <div className="flex flex-col min-h-screen bg-[#0B0D10] text-white pb-28">
-      {/* Detail Header */}
-      <DetailHeader onBack={() => router.push(origin || '/feed')} />
+    <div className="min-h-screen bg-[#0B0D10] pb-28 text-white">
+      <DetailHeader showBrand onBack={() => router.push(origin || "/communities")} />
 
-      {/* Community Header Banner */}
-      <div className="relative w-full h-48 sm:h-56 md:h-80 bg-neutral-950 overflow-hidden">
-        <img
-          src={community.coverImageUrl}
-          alt={community.name}
-          className="w-full h-full object-cover opacity-80"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0B0D10] via-neutral-950/40 to-transparent" />
-        
-        <div className="absolute bottom-4 inset-x-4 md:inset-x-8 space-y-1 text-white">
-          <span className="px-3 py-1 rounded-full bg-[#D4FF00]/20 backdrop-blur-md text-[#D4FF00] text-[10px] font-extrabold uppercase tracking-widest border border-[#D4FF00]/30">
-            {community.membersCount} Miembros
-          </span>
-          <h1 className="text-2xl sm:text-3xl md:text-5xl font-black uppercase tracking-tight leading-tight">
+      <section className="relative h-56 w-full overflow-hidden bg-neutral-950 md:h-80">
+        {community.coverImageUrl ? (
+          <Image
+            src={community.coverImageUrl}
+            alt={community.name}
+            fill
+            unoptimized
+            sizes="100vw"
+            className="object-cover opacity-75"
+          />
+        ) : (
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,rgba(212,255,0,0.28),transparent_30%),linear-gradient(140deg,#1a2028,#07080a)]">
+            <Radio className="absolute right-[10%] top-[16%] h-40 w-40 text-[#D4FF00]/10" />
+          </div>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0B0D10] via-black/30 to-transparent" />
+        <div className="absolute inset-x-4 bottom-5 mx-auto max-w-6xl space-y-2 md:inset-x-8">
+          <div className="flex flex-wrap gap-2">
+            <span className="rounded-full border border-[#D4FF00]/30 bg-[#D4FF00]/15 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-[#D4FF00] backdrop-blur-md">
+              {community.category}
+            </span>
+            {community.zone && (
+              <span className="flex items-center gap-1 rounded-full border border-white/15 bg-black/40 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-neutral-200 backdrop-blur-md">
+                <MapPin className="h-3 w-3" /> {community.zone}
+              </span>
+            )}
+          </div>
+          <h1 className="text-3xl font-black uppercase leading-none tracking-tight md:text-5xl">
             {community.name}
           </h1>
         </div>
-      </div>
+      </section>
 
-      <div className="p-4 md:px-8 space-y-6 md:space-y-0 md:grid md:grid-cols-12 md:gap-8 items-start">
-        
-        {/* Right Column / Sidebar (Actions & Description) - Move to right on Desktop, top on Mobile */}
-        <div className="md:col-span-4 lg:col-span-3 order-1 md:order-2 md:sticky md:top-24 space-y-4">
-          <div className="p-5 rounded-3xl bg-[#14171F] border border-white/10 shadow-lg space-y-4">
-            <p className="text-xs sm:text-sm text-neutral-300 leading-relaxed font-medium">
+      <main className="mx-auto grid w-full max-w-6xl gap-6 p-4 md:grid-cols-12 md:p-8">
+        <aside className="space-y-4 md:sticky md:top-24 md:col-span-4 md:self-start lg:col-span-3">
+          <div className="space-y-4 rounded-3xl border border-white/10 bg-[#14171F] p-5 shadow-xl">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2 text-[#D4FF00]">
+                <Users className="h-4 w-4" />
+                <span className="text-xs font-black uppercase tracking-wider">
+                  {community.membersCount} miembros
+                </span>
+              </div>
+              {community.isMember && (
+                <CheckCircle2 className="h-4 w-4 text-[#D4FF00]" />
+              )}
+            </div>
+            <p className="text-sm font-medium leading-relaxed text-neutral-300">
               {community.description}
             </p>
-
-            <div className="flex flex-col gap-3">
-              {isJoined && (
-                <Button
-                  variant="primary"
-                  className="w-full gap-2 shadow-lg shadow-[#D4FF00]/10 bg-[#D4FF00] hover:bg-[#bce400] text-neutral-950 font-black uppercase tracking-wider text-xs h-10"
-                  onClick={() => router.push(`/create/post?communityId=${community.id}`)}
-                >
-                  <Sparkles className="w-4 h-4" /> Crear Publicación
-                </Button>
+            <Button
+              variant={community.isMember ? "outline" : "primary"}
+              className="w-full"
+              onClick={changeMembership}
+              disabled={isChangingMembership || isAuthLoading}
+            >
+              {isChangingMembership ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : community.isMember ? (
+                <UserMinus className="h-4 w-4" />
+              ) : (
+                <UserPlus className="h-4 w-4" />
               )}
-              <Button
-                variant={isJoined ? "outline" : "primary"}
-                className="w-full gap-2"
-                onClick={handleToggleJoin}
-                disabled={isLoadingJoin}
-              >
-                <UserPlus className="w-4 h-4" />
-                <span>{isLoadingJoin ? "Cargando..." : (isJoined ? "Dejar de pertenecer" : "Unirse a la Comunidad")}</span>
-              </Button>
-
-              <Button
-                variant="secondary"
-                className="w-full gap-2"
-                onClick={() => setIsMenuOpen(true)}
-              >
-                <Plus className="w-4 h-4 text-[#D4FF00]" />
-                <span>Crear Publicación</span>
-              </Button>
-            </div>
+              {!user
+                ? "Iniciá sesión para unirte"
+                : community.isMember
+                  ? "Salir de la comunidad"
+                  : "Unirme a la comunidad"}
+            </Button>
+            {membershipError && (
+              <p className="text-xs font-bold text-red-400">
+                No pudimos actualizar tu membresía. Intentá nuevamente.
+              </p>
+            )}
           </div>
-        </div>
+        </aside>
 
-        {/* Left Column / Main (Posts Feed) - Move to left on Desktop, bottom on Mobile */}
-        <div className="md:col-span-8 lg:col-span-9 order-2 md:order-1 space-y-6">
+        <div className="space-y-5 md:col-span-8 lg:col-span-9">
+          {community.canPublish && (
+            <CommunityAnnouncementComposer
+              isPublishing={isPublishing}
+              errorMessage={
+                publishError
+                  ? getErrorMessage(publishError, "No pudimos publicar el anuncio")
+                  : undefined
+              }
+              onPublish={createAnnouncement}
+            />
+          )}
+
           <div className="flex items-center justify-between px-1">
-            <h2 className="text-xs md:text-sm font-black uppercase tracking-widest text-neutral-400 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-[#D4FF00]" /> Publicaciones en {community.name}
+            <h2 className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-neutral-300">
+              <Megaphone className="h-4 w-4 text-[#D4FF00]" /> Anuncios
             </h2>
-            <span className="text-[10px] md:text-xs font-extrabold uppercase tracking-widest text-[#D4FF00]">
-              {communityPosts.length} POSTS
+            <span className="text-[10px] font-black uppercase tracking-wider text-[#D4FF00]">
+              {meta.total} publicaciones
             </span>
           </div>
 
-          <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-6">
-            {communityPosts.length > 0 ? (
-              communityPosts.map((post) => <PostCard key={post.id} post={post} variant="electronic" />)
-            ) : (
-              <div className="py-12 text-center bg-[#14171F] rounded-3xl border border-white/10 p-6 space-y-2 md:col-span-2 lg:col-span-3">
-                <MessageSquare className="w-8 h-8 text-[#D4FF00] mx-auto" />
-                <p className="text-xs text-neutral-400 uppercase font-bold tracking-wider">
-                  Aún no hay artículos publicados en esta comunidad. ¡Sé el primero en compartir!
-                </p>
-                <Button size="sm" variant="primary" className="mt-2" onClick={() => setIsMenuOpen(true)}>
-                  Crear primera publicación
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+          {announcementsError && announcements.length === 0 ? (
+            <div className="rounded-3xl border border-red-500/20 bg-red-500/5 p-8 text-center">
+              <p className="text-sm font-bold text-red-300">
+                No pudimos cargar los anuncios.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-4"
+                onClick={() =>
+                  void load({ offset: 0, append: false }).catch(() => undefined)
+                }
+              >
+                Reintentar
+              </Button>
+            </div>
+          ) : isLoadingAnnouncements && announcements.length === 0 ? (
+            <div className="flex justify-center py-16">
+              <Loader2 className="h-7 w-7 animate-spin text-[#D4FF00]" />
+            </div>
+          ) : announcements.length === 0 ? (
+            <div className="rounded-3xl border border-white/10 bg-[#14171F] p-10 text-center">
+              <Megaphone className="mx-auto mb-3 h-8 w-8 text-neutral-600" />
+              <p className="text-xs font-bold uppercase tracking-wider text-neutral-400">
+                Todavía no hay anuncios en esta comunidad
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-4 lg:grid-cols-2">
+              {announcements.map((announcement) => (
+                <CommunityAnnouncementCard
+                  key={announcement.id}
+                  announcement={announcement}
+                />
+              ))}
+            </div>
+          )}
 
-      <QuickActionMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
+          {meta.hasMore && (
+            <div className="flex justify-center pt-2">
+              <Button
+                variant="outline"
+                disabled={isLoadingAnnouncements}
+                onClick={() =>
+                  void load({ offset: announcements.length, append: true }).catch(
+                    () => undefined,
+                  )
+                }
+              >
+                {isLoadingAnnouncements && (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                )}
+                Cargar más
+              </Button>
+            </div>
+          )}
+        </div>
+      </main>
     </div>
   );
 }
-

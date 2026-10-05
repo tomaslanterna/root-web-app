@@ -155,7 +155,7 @@ export default function UserProfilePage() {
       </div>
 
       {/* Header Fixed Transparente para el Perfil */}
-      <header className="fixed top-0 left-0 w-full z-50 bg-transparent px-4 pb-3 pt-safe-header flex items-center justify-between pointer-events-none">
+      <header className="fixed top-0 inset-x-0 z-50 mx-auto w-full max-w-md bg-transparent px-4 pb-3 pt-safe-header flex items-center justify-between pointer-events-none md:max-w-[1360px]">
         <div className="flex items-center pointer-events-auto">
           {fromSearch && (
             <button

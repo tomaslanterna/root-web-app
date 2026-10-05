@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useMatch } from "@/context/MatchContext";
-import { MOCK_USERS } from "@/lib/mocks";
+import Image from "next/image";
 import { Sparkles, MessageSquare, ArrowRight, X, Users, MapPin } from "lucide-react";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
@@ -11,16 +11,7 @@ export function SquadMatchModal() {
   const { activeMatchedSquad, isMatchModalOpen, closeMatchModal, matchedEvent: event } = useMatch();
 
   if (!isMatchModalOpen || !activeMatchedSquad) return null;
-  const memberUsers = activeMatchedSquad.members.map((m) =>
-    MOCK_USERS.find((u) => u.id === m.userId) || {
-      id: m.userId,
-      name: "Usuario",
-      username: "user",
-      role: "USER" as const,
-      avatarUrl: "https://i.pravatar.cc/150",
-      isKycVerified: true,
-    }
-  );
+  const memberUsers = activeMatchedSquad.members;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-xl animate-fade-in">
@@ -55,7 +46,8 @@ export function SquadMatchModal() {
         {/* Event Preview Mini-Card */}
         {event && (
           <div className="p-3 rounded-2xl bg-[#0B0D10] border border-white/10 flex items-center gap-3 text-left">
-            <img
+            <Image
+              width={56} height={56} unoptimized
               src={event.cinematicBannerUrl}
               alt={event.title}
               className="w-14 h-14 rounded-xl object-cover shrink-0 border border-white/10"
@@ -67,9 +59,9 @@ export function SquadMatchModal() {
               <p className="text-[10px] text-neutral-400 font-bold flex items-center gap-1 truncate">
                 <MapPin className="w-3 h-3 text-[#D4FF00]" /> {event.location}
               </p>
-              <span className="text-[9px] font-black uppercase text-[#D4FF00] tracking-wider">
+              {activeMatchedSquad.matchScore != null && <span className="text-[9px] font-black uppercase text-[#D4FF00] tracking-wider">
                 {activeMatchedSquad.matchScore}% Compatibilidad
-              </span>
+              </span>}
             </div>
           </div>
         )}
@@ -77,19 +69,19 @@ export function SquadMatchModal() {
         {/* Squad Members Avatars Row */}
         <div className="space-y-2 py-1">
           <p className="text-[11px] font-extrabold uppercase tracking-widest text-neutral-400 flex items-center justify-center gap-1.5">
-            <Users className="w-3.5 h-3.5 text-[#D4FF00]" /> {activeMatchedSquad.members.length} Integrantes Conectados
+            <Users className="w-3.5 h-3.5 text-[#D4FF00]" /> {activeMatchedSquad.members.length} Integrantes
           </p>
 
           <div className="flex items-center justify-center -space-x-3">
-            {memberUsers.map((user, idx) => (
-              <div key={user.id} className="relative group">
+            {memberUsers.map((user) => (
+              <div key={user.userId} className="relative group">
                 <Avatar
-                  src={user.avatarUrl}
-                  fallback={user.name}
+                  src={user.avatarUrl || undefined}
+                  fallback={user.name || "Integrante"}
                   size="md"
                   className="ring-3 ring-[#14171F] shadow-lg"
                 />
-                {idx === 0 && (
+                {user.role === "host" && (
                   <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[8px] font-black uppercase bg-[#D4FF00] text-neutral-950 px-1.5 py-0.2 rounded-full shadow-xs">
                     Host
                   </span>

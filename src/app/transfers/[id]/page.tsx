@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect, useRef, use } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ShieldCheck, Ticket, Send, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { transfersApi } from "@/services/transfers";
 import { useAuth } from "@/context/AuthContext";
-import { useChat } from "@/hooks/useChat";
+import { useChat, useVisibleMessageReceipts } from "@/hooks/useChat";
 
 export default function TransferDealRoomPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -20,6 +20,7 @@ export default function TransferDealRoomPage({ params }: { params: Promise<{ id:
   const [isLoadingDeal, setIsLoadingDeal] = useState(true);
   
   const [message, setMessage] = useState("");
+  const chatAreaRef = useRef<HTMLDivElement>(null);
   const [isConfirming, setIsConfirming] = useState(false);
   const [isPaying, setIsPaying] = useState(false);
 
@@ -40,8 +41,9 @@ export default function TransferDealRoomPage({ params }: { params: Promise<{ id:
     }
   }, [transferId]);
 
-  // 2. Conectar el chat (Short Polling)
+  // 2. Recibir actualizaciones por la conexión WebSocket compartida.
   const { messages, isLoading: isLoadingChat, sendMessage, refreshMessages } = useChat(transfer?.chat_id);
+  useVisibleMessageReceipts(transfer?.chat_id ?? "", messages, user?.id, chatAreaRef, !isLoadingDeal);
 
   // 3. Sincronizar estado del trato basado en el último mensaje de sistema
   useEffect(() => {
@@ -180,7 +182,7 @@ export default function TransferDealRoomPage({ params }: { params: Promise<{ id:
       </div>
 
       {/* Chat Area */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+      <div ref={chatAreaRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
         <div className="text-center mb-6">
           <span className="bg-neutral-800 text-neutral-400 text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full">
             La conversación está cifrada
@@ -251,7 +253,7 @@ export default function TransferDealRoomPage({ params }: { params: Promise<{ id:
               }
 
               return (
-                <div key={msg.id} className={`my-6 border ${borderColor} ${bgColor} rounded-xl p-4 text-center space-y-2 animate-fade-in`}>
+                <div key={msg.id} data-message-id={msg.id} className={`my-6 border ${borderColor} ${bgColor} rounded-xl p-4 text-center space-y-2 animate-fade-in`}>
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center mx-auto ${iconColor} bg-white/5`}>
                     <CheckCircle2 className="w-5 h-5" />
                   </div>
@@ -265,7 +267,7 @@ export default function TransferDealRoomPage({ params }: { params: Promise<{ id:
 
             const isMe = msg.sender_id === user?.id;
             return (
-              <div key={msg.id} className={cn("flex w-full", isMe ? "justify-end" : "justify-start")}>
+              <div key={msg.id} data-message-id={msg.id} className={cn("flex w-full", isMe ? "justify-end" : "justify-start")}>
                 <div className={cn(
                   "max-w-[75%] rounded-2xl px-4 py-2.5 relative",
                   isMe 

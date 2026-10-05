@@ -1,11 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useMatch } from "@/context/MatchContext";
-import { MOCK_USERS } from "@/lib/mocks";
-import type { Event } from "@/types/events";
-import { api } from "@/lib/api";
-import { useMutation } from "@/hooks/useMutation";
+import Image from "next/image";
+import { useMatcherCatalog } from "@/hooks/useMatcherCatalog";
 import { EventSwipeDeck } from "@/components/match/EventSwipeDeck";
 import { VibePreferencesDrawer } from "@/components/match/VibePreferencesDrawer";
 import { SquadMatchModal } from "@/components/match/SquadMatchModal";
@@ -17,16 +15,6 @@ import { useAuth } from "@/context/AuthContext";
 import { LoginRequired } from "@/components/ui/LoginRequired";
 import { useRouter } from "next/navigation";
 
-interface PermanentCrew {
-  id: string;
-  name: string;
-  inviteCode: string | null;
-  memberCount: number;
-  topSteps: number;
-  status: string;
-}
-
-
 export default function MatchPage() {
   const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
@@ -36,42 +24,18 @@ export default function MatchPage() {
     swipeEvent,
     resetSwipes,
     squads,
+    isLoadingSquads,
+    squadsError,
+    refreshSquads,
     setIsPreferencesOpen,
   } = useMatch();
 
   const [activeTab, setActiveTab] = useState<"deck" | "squads" | "crews">("deck");
-  const [events, setEvents] = useState<Event[]>([]);
-  const [permanentCrews, setPermanentCrews] = useState<PermanentCrew[]>([]);
-  const [crewsLoading, setCrewsLoading] = useState(false);
-
-  const { mutate: fetchEvents, isLoading } = useMutation<Event[], void>(
-    async () => {
-      const res = await api.get("/v1/events");
-      return res.data?.data || (Array.isArray(res.data) ? res.data : []);
-    },
-    {
-      onSuccess: (data) => setEvents(data),
-      onError: (err) => console.error("Error fetching events:", err),
-    }
-  );
-
-  useEffect(() => {
-    fetchEvents();
-  }, [fetchEvents]);
-
-  // Fetch permanent crews if logged in
-  useEffect(() => {
-    if (!user) return;
-    setCrewsLoading(true);
-    api.get("/v1/crews")
-      .then((res) => setPermanentCrews(res.data?.data || []))
-      .catch((err) => console.error("Error fetching crews:", err))
-      .finally(() => setCrewsLoading(false));
-  }, [user]);
+  const { events, permanentCrews, crewsLoading, isLoading, createCrew } = useMatcherCatalog();
 
   // User squads
   const userSquads = squads.filter((s) =>
-    s.members.some((m) => m.userId === vibeProfile.userId)
+    s.members.some((m) => m.userId === user?.id)
   );
 
   if (!authLoading && !user) {
@@ -201,7 +165,8 @@ export default function MatchPage() {
             </span>
           </div>
 
-          {userSquads.length === 0 ? (
+          {squadsError && <button onClick={() => void refreshSquads().catch(() => undefined)} className="text-xs text-red-300">{squadsError} Reintentar</button>}
+          {isLoadingSquads && userSquads.length === 0 ? <Loader2 className="h-6 w-6 animate-spin text-[#D4FF00]" /> : userSquads.length === 0 ? (
             <div className="p-8 text-center rounded-3xl bg-[#14171F] border border-white/10 space-y-3 mt-4">
               <Users className="w-8 h-8 text-neutral-500 mx-auto" />
               <p className="text-sm font-bold text-neutral-300">Aún no tienes ningún Crew activo</p>
@@ -220,9 +185,7 @@ export default function MatchPage() {
             <div className="space-y-3 md:space-y-4">
               {userSquads.map((sq) => {
                 const event = events.find((e) => e.id === sq.eventId);
-                const members = sq.members.map(
-                  (m) => MOCK_USERS.find((u) => u.id === m.userId) || MOCK_USERS[0]
-                );
+                const members = sq.members;
 
                 return (
                   <Link
@@ -231,10 +194,10 @@ export default function MatchPage() {
                     className="block p-4 rounded-3xl bg-[#14171F] border border-white/10 hover:border-[#D4FF00]/40 transition-all duration-300 shadow-lg hover:shadow-[#D4FF00]/5 group"
                   >
                     <div className="flex items-center gap-4">
-                      {event && (
-                        <img
-                          src={event.cinematicBannerUrl}
-                          alt={event.title}
+                      {(sq.eventImage || event?.cinematicBannerUrl) && (
+                        <Image width={80} height={80} unoptimized
+                          src={sq.eventImage || event?.cinematicBannerUrl || ""}
+                          alt={sq.eventTitle || event?.title || "Evento"}
                           className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover border border-white/10 shrink-0"
                         />
                       )}
@@ -244,22 +207,22 @@ export default function MatchPage() {
                           <h3 className="text-xs md:text-sm font-black uppercase tracking-tight text-white group-hover:text-[#D4FF00] transition-colors truncate">
                             {sq.name}
                           </h3>
-                          <span className="text-[9px] md:text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-[#D4FF00]/15 text-[#D4FF00] border border-[#D4FF00]/20 shrink-0">
+                          {sq.matchScore != null && <span className="text-[9px] md:text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-[#D4FF00]/15 text-[#D4FF00] border border-[#D4FF00]/20 shrink-0">
                             {sq.matchScore}% Match
-                          </span>
+                          </span>}
                         </div>
 
                         <p className="text-[10px] md:text-xs text-neutral-400 font-bold truncate">
-                          {event?.title}
+                          {sq.eventTitle || event?.title}
                         </p>
 
                         <div className="flex items-center justify-between pt-1">
                           <div className="flex items-center -space-x-2 md:-space-x-1.5">
                             {members.map((u) => (
                               <Avatar
-                                key={u.id}
-                                src={u.avatarUrl}
-                                fallback={u.name}
+                                key={u.userId}
+                                src={u.avatarUrl || undefined}
+                                fallback={u.name || "Integrante"}
                                 size="sm"
                                 className="ring-2 ring-[#14171F] w-6 h-6 md:w-7 md:h-7"
                               />
@@ -289,7 +252,7 @@ export default function MatchPage() {
               <Trophy className="w-4 h-4 text-[#D4FF00]" /> Crews Permanentes
             </h2>
             <button
-              onClick={() => api.post("/v1/crews", { name: "Nueva Crew", type: "permanent" }).then((res) => router.push(`/crews/${res.data.crew.id}`))}
+              onClick={() => void createCrew(undefined).then((id) => router.push(`/crews/${id}`)).catch(() => undefined)}
               className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase text-[#D4FF00] bg-[#D4FF00]/10 px-3 py-1.5 rounded-full border border-[#D4FF00]/20 hover:bg-[#D4FF00]/20 transition-all"
             >
               <Plus className="w-3.5 h-3.5" /> Nueva Crew
