@@ -50,28 +50,26 @@ export default function RootLayout({
         <GoogleOAuthProvider clientId={process.env.GOOGLE_CLIENT_ID || ""}>
           <ThemeProvider>
             <AuthProvider>
-              <PushNotificationsProvider>
-              <ChatRealtimeProvider>
               <DanceProvider>
-              <MatchProvider>
-                <div className="flex flex-col min-h-[100dvh] w-full bg-[#0B0D10]">
-                  <React.Suspense fallback={null}>
-                    <BottomNav />
-                  </React.Suspense>
-                  
-                  {/* Contenedor principal con max-w-[1360px] calibrado para desktop */}
-                  <div className="flex-1 flex flex-col min-h-[100dvh] w-full pt-0 md:pt-24 pb-24 md:pb-16 bg-[#0B0D10]">
-                    
-                    {/* Contenido principal - Ancho óptimo y simétrico en desktop */}
-                    <main className="flex-1 w-full min-w-0 max-w-md md:max-w-[1360px] mx-auto px-0 sm:px-4 md:px-8 lg:px-12 border-x border-white/10 md:border-x-0 shadow-2xl md:shadow-none transition-colors duration-300">
-                      {children}
-                    </main>
+                <PushNotificationsProvider>
+                  <ChatRealtimeProvider>
+                    <MatchProvider>
+                      <div className="flex flex-col min-h-[100dvh] w-full bg-[#0B0D10]">
+                        <React.Suspense fallback={null}>
+                          <BottomNav />
+                        </React.Suspense>
 
-                  </div>
-                </div>
-              </MatchProvider>
-              </ChatRealtimeProvider>
-              </PushNotificationsProvider>
+                        {/* Contenedor principal con max-w-[1360px] calibrado para desktop */}
+                        <div className="flex-1 flex flex-col min-h-[100dvh] w-full pt-0 md:pt-24 pb-24 md:pb-16 bg-[#0B0D10]">
+                          {/* Contenido principal - Ancho óptimo y simétrico en desktop */}
+                          <main className="flex-1 w-full min-w-0 max-w-md md:max-w-[1360px] mx-auto px-0 sm:px-4 md:px-8 lg:px-12 border-x border-white/10 md:border-x-0 shadow-2xl md:shadow-none transition-colors duration-300">
+                            {children}
+                          </main>
+                        </div>
+                      </div>
+                    </MatchProvider>
+                  </ChatRealtimeProvider>
+                </PushNotificationsProvider>
               </DanceProvider>
             </AuthProvider>
           </ThemeProvider>

@@ -13,7 +13,10 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import { useChatDirectory, type ChatSearchUser } from "@/hooks/useChatDirectory";
+import {
+  useChatDirectory,
+  type ChatSearchUser,
+} from "@/hooks/useChatDirectory";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 
@@ -22,14 +25,24 @@ export function ChatList({ className }: { className?: string }) {
   const { user: currentUser } = useAuth();
   const router = useRouter();
 
-  const { chats, isLoading, error, refresh, createDirect, searchUsers, isSearching } = useChatDirectory();
+  const {
+    chats,
+    isLoading,
+    error,
+    refresh,
+    createDirect,
+    searchUsers,
+    isSearching,
+  } = useChatDirectory();
 
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<ChatSearchUser[]>([]);
 
-  const userSquads = squads.filter((s) =>
-    s.members.some((m) => m.userId === currentUser?.id) && !chats.some((chat) => chat.id === s.chatRoomId),
+  const userSquads = squads.filter(
+    (s) =>
+      s.members?.some((m) => m.userId === currentUser?.id) &&
+      !chats.some((chat) => chat.id === s.chatRoomId),
   );
 
   const handleSearchUsers = async (e: React.FormEvent) => {
@@ -55,7 +68,9 @@ export function ChatList({ className }: { className?: string }) {
 
   return (
     <div
-      className={`flex flex-col h-full bg-[#0B0D10] text-white ${className || ""}`}
+      className={`flex flex-col h-full bg-[#0B0D10] text-white ${
+        className || ""
+      }`}
     >
       <header className="fixed top-0 inset-x-0 z-40 mx-auto w-full max-w-md glass-header-obsidian px-4 pb-3 pt-safe-header flex items-center justify-between md:static md:max-w-none">
         <div className="flex items-center gap-2">
@@ -76,7 +91,9 @@ export function ChatList({ className }: { className?: string }) {
       </header>
 
       {/* Espaciador para compensar el header fixed */}
-      <div className="pt-safe-header opacity-0 pointer-events-none pb-3 md:hidden"><div className="h-10"></div></div>
+      <div className="pt-safe-header opacity-0 pointer-events-none pb-3 md:hidden">
+        <div className="h-10"></div>
+      </div>
 
       <div className="p-4 space-y-6">
         {/* 1. Crews de Eventos Section */}
@@ -114,7 +131,14 @@ export function ChatList({ className }: { className?: string }) {
 
         {/* 2. Direct Messages Section */}
         <div className="space-y-3">
-          {error && <button onClick={() => void refresh()} className="text-xs text-red-300">{error} Reintentar</button>}
+          {error && (
+            <button
+              onClick={() => void refresh()}
+              className="text-xs text-red-300"
+            >
+              {error} Reintentar
+            </button>
+          )}
           <h2 className="text-xs font-black uppercase tracking-widest text-neutral-400 flex items-center gap-1.5">
             <Users className="w-3.5 h-3.5 text-neutral-400" /> Conversaciones
           </h2>
@@ -129,46 +153,56 @@ export function ChatList({ className }: { className?: string }) {
                 No tienes chats aún.
               </p>
             ) : (
-              chats.filter((chat) => chat.type !== "TRANSFER").map((chat) => {
-                // Find the other participant
-                const otherUser =
-                  chat.participants?.find(
-                    (p) => p.id !== currentUser?.id,
-                  ) || chat.participants?.[0];
-                return (
-                  <Link
-                    key={chat.id}
-                    href={`/chat/${chat.id}`}
-                    className="p-3.5 rounded-3xl bg-[#14171F] hover:bg-[#1f2431] border border-white/10 flex items-center gap-4 transition-all"
-                  >
-                    <div className="relative">
-                      <Avatar
-                        src={otherUser?.avatarUrl}
-                        fallback={otherUser?.name || "U"}
-                        className="ring-2 ring-[#D4FF00]/40"
-                      />
-                    </div>
-                    <div className="flex-1 overflow-hidden">
-                      <div className="flex justify-between items-center mb-0.5">
-                        <p className="text-xs font-black uppercase tracking-wider text-white">
-                          {chat.type === "CREWS" ? chat.name || `Crew · ${chat.participants?.length ?? 0} integrantes` : otherUser?.name || "Usuario"}
-                        </p>
-                        <span className="text-[10px] font-bold text-neutral-400">
-                          {new Date(chat.updated_at).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </span>
+              chats
+                .filter((chat) => chat.type !== "TRANSFER")
+                .map((chat) => {
+                  // Find the other participant
+                  const otherUser =
+                    chat.participants?.find((p) => p.id !== currentUser?.id) ||
+                    chat.participants?.[0];
+                  return (
+                    <Link
+                      key={chat.id}
+                      href={`/chat/${chat.id}`}
+                      className="p-3.5 rounded-3xl bg-[#14171F] hover:bg-[#1f2431] border border-white/10 flex items-center gap-4 transition-all"
+                    >
+                      <div className="relative">
+                        <Avatar
+                          src={otherUser?.avatarUrl}
+                          fallback={otherUser?.name || "U"}
+                          className="ring-2 ring-[#D4FF00]/40"
+                        />
                       </div>
-                      <p className="text-xs text-neutral-400 truncate font-medium">
-                        {chat.last_message ||
-                          "Haz clic para iniciar la conversación"}
-                      </p>
-                      {!!chat.unread_count && <span className="mt-1 inline-flex rounded-full bg-[#D4FF00] px-2 text-[10px] font-bold text-black">{chat.unread_count}</span>}
-                    </div>
-                  </Link>
-                );
-              })
+                      <div className="flex-1 overflow-hidden">
+                        <div className="flex justify-between items-center mb-0.5">
+                          <p className="text-xs font-black uppercase tracking-wider text-white">
+                            {chat.type === "CREWS"
+                              ? chat.name ||
+                                `Crew · ${
+                                  chat.participants?.length ?? 0
+                                } integrantes`
+                              : otherUser?.name || "Usuario"}
+                          </p>
+                          <span className="text-[10px] font-bold text-neutral-400">
+                            {new Date(chat.updated_at).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                        </div>
+                        <p className="text-xs text-neutral-400 truncate font-medium">
+                          {chat.last_message ||
+                            "Haz clic para iniciar la conversación"}
+                        </p>
+                        {!!chat.unread_count && (
+                          <span className="mt-1 inline-flex rounded-full bg-[#D4FF00] px-2 text-[10px] font-bold text-black">
+                            {chat.unread_count}
+                          </span>
+                        )}
+                      </div>
+                    </Link>
+                  );
+                })
             )}
           </div>
         </div>
