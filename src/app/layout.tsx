@@ -8,6 +8,7 @@ import { MatchProvider } from "@/context/MatchContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { ChatRealtimeProvider } from "@/context/ChatRealtimeContext";
 import { PushNotificationsProvider } from "@/context/PushNotificationsContext";
+import { DanceProvider } from "@/context/DanceContext";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { CapacitorSetup } from "@/components/CapacitorSetup";
 
@@ -51,6 +52,7 @@ export default function RootLayout({
             <AuthProvider>
               <PushNotificationsProvider>
               <ChatRealtimeProvider>
+              <DanceProvider>
               <MatchProvider>
                 <div className="flex flex-col min-h-[100dvh] w-full bg-[#0B0D10]">
                   <React.Suspense fallback={null}>
@@ -70,6 +72,7 @@ export default function RootLayout({
               </MatchProvider>
               </ChatRealtimeProvider>
               </PushNotificationsProvider>
+              </DanceProvider>
             </AuthProvider>
           </ThemeProvider>
         </GoogleOAuthProvider>

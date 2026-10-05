@@ -22,9 +22,26 @@ export function DanceStatsWidget() {
 
   useEffect(() => {
     api.get("/v1/dance/sessions")
+      
       .then((res) => {
-        // Only take the last 5 sessions for the mini widget
-        setSessions((res.data?.data || []).slice(0, 4).reverse());
+        const rawSessions = res.data?.data || [];
+        // Agrupar los pasos por eventId
+        const aggregatedMap = new Map<string, DanceSession>();
+        
+        rawSessions.forEach((session: DanceSession) => {
+          if (aggregatedMap.has(session.eventId)) {
+            const existing = aggregatedMap.get(session.eventId)!;
+            existing.stepsCount += session.stepsCount;
+            // Opcional: mantener el StartTime más antiguo
+          } else {
+            aggregatedMap.set(session.eventId, { ...session });
+          }
+        });
+        
+        const aggregatedSessions = Array.from(aggregatedMap.values());
+        
+        // Tomar los últimos 4 eventos únicos para el widget
+        setSessions(aggregatedSessions.slice(0, 4).reverse());
       })
       .catch((err) => console.error("Error fetching sessions for widget:", err))
       .finally(() => setIsLoading(false));

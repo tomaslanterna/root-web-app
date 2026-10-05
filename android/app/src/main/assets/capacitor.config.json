@@ -1,0 +1,21 @@
+{
+	"appId": "com.emnetwork.root",
+	"appName": "root-electronic-network",
+	"webDir": "out",
+	"server": {
+		"url": "http://192.168.1.9:3000",
+		"cleartext": true,
+		"allowNavigation": [
+			"*"
+		]
+	},
+	"plugins": {
+		"GoogleSignIn": {
+			"scopes": [
+				"profile",
+				"email"
+			],
+			"forceCodeForRefreshToken": true
+		}
+	}
+}
