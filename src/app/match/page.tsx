@@ -7,7 +7,18 @@ import { useMatcherCatalog } from "@/hooks/useMatcherCatalog";
 import { EventSwipeDeck } from "@/components/match/EventSwipeDeck";
 import { VibePreferencesDrawer } from "@/components/match/VibePreferencesDrawer";
 import { SquadMatchModal } from "@/components/match/SquadMatchModal";
-import { Sparkles, Users, SlidersHorizontal, Flame, MessageSquare, ArrowRight, Loader2, Plus, Trophy, Crown } from "lucide-react";
+import {
+  Sparkles,
+  Users,
+  SlidersHorizontal,
+  Flame,
+  MessageSquare,
+  ArrowRight,
+  Loader2,
+  Plus,
+  Trophy,
+  Crown,
+} from "lucide-react";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
 import { cn } from "@/lib/utils";
@@ -30,12 +41,15 @@ export default function MatchPage() {
     setIsPreferencesOpen,
   } = useMatch();
 
-  const [activeTab, setActiveTab] = useState<"deck" | "squads" | "crews">("deck");
-  const { events, permanentCrews, crewsLoading, isLoading, createCrew } = useMatcherCatalog();
+  const [activeTab, setActiveTab] = useState<"deck" | "squads" | "crews">(
+    "deck",
+  );
+  const { events, permanentCrews, crewsLoading, isLoading, createCrew } =
+    useMatcherCatalog();
 
   // User squads
   const userSquads = squads.filter((s) =>
-    s.members.some((m) => m.userId === user?.id)
+    s.members?.some((m) => m.userId === user?.id),
   );
 
   if (!authLoading && !user) {
@@ -55,7 +69,8 @@ export default function MatchPage() {
               <span>Crews Matcher</span>
             </h1>
             <p className="text-[10px] text-neutral-400 font-extrabold uppercase tracking-wider">
-              {vibeProfile.partyStyle.split("_")[0]} • {vibeProfile.favoriteGenres[0]}
+              {vibeProfile.partyStyle.split("_")[0]} •{" "}
+              {vibeProfile.favoriteGenres[0]}
             </p>
           </div>
         </div>
@@ -78,7 +93,7 @@ export default function MatchPage() {
               "flex-1 py-1.5 px-3 rounded-full text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all duration-200 cursor-pointer select-none",
               activeTab === "deck"
                 ? "bg-[#D4FF00] text-neutral-950 shadow-md shadow-[#D4FF00]/15 scale-[1.01]"
-                : "text-neutral-400 hover:text-white"
+                : "text-neutral-400 hover:text-white",
             )}
           >
             <Sparkles className="w-3.5 h-3.5" />
@@ -91,7 +106,7 @@ export default function MatchPage() {
               "flex-1 py-1.5 px-3 rounded-full text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all duration-200 cursor-pointer select-none",
               activeTab === "squads"
                 ? "bg-[#D4FF00] text-neutral-950 shadow-md shadow-[#D4FF00]/15 scale-[1.01]"
-                : "text-neutral-400 hover:text-white"
+                : "text-neutral-400 hover:text-white",
             )}
           >
             <Users className="w-3.5 h-3.5" />
@@ -102,7 +117,7 @@ export default function MatchPage() {
                   "text-[10px] px-1.5 py-0.2 rounded-full font-extrabold",
                   activeTab === "squads"
                     ? "bg-neutral-950/20 text-neutral-950"
-                    : "bg-[#D4FF00]/20 text-[#D4FF00]"
+                    : "bg-[#D4FF00]/20 text-[#D4FF00]",
                 )}
               >
                 {userSquads.length}
@@ -116,7 +131,7 @@ export default function MatchPage() {
               "flex-1 py-1.5 px-3 rounded-full text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all duration-200 cursor-pointer select-none",
               activeTab === "crews"
                 ? "bg-[#D4FF00] text-neutral-950 shadow-md shadow-[#D4FF00]/15 scale-[1.01]"
-                : "text-neutral-400 hover:text-white"
+                : "text-neutral-400 hover:text-white",
             )}
           >
             <Trophy className="w-3.5 h-3.5" />
@@ -126,9 +141,13 @@ export default function MatchPage() {
       </div>
 
       <div className="flex-1 w-full max-w-5xl mx-auto flex flex-col md:grid md:grid-cols-12 md:gap-8 lg:gap-16 p-4 md:py-8 items-start">
-        
         {/* Columna Izquierda: Swipe Deck (Siempre visible en desktop, según tab en móvil) */}
-        <div className={cn("w-full md:col-span-5 lg:col-span-5 flex-col", activeTab === "deck" ? "flex" : "hidden md:flex")}>
+        <div
+          className={cn(
+            "w-full md:col-span-5 lg:col-span-5 flex-col",
+            activeTab === "deck" ? "flex" : "hidden md:flex",
+          )}
+        >
           <div className="hidden md:flex items-center justify-between mb-4">
             <h2 className="text-sm font-black uppercase tracking-widest text-white flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-[#D4FF00]" /> Descubrir Eventos
@@ -138,7 +157,9 @@ export default function MatchPage() {
             {isLoading ? (
               <div className="flex flex-col items-center justify-center p-8 space-y-4">
                 <Loader2 className="w-8 h-8 text-[#D4FF00] animate-spin" />
-                <p className="text-sm font-bold text-neutral-400">Buscando eventos para vos...</p>
+                <p className="text-sm font-bold text-neutral-400">
+                  Buscando eventos para vos...
+                </p>
               </div>
             ) : (
               <EventSwipeDeck
@@ -154,7 +175,12 @@ export default function MatchPage() {
         </div>
 
         {/* Columna Derecha: User Squads List (Siempre visible en desktop, según tab en móvil) */}
-        <div className={cn("w-full md:col-span-7 lg:col-span-7 flex-col space-y-4", activeTab === "squads" ? "flex" : "hidden md:flex")}>
+        <div
+          className={cn(
+            "w-full md:col-span-7 lg:col-span-7 flex-col space-y-4",
+            activeTab === "squads" ? "flex" : "hidden md:flex",
+          )}
+        >
           <div className="flex items-center justify-between">
             <h2 className="text-xs md:text-sm font-black uppercase tracking-widest text-neutral-400 flex items-center gap-2">
               <Users className="w-4 h-4 hidden md:block text-[#D4FF00]" />
@@ -165,13 +191,26 @@ export default function MatchPage() {
             </span>
           </div>
 
-          {squadsError && <button onClick={() => void refreshSquads().catch(() => undefined)} className="text-xs text-red-300">{squadsError} Reintentar</button>}
-          {isLoadingSquads && userSquads.length === 0 ? <Loader2 className="h-6 w-6 animate-spin text-[#D4FF00]" /> : userSquads.length === 0 ? (
+          {squadsError && (
+            <button
+              onClick={() => void refreshSquads().catch(() => undefined)}
+              className="text-xs text-red-300"
+            >
+              {squadsError} Reintentar
+            </button>
+          )}
+          {isLoadingSquads && userSquads.length === 0 ? (
+            <Loader2 className="h-6 w-6 animate-spin text-[#D4FF00]" />
+          ) : userSquads.length === 0 ? (
             <div className="p-8 text-center rounded-3xl bg-[#14171F] border border-white/10 space-y-3 mt-4">
               <Users className="w-8 h-8 text-neutral-500 mx-auto" />
-              <p className="text-sm font-bold text-neutral-300">Aún no tienes ningún Crew activo</p>
+              <p className="text-sm font-bold text-neutral-300">
+                Aún no tienes ningún Crew activo
+              </p>
               <p className="text-xs text-neutral-500 leading-relaxed">
-                Empieza a deslizar eventos a la derecha en la pestaña Descubrir para que el sistema te empareje automáticamente en un Crew con otros asistentes compatibles.
+                Empieza a deslizar eventos a la derecha en la pestaña Descubrir
+                para que el sistema te empareje automáticamente en un Crew con
+                otros asistentes compatibles.
               </p>
               <button
                 type="button"
@@ -195,7 +234,10 @@ export default function MatchPage() {
                   >
                     <div className="flex items-center gap-4">
                       {(sq.eventImage || event?.cinematicBannerUrl) && (
-                        <Image width={80} height={80} unoptimized
+                        <Image
+                          width={80}
+                          height={80}
+                          unoptimized
                           src={sq.eventImage || event?.cinematicBannerUrl || ""}
                           alt={sq.eventTitle || event?.title || "Evento"}
                           className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover border border-white/10 shrink-0"
@@ -207,9 +249,11 @@ export default function MatchPage() {
                           <h3 className="text-xs md:text-sm font-black uppercase tracking-tight text-white group-hover:text-[#D4FF00] transition-colors truncate">
                             {sq.name}
                           </h3>
-                          {sq.matchScore != null && <span className="text-[9px] md:text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-[#D4FF00]/15 text-[#D4FF00] border border-[#D4FF00]/20 shrink-0">
-                            {sq.matchScore}% Match
-                          </span>}
+                          {sq.matchScore != null && (
+                            <span className="text-[9px] md:text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-[#D4FF00]/15 text-[#D4FF00] border border-[#D4FF00]/20 shrink-0">
+                              {sq.matchScore}% Match
+                            </span>
+                          )}
                         </div>
 
                         <p className="text-[10px] md:text-xs text-neutral-400 font-bold truncate">
@@ -233,7 +277,8 @@ export default function MatchPage() {
                           </div>
 
                           <span className="text-neutral-400 group-hover:text-white flex items-center gap-1 text-[11px] font-extrabold uppercase transition-colors">
-                            <MessageSquare className="w-3.5 h-3.5 text-[#D4FF00]" /> <span className="hidden sm:inline">Chat</span> →
+                            <MessageSquare className="w-3.5 h-3.5 text-[#D4FF00]" />{" "}
+                            <span className="hidden sm:inline">Chat</span> →
                           </span>
                         </div>
                       </div>
@@ -246,13 +291,22 @@ export default function MatchPage() {
         </div>
 
         {/* Columna: Permanent Crews (solo mobile tab, siempre visible en desktop) */}
-        <div className={cn("w-full md:col-span-7 lg:col-span-12 flex-col space-y-4", activeTab === "crews" ? "flex" : "hidden")}>
+        <div
+          className={cn(
+            "w-full md:col-span-7 lg:col-span-12 flex-col space-y-4",
+            activeTab === "crews" ? "flex" : "hidden",
+          )}
+        >
           <div className="flex items-center justify-between">
             <h2 className="text-xs font-black uppercase tracking-widest text-neutral-400 flex items-center gap-2">
               <Trophy className="w-4 h-4 text-[#D4FF00]" /> Crews Permanentes
             </h2>
             <button
-              onClick={() => void createCrew(undefined).then((id) => router.push(`/crews/${id}`)).catch(() => undefined)}
+              onClick={() =>
+                void createCrew(undefined)
+                  .then((id) => router.push(`/crews/${id}`))
+                  .catch(() => undefined)
+              }
               className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase text-[#D4FF00] bg-[#D4FF00]/10 px-3 py-1.5 rounded-full border border-[#D4FF00]/20 hover:bg-[#D4FF00]/20 transition-all"
             >
               <Plus className="w-3.5 h-3.5" /> Nueva Crew
@@ -266,9 +320,12 @@ export default function MatchPage() {
           ) : permanentCrews.length === 0 ? (
             <div className="p-8 text-center rounded-3xl bg-[#14171F] border border-white/10 space-y-3">
               <Trophy className="w-8 h-8 text-neutral-500 mx-auto" />
-              <p className="text-sm font-bold text-neutral-300">Todavía no tenés crews permanentes</p>
+              <p className="text-sm font-bold text-neutral-300">
+                Todavía no tenés crews permanentes
+              </p>
               <p className="text-xs text-neutral-500 leading-relaxed">
-                Creá una crew e invitá a tus amigos para competir en el ranking de pasos de baile.
+                Creá una crew e invitá a tus amigos para competir en el ranking
+                de pasos de baile.
               </p>
             </div>
           ) : (
@@ -288,10 +345,12 @@ export default function MatchPage() {
                     </h3>
                     <div className="flex items-center gap-3 mt-1">
                       <span className="text-[10px] text-neutral-500 font-bold flex items-center gap-1">
-                        <Users className="w-3 h-3" /> {crew.memberCount} miembros
+                        <Users className="w-3 h-3" /> {crew.memberCount}{" "}
+                        miembros
                       </span>
                       <span className="text-[10px] text-[#D4FF00] font-bold flex items-center gap-1">
-                        <Crown className="w-3 h-3" /> {crew.topSteps.toLocaleString()} pasos top
+                        <Crown className="w-3 h-3" />{" "}
+                        {crew.topSteps.toLocaleString()} pasos top
                       </span>
                     </div>
                   </div>
@@ -301,7 +360,6 @@ export default function MatchPage() {
             </div>
           )}
         </div>
-
       </div>
 
       {/* Global Vibe Preferences Drawer */}
