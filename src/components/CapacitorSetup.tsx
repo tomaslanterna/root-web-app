@@ -3,8 +3,11 @@
 import { useEffect } from "react";
 import { Capacitor } from "@capacitor/core";
 import { StatusBar, Style } from "@capacitor/status-bar";
+import { ConfirmModal } from "@/components/ui/Modal";
+import { useNativeBack } from "@/hooks/useNativeBack";
 
 export function CapacitorSetup() {
+  const { confirmExit, cancelExit, exit } = useNativeBack();
   useEffect(() => {
     const setupCapacitor = async () => {
       if (Capacitor.isNativePlatform()) {
@@ -25,5 +28,7 @@ export function CapacitorSetup() {
     setupCapacitor();
   }, []);
 
-  return null;
+  return <ConfirmModal isOpen={confirmExit} onClose={cancelExit} onConfirm={exit}
+    title="¿Salir de Root?" message="¿Querés salir de la aplicación?"
+    confirmText="Salir" cancelText="Seguir en Root" />;
 }

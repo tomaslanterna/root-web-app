@@ -14,6 +14,8 @@ import { CommunityList } from "@/components/communities/CommunityList";
 import { Button } from "@/components/ui/Button";
 import { useCommunityDirectory } from "@/hooks/useCommunities";
 import type { CommunityFilters } from "@/types/communities";
+import { useAuth } from "@/context/AuthContext";
+import Link from "next/link";
 
 const PAGE_SIZE = 12;
 const DEFAULT_FILTERS: CommunityFilters = {
@@ -52,32 +54,35 @@ const URUGUAY_DEPARTMENTS = [
 ] as const;
 
 export default function CommunitiesPage() {
+  const { user } = useAuth();
+  const [scope, setScope] = useState<"mine" | "explore">("explore");
   const [draftFilters, setDraftFilters] = useState<CommunityFilters>(DEFAULT_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState<CommunityFilters>(DEFAULT_FILTERS);
   const [areFiltersExpanded, setAreFiltersExpanded] = useState(false);
   const { communities, meta, load, isLoading, error } = useCommunityDirectory();
 
   useEffect(() => {
-    void load(DEFAULT_FILTERS).catch(() => undefined);
-  }, [load]);
+    if (scope === "mine" && !user) return;
+    void load({ ...appliedFilters, scope }).catch(() => undefined);
+  }, [load, appliedFilters, scope, user]);
 
   const applyFilters = () => {
+    if (scope !== "explore") return;
     const next = { ...draftFilters, limit: PAGE_SIZE, offset: 0 };
     setAppliedFilters(next);
     setAreFiltersExpanded(false);
-    void load(next).catch(() => undefined);
   };
 
   const clearFilters = () => {
-    setDraftFilters(DEFAULT_FILTERS);
-    setAppliedFilters(DEFAULT_FILTERS);
+    const defaults = { ...DEFAULT_FILTERS, country: scope === "mine" ? "" : DEFAULT_FILTERS.country };
+    setDraftFilters(defaults);
+    setAppliedFilters(defaults);
     setAreFiltersExpanded(false);
-    void load(DEFAULT_FILTERS).catch(() => undefined);
   };
 
   const loadMore = () => {
     void load(
-      { ...appliedFilters, limit: PAGE_SIZE, offset: communities.length },
+      { ...appliedFilters, scope, limit: PAGE_SIZE, offset: communities.length },
       true,
     ).catch(() => undefined);
   };
@@ -99,13 +104,16 @@ export default function CommunitiesPage() {
           {isLoading && communities.length === 0 ? (
             <Loader2 className="h-3 w-3 animate-spin" />
           ) : (
-            `${meta.total} disponibles`
+            `${meta.total} ${scope === "mine" ? "tuyas" : "disponibles"}`
           )}
         </span>
       </header>
 
       <main className="mx-auto w-full max-w-6xl space-y-5 p-4 md:p-8">
-        <section className="overflow-hidden rounded-3xl border border-white/10 bg-[#14171F] shadow-xl">
+        <div role="tablist" aria-label="Comunidades" className="flex gap-2 rounded-2xl border border-white/10 bg-[#14171F] p-1">
+          {(["mine", "explore"] as const).map((tab) => <button key={tab} type="button" role="tab" aria-selected={scope === tab} disabled={isLoading} onClick={() => { setScope(tab); setAreFiltersExpanded(false); const defaults = { ...DEFAULT_FILTERS, country: tab === "mine" ? "" : DEFAULT_FILTERS.country }; setDraftFilters(defaults); setAppliedFilters(defaults); }} className={`flex-1 rounded-xl px-3 py-3 text-xs font-black ${scope === tab ? "bg-[#D4FF00] text-black" : "text-neutral-400 hover:text-white"}`}>{tab === "mine" ? "Mis comunidades" : "Explorar"}</button>)}
+        </div>
+        {scope === "explore" && <section className="overflow-hidden rounded-3xl border border-white/10 bg-[#14171F] shadow-xl">
           <button
             type="button"
             onClick={() => setAreFiltersExpanded((current) => !current)}
@@ -237,9 +245,9 @@ export default function CommunitiesPage() {
               </div>
             </div>
           )}
-        </section>
+        </section>}
 
-        {error && communities.length === 0 ? (
+        {scope === "mine" && !user ? <div className="rounded-3xl border border-white/10 p-6 text-center text-sm"><Link href="/login" className="font-bold text-[#D4FF00]">Iniciá sesión para ver tus comunidades</Link></div> : error && communities.length === 0 ? (
           <section className="rounded-3xl border border-red-500/20 bg-red-500/5 p-8 text-center">
             <p className="text-sm font-bold text-red-300">
               No pudimos cargar las comunidades.
@@ -248,13 +256,13 @@ export default function CommunitiesPage() {
               variant="outline"
               size="sm"
               className="mt-4"
-              onClick={() => void load(appliedFilters).catch(() => undefined)}
+              onClick={() => void load({ ...appliedFilters, scope }).catch(() => undefined)}
             >
               Reintentar
             </Button>
           </section>
         ) : (
-          <CommunityList communities={communities} isLoading={isLoading && communities.length === 0} />
+          <CommunityList communities={communities} isLoading={isLoading && communities.length === 0} emptyMessage={scope === "mine" ? "Todavía no pertenecés a ninguna comunidad. Descubrí una en Explorar." : "No hay comunidades disponibles con estos filtros."} />
         )}
 
         {meta.hasMore && (

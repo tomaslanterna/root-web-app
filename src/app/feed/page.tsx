@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { LiveEventBanner } from "@/components/LiveEventBanner";
 import { PullToRefresh } from "@/components/ui/PullToRefresh";
 import { PostCard } from "@/components/ui/PostCard";
@@ -9,29 +10,23 @@ import { EventCard } from "@/components/ui/EventCard";
 import { SurveyCard } from "@/components/ui/SurveyCard";
 import { CommunityBanner } from "@/components/ui/CommunityBanner";
 import { QuickActionMenu } from "@/components/ui/QuickActionMenu";
-import { MOCK_EVENTS } from "@/lib/mocks";
 import type { Event } from "@/types/events";
 import type { Post } from "@/types/posts";
-import { Plus, Sparkles, Compass, ChevronUp, Globe, Flame, UserCheck, Users, Loader2, Calendar, ArrowRight } from "lucide-react";
+import { Plus, Sparkles, Compass, ChevronUp, Loader2, Calendar, ArrowRight, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { api } from "@/lib/api";
+import { getUpcomingFeedEvents } from "@/services/feed";
+import { useHorizontalSwipe } from "@/hooks/useHorizontalSwipe";
+import { useFeedInbox } from "@/context/FeedInboxContext";
 import { useMutation } from "@/hooks/useMutation";
 import { useAuth } from "@/context/AuthContext";
 import { postsApi } from "@/services/posts";
 import { surveysApi } from "@/services/surveys";
-import { Star } from "lucide-react";
 
 type FilterType = "global" | "featured" | "following" | "communities";
 
-interface FilterOption {
-  id: FilterType;
-  label: string;
-  icon: React.ElementType;
-}
-
 export default function FeedPage() {
   const router = useRouter();
-  const [filter, setFilter] = useState<FilterType>("global");
+  const [filter] = useState<FilterType>("global");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSwimlaneHidden, setIsSwimlaneHidden] = useState(false);
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
@@ -58,10 +53,7 @@ export default function FeedPage() {
 
   // 1. Fetch Events & Communities
   const { mutate: fetchUpcomingEvents, isLoading: isLoadingEvents } = useMutation<Event[], void>(
-    async () => {
-      const res = await api.get("/v1/events");
-      return res.data?.data || (Array.isArray(res.data) ? res.data : []);
-    },
+    getUpcomingFeedEvents,
     {
       onSuccess: (data) => {
         setUpcomingEvents(data);
@@ -88,6 +80,10 @@ export default function FeedPage() {
   );
 
   const { user } = useAuth();
+  const inbox = useFeedInbox();
+  const openInbox = inbox.open;
+  const { ref: swipeRef } = useHorizontalSwipe(-1, !!user && !isMenuOpen, openInbox,
+    { onProgress: inbox.move, onCancel: inbox.cancel });
 
   useEffect(() => {
     void fetchUpcomingEvents().catch(() => undefined);
@@ -209,12 +205,6 @@ export default function FeedPage() {
   }, [handleLoadMore]);
 
 
-  const filterOptions: FilterOption[] = [
-    { id: "global", label: "Todos", icon: Globe },
-    { id: "featured", label: "Destacados", icon: Flame },
-    { id: "following", label: "Seguidos", icon: UserCheck },
-  ];
-
   useEffect(() => {
     const handleScroll = () => {
       if (!swimlaneRef.current) return;
@@ -245,11 +235,11 @@ export default function FeedPage() {
     filter === "following" ? hasMoreFollowing : false;
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#0B0D10] text-white">
+    <div ref={swipeRef} className="feed-swipe flex flex-col min-h-screen bg-[#0B0D10] text-white">
       {/* Sticky Header with Collapsible Eventos Destacados Bar */}
       <header 
         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-        className="sticky top-0 z-40 glass-header-obsidian transition-all duration-300 md:hidden cursor-pointer pt-[env(safe-area-inset-top,0px)]"
+        className="sticky top-0 z-40 glass-header-obsidian transition-all duration-300 cursor-pointer pt-[var(--root-safe-top)]"
       >
         <div className="px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-2">
@@ -259,6 +249,8 @@ export default function FeedPage() {
             <h1 className="text-xl font-black italic tracking-tighter text-white">root</h1>
           </div>
 
+          <div className="flex items-center gap-2">
+          <button type="button" aria-label={user ? "Abrir mensajes" : "Iniciar sesión para ver mensajes"} onClick={(event) => { event.stopPropagation(); openInbox(); }} className="rounded-full border border-white/10 bg-white/5 p-2.5 text-[#D4FF00] hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-[#D4FF00]"><MessageSquare className="h-5 w-5" /></button>
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -269,6 +261,7 @@ export default function FeedPage() {
             <Plus className="w-4 h-4 stroke-[3]" />
             <span className="hidden sm:inline">Crear</span>
           </button>
+          </div>
         </div>
 
         {(!hasFetchedEvents || isLoadingEvents || upcomingEvents.length > 0) && (
@@ -312,7 +305,7 @@ export default function FeedPage() {
         <LiveEventBanner />
         {/* Desktop Hero Banner */}
         <div className="relative w-full h-[350px] md:h-[450px] lg:h-[500px] overflow-hidden hidden md:flex items-center">
-           <img 
+           <Image fill unoptimized sizes="100vw"
              src="https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=80&w=2070&auto=format&fit=crop" 
              alt="Electronic Music Festival" 
              className="absolute inset-0 w-full h-full object-cover opacity-40"
@@ -432,7 +425,7 @@ export default function FeedPage() {
                 </div>
               ) : (
                 <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-6">
-                  {currentPosts.map((post: any) => (
+                  {currentPosts.map((post) => (
                     <PostCard key={post.id} post={post} variant="electronic" />
                   ))}
 

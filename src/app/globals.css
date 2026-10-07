@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+@media (prefers-reduced-motion: reduce) {
+  .chat-inbox-screen { animation: none; transform: none !important; transition: none !important; }
+  .chat-inbox-preview { visibility: hidden; }
+  .feed-swipe, .feed-inbox-content { transform: none !important; transition: none !important; }
+}
+
 @theme {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
@@ -8,6 +14,12 @@
 :root {
   --background: #fafafa;
   --foreground: #09090b;
+  /* Capacitor 8 supplies these on Android; browsers/iOS use their native env(). */
+  --root-safe-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+  --root-safe-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+  --root-mobile-nav-height: 3.875rem;
+  --root-mobile-nav-bottom: calc(1rem + var(--root-safe-bottom));
+  --root-mobile-nav-clearance: calc(var(--root-mobile-nav-height) + var(--root-mobile-nav-bottom));
 }
 
 @layer base {
@@ -16,6 +28,7 @@
     font-feature-settings: "ss01", "ss02", "cv01", "cv02";
     -ms-overflow-style: none; /* IE and Edge */
     scrollbar-width: none; /* Firefox */
+    overflow-x: clip;
   }
   
   /* Ocultar barra de scroll en navegadores WebKit (Chrome, Safari, iOS) */
@@ -30,19 +43,19 @@
 }
 
 .pb-safe {
-  padding-bottom: env(safe-area-inset-bottom);
+  padding-bottom: var(--root-safe-bottom);
 }
 
 .pt-safe-header {
-  padding-top: calc(0.75rem + env(safe-area-inset-top, 0px)) !important;
+  padding-top: calc(0.75rem + var(--root-safe-top)) !important;
 }
 
 .pt-safe-1 {
-  padding-top: calc(1rem + env(safe-area-inset-top, 0px)) !important;
+  padding-top: calc(1rem + var(--root-safe-top)) !important;
 }
 
 .top-safe-header {
-  top: calc(1rem + env(safe-area-inset-top, 0px)) !important;
+  top: calc(1rem + var(--root-safe-top)) !important;
 }
 
 /* 

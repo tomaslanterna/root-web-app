@@ -5,8 +5,7 @@ import { UserVibeProfile } from "@/lib/mocks";
 import type { Event } from "@/types/events";
 import { SwipeCard } from "./SwipeCard";
 import { SwipeControls } from "./SwipeControls";
-import { Sparkles, RotateCcw, SlidersHorizontal, Compass } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Sparkles, RotateCcw, SlidersHorizontal } from "lucide-react";
 
 interface EventSwipeDeckProps {
   events: Event[];
@@ -64,7 +63,7 @@ export function EventSwipeDeck({
     }, 280);
   };
 
-  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+  const handlePointerUp = () => {
     if (!isDragging) return;
     setIsDragging(false);
 
@@ -161,8 +160,8 @@ export function EventSwipeDeck({
 
   return (
     <div className="flex flex-col h-full space-y-4">
-      {/* 3D Stack Container */}
-      <div className="relative w-full aspect-[2/3] max-w-sm mx-auto touch-none select-none">
+      {/* Keep room for the header, controls and safe-area-aware mobile dock. */}
+      <div className="relative w-full aspect-[2/3] max-h-[max(18rem,calc(100dvh-17rem-var(--root-mobile-nav-clearance)-var(--root-safe-top)))] md:max-h-none max-w-sm mx-auto touch-none select-none">
         {/* 3rd Card Background Preview */}
         {thirdEvent && (
           <div className="absolute inset-0 rounded-3xl scale-[0.88] translate-y-6 opacity-40 blur-[1px] bg-neutral-900 border border-white/5 pointer-events-none -z-20 transition-transform duration-300" />

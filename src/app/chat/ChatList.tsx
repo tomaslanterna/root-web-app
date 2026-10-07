@@ -10,6 +10,7 @@ import {
   Plus,
   X,
   Loader2,
+  ArrowLeft,
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -19,8 +20,9 @@ import {
 } from "@/hooks/useChatDirectory";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
+import { useNativeBackHandler } from "@/hooks/useNativeBack";
 
-export function ChatList({ className }: { className?: string }) {
+export function ChatList({ className, embedded = false, onBack, backButtonRef }: { className?: string; embedded?: boolean; onBack?: () => void; backButtonRef?: React.Ref<HTMLButtonElement> }) {
   const { squads } = useMatch();
   const { user: currentUser } = useAuth();
   const router = useRouter();
@@ -36,6 +38,7 @@ export function ChatList({ className }: { className?: string }) {
   } = useChatDirectory();
 
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  useNativeBackHandler(isSearchModalOpen, () => setIsSearchModalOpen(false));
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<ChatSearchUser[]>([]);
 
@@ -72,8 +75,9 @@ export function ChatList({ className }: { className?: string }) {
         className || ""
       }`}
     >
-      <header className="fixed top-0 inset-x-0 z-40 mx-auto w-full max-w-md glass-header-obsidian px-4 pb-3 pt-safe-header flex items-center justify-between md:static md:max-w-none">
+      <header className={`${embedded ? "sticky" : "fixed"} top-0 inset-x-0 z-40 mx-auto w-full ${embedded ? "max-w-none" : "max-w-md"} glass-header-obsidian px-4 pb-3 pt-safe-header flex items-center justify-between md:static md:max-w-none`}>
         <div className="flex items-center gap-2">
+          {onBack && <button ref={backButtonRef} type="button" onClick={onBack} aria-label="Volver al Feed" className="rounded-full p-2 hover:bg-white/10"><ArrowLeft className="h-5 w-5" /></button>}
           <MessageSquare className="w-5 h-5 text-[#D4FF00]" />
           <h1 className="text-lg font-black uppercase tracking-wider text-white">
             Mensajes
@@ -91,9 +95,9 @@ export function ChatList({ className }: { className?: string }) {
       </header>
 
       {/* Espaciador para compensar el header fixed */}
-      <div className="pt-safe-header opacity-0 pointer-events-none pb-3 md:hidden">
+      {!embedded && <div className="pt-safe-header opacity-0 pointer-events-none pb-3 md:hidden">
         <div className="h-10"></div>
-      </div>
+      </div>}
 
       <div className="p-4 space-y-6">
         {/* 1. Crews de Eventos Section */}
@@ -210,7 +214,7 @@ export function ChatList({ className }: { className?: string }) {
 
       {/* New Chat Search Modal */}
       {isSearchModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div role="dialog" aria-modal="true" aria-label="Nuevo chat" className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="bg-[#14171F] rounded-3xl border border-white/10 w-full max-w-sm p-4 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-black uppercase tracking-wider">

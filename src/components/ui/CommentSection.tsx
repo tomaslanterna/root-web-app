@@ -1,12 +1,12 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, LogIn, MessageCircle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { useMutation } from "@/hooks/useMutation";
-import { api } from "@/lib/api";
-import type { EventComment, PaginatedResponse } from "@/types/events";
+import { useComments } from "@/hooks/useComments";
+import { ReportContentAction } from "@/components/communities/ReportContentAction";
+import type { EventComment } from "@/types/events";
 import { Avatar } from "./Avatar";
 import { Button } from "./Button";
 
@@ -17,9 +17,9 @@ interface CommentSectionProps {
   mockComments?: EventComment[];
   className?: string;
   endpointType?: "events" | "posts";
+  reportCommunityId?: string;
 }
 
-const pageSize = 20;
 
 export function CommentSection({
   targetId,
@@ -28,87 +28,14 @@ export function CommentSection({
   mockComments = [],
   className = "",
   endpointType = "events",
+  reportCommunityId,
 }: CommentSectionProps) {
   const router = useRouter();
   const { user } = useAuth();
   
-  const [comments, setComments] = useState<EventComment[]>(isMock ? mockComments : []);
-  const [total, setTotal] = useState(isMock ? mockComments.length : 0);
-  const [hasMore, setHasMore] = useState(false);
-  const [hasLoaded, setHasLoaded] = useState(isMock);
   const [content, setContent] = useState("");
 
-  const {
-    mutate: fetchComments,
-    isLoading: isLoadingComments,
-    error: commentsError,
-  } = useMutation<PaginatedResponse<EventComment>, number>(
-    async (offset) => {
-      if (isMock) {
-        return { 
-          data: [], 
-          meta: { total: mockComments.length, hasMore: false, limit: pageSize, offset } 
-        } as PaginatedResponse<EventComment>;
-      }
-      const response = await api.get<PaginatedResponse<EventComment>>(
-        `/v1/${endpointType}/${targetId}/comments`,
-        { params: { limit: pageSize, offset } },
-      );
-      return response.data;
-    },
-    {
-      onSuccess: (response, offset) => {
-        if (!isMock) {
-          setComments((current) => (offset === 0 ? response.data : [...current, ...response.data]));
-          setTotal(response.meta.total);
-          setHasMore(response.meta.hasMore);
-          setHasLoaded(true);
-        }
-      },
-      onError: () => {
-        if (!isMock) setHasLoaded(true);
-      },
-    },
-  );
-
-  const {
-    mutate: postComment,
-    isLoading: isPostingComment,
-    error: createCommentError,
-  } = useMutation<EventComment, string>(
-    async (text) => {
-      if (isMock) {
-        // Return a mock response immediately
-        return {
-          id: Math.random().toString(),
-          targetId,
-          authorId: user?.id || "mock-author",
-          authorName: user?.name || "Usuario",
-          authorUsername: user?.username || "usuario",
-          authorAvatar: user?.avatarUrl,
-          content: text,
-          timestamp: new Date().toISOString(),
-        } as EventComment;
-      }
-      const response = await api.post<EventComment>(`/v1/${endpointType}/${targetId}/comments`, {
-        content: text,
-      });
-      return response.data;
-    },
-    {
-      onSuccess: (comment) => {
-        setComments((current) => [comment, ...current]);
-        setTotal((current) => current + 1);
-        setContent("");
-      },
-    },
-  );
-
-  useEffect(() => {
-    if (!isMock) {
-      void fetchComments(0).catch(() => undefined);
-    }
-  }, [fetchComments, isMock, targetId, endpointType]);
+  const { comments, total, hasMore, hasLoaded, fetchComments, postComment, isLoadingComments, isPostingComment, commentsError, createCommentError } = useComments(targetId, endpointType, isMock, mockComments);
 
   const submitComment = (event: FormEvent) => {
     event.preventDefault();
@@ -118,7 +45,7 @@ export function CommentSection({
       return;
     }
     if (trimmed && trimmed.length <= 1000 && !isPostingComment) {
-      void postComment(trimmed).catch(() => undefined);
+      void postComment(trimmed).then(() => setContent("")).catch(() => undefined);
     }
   };
 
@@ -138,13 +65,15 @@ export function CommentSection({
       {user ? (
         <form onSubmit={submitComment} className="flex gap-3 mb-10">
           <Avatar src={user.avatarUrl} fallback={user.name || "Tú"} size="sm" className="ring-1 ring-white/10" />
-          <div className="flex-1 bg-[#14171F] border border-white/10 rounded-2xl p-1 flex items-center shadow-inner focus-within:border-white/30 transition-colors">
+          <div className="min-w-0 flex-1 bg-[#14171F] border border-white/10 rounded-2xl p-1 flex items-center shadow-inner focus-within:border-white/30 transition-colors">
             <input 
               type="text" 
+              maxLength={1000}
+              aria-label="Escribir comentario"
               placeholder="Deja tu opinión..." 
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              className="flex-1 bg-transparent border-none text-sm text-white px-3 focus:outline-none placeholder:text-neutral-500 font-medium"
+              className="min-w-0 flex-1 bg-transparent border-none text-sm text-white px-3 focus:outline-none placeholder:text-neutral-500 font-medium"
             />
             <button 
               type="submit"
@@ -183,7 +112,7 @@ export function CommentSection({
         ) : commentsError && comments.length === 0 ? (
           <div className="space-y-3 py-8 text-center">
             <p className="text-xs font-semibold text-rose-400">No pudimos cargar los comentarios.</p>
-            <Button size="sm" variant="outline" onClick={() => void fetchComments(0)}>
+            <Button size="sm" variant="outline" onClick={() => void fetchComments(0).catch(() => undefined)}>
               Reintentar
             </Button>
           </div>
@@ -207,14 +136,15 @@ export function CommentSection({
                   size="sm" 
                   className="ring-1 ring-white/5 shrink-0" 
                 />
-                <div className="flex-1">
+                <div className="min-w-0 flex-1">
                   <div className="flex items-baseline justify-between mb-1">
                     <span className="text-sm font-bold text-neutral-200">{comment.authorName || "Usuario"}</span>
                     <span className="text-[10px] text-neutral-500 font-bold tracking-wider uppercase">
                       {formattedTime}
                     </span>
                   </div>
-                  <p className="text-sm text-neutral-400 font-medium leading-relaxed">{comment.content}</p>
+                  <p className="break-words text-sm text-neutral-400 font-medium leading-relaxed">{comment.content}</p>
+                  {reportCommunityId && <ReportContentAction communityId={reportCommunityId} targetType="comment" targetId={comment.id} />}
                 </div>
               </div>
             );
@@ -229,7 +159,7 @@ export function CommentSection({
             variant="outline"
             size="full"
             disabled={isLoadingComments}
-            onClick={() => void fetchComments(comments.length)}
+            onClick={() => void fetchComments(comments.length).catch(() => undefined)}
           >
             {isLoadingComments ? "Cargando..." : "Cargar más respuestas"}
           </Button>

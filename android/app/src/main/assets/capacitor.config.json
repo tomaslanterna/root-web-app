@@ -1,15 +1,26 @@
 {
 	"appId": "com.emnetwork.root",
 	"appName": "root-electronic-network",
-	"webDir": "out",
+	"webDir": "native-shell",
 	"server": {
-		"url": "http://192.168.1.9:3000",
+		"url": "https://root-web-app.vercel.app",
 		"cleartext": true,
 		"allowNavigation": [
 			"*"
 		]
 	},
 	"plugins": {
+		"SystemBars": {
+			"insetsHandling": "css",
+			"initialViewportFitValueHint": "cover",
+			"style": "DARK"
+		},
+		"PushNotifications": {
+			"presentationOptions": [
+				"sound",
+				"alert"
+			]
+		},
 		"GoogleSignIn": {
 			"scopes": [
 				"profile",

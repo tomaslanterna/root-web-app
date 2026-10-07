@@ -5,9 +5,10 @@ import type { Community } from "@/types/communities";
 interface CommunityListProps {
   communities: Community[];
   isLoading?: boolean;
+  emptyMessage?: string;
 }
 
-export function CommunityList({ communities, isLoading }: CommunityListProps) {
+export function CommunityList({ communities, isLoading, emptyMessage = "No hay comunidades disponibles en tu zona" }: CommunityListProps) {
   if (isLoading) {
     return (
       <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-6">
@@ -27,7 +28,7 @@ export function CommunityList({ communities, isLoading }: CommunityListProps) {
       {communities.length === 0 && (
         <div className="p-8 text-center rounded-3xl bg-[#14171F] border border-white/10 space-y-2 md:col-span-2 lg:col-span-3">
           <Users className="w-8 h-8 text-neutral-500 mx-auto" />
-          <p className="text-sm font-bold text-neutral-300">No hay comunidades disponibles en tu zona</p>
+          <p className="text-sm font-bold text-neutral-300">{emptyMessage}</p>
         </div>
       )}
     </div>

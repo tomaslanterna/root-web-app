@@ -9,6 +9,7 @@ export interface Post {
   headerImageUrl?: string;
   timestamp: string;
   isFeatured?: boolean;
+  isPinned?: boolean;
   authorName?: string;
   authorAvatar?: string;
   isVerified?: boolean;

@@ -15,6 +15,9 @@ export interface Community {
   isMember: boolean;
   canPublish: boolean;
   isActive: boolean;
+  unreadCount: number;
+  muted: boolean;
+  contact?: { id: string; name: string; username: string; avatarUrl: string };
 }
 
 export interface CommunityFilters {
@@ -24,7 +27,23 @@ export interface CommunityFilters {
   department?: string;
   limit?: number;
   offset?: number;
+  scope?: "mine" | "explore";
 }
+
+export interface CommunityReportInput {
+  targetType: "post" | "comment";
+  targetId: string;
+  reason: "spam" | "abuse" | "other";
+  details: string;
+}
+export interface CommunityReport extends CommunityReportInput {
+  id: string;
+  content: string;
+  reporterName: string;
+  status: "pending" | "reviewed" | "dismissed";
+  createdAt: string;
+}
+export interface CommunityReportsResponse { data: CommunityReport[]; meta: PaginationMeta }
 
 export interface PaginationMeta {
   total: number;
@@ -46,6 +65,7 @@ export interface CommunityMembershipResponse {
 export interface CommunityAnnouncementsResponse {
   data: Post[];
   meta: PaginationMeta;
+  readThroughPostId?: string;
 }
 
 export interface CreateCommunityAnnouncementInput {

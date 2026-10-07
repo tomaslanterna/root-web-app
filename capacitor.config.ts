@@ -13,6 +13,11 @@ const config: CapacitorConfig = {
     allowNavigation: ["*"],
   },
   plugins: {
+    SystemBars: {
+      insetsHandling: "css",
+      initialViewportFitValueHint: "cover",
+      style: "DARK",
+    },
     PushNotifications: {
       presentationOptions: ["sound", "alert"],
     },
