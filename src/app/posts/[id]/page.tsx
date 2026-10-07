@@ -1,58 +1,35 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Heart, MessageCircle, MoreHorizontal } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { DetailHeader } from "@/components/ui/DetailHeader";
 import { CommentSection } from "@/components/ui/CommentSection";
 import { cn } from "@/lib/utils";
 
-import { useMutation } from "@/hooks/useMutation";
+import { usePostDetail } from "@/hooks/usePostDetail";
+import { ReportContentAction } from "@/components/communities/ReportContentAction";
 
 export default function PostDetailPage({
   params,
 }: {
   params: Promise<{ id: string }> | { id: string };
 }) {
-  const router = useRouter();
 
   // React.use() to unwrap params if it is a Promise (Next.js 15+)
   const unwrappedParams =
     params instanceof Promise ? React.use(params) : params;
   const id = unwrappedParams.id;
 
-  const [post, setPost] = useState<any>(null);
-  const [hasLoaded, setHasLoaded] = useState(false);
+  const { post, hasLoaded, isLoading: isLoadingPost } = usePostDetail(id);
   const [liked, setLiked] = useState(false);
-  const [likesCount, setLikesCount] = useState(0);
-
-  const { mutate: fetchPost, isLoading: isLoadingPost } = useMutation<
-    any,
-    string
-  >(
-    async (postId) => {
-      const { api } = await import("@/lib/api");
-      const response = await api.get(`/v1/posts/${postId}`);
-      return response.data;
-    },
-    {
-      onSuccess: (response) => {
-        setPost(response);
-        setLikesCount(response.likesCount || 0);
-        setHasLoaded(true);
-      },
-      onError: () => setHasLoaded(true),
-    },
-  );
-
-  React.useEffect(() => {
-    void fetchPost(id).catch(() => undefined);
-  }, [id, fetchPost]);
+  const [likesDelta, setLikesDelta] = useState(0);
+  const likesCount = (post?.likesCount || 0) + likesDelta;
 
   const handleLike = () => {
     setLiked(!liked);
-    setLikesCount(liked ? likesCount - 1 : likesCount + 1);
+    setLikesDelta((delta) => delta + (liked ? -1 : 1));
   };
 
   if (!hasLoaded && isLoadingPost) {
@@ -91,7 +68,7 @@ export default function PostDetailPage({
       {/* 2. Hero Section Editorial */}
       <div className="relative w-full h-[55vh] sm:h-[65vh] bg-neutral-900 overflow-hidden">
         {post.headerImageUrl && (
-          <img
+          <Image fill unoptimized sizes="100vw"
             src={post.headerImageUrl}
             alt="Hero cover"
             className="w-full h-full object-cover opacity-85"
@@ -173,11 +150,12 @@ export default function PostDetailPage({
         title="Comentarios"
         isMock={false}
         endpointType="posts"
+        reportCommunityId={post.communityId}
         className="px-5"
       />
 
       {/* 5. Sticky Bottom Action Bar */}
-      <div className="fixed bottom-0 inset-x-0 bg-[#0B0D10]/80 backdrop-blur-xl border-t border-white/10 py-3 sm:py-4 px-6 z-40">
+      <div className="fixed bottom-0 inset-x-0 mx-auto w-full max-w-md md:max-w-[1360px] bg-[#0B0D10]/80 backdrop-blur-xl border-t border-white/10 py-3 sm:py-4 px-6 z-40">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-6">
             <button
@@ -210,9 +188,9 @@ export default function PostDetailPage({
               </span>
             </button>
           </div>
-          <button className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors cursor-pointer">
+          {post.communityId ? <ReportContentAction communityId={post.communityId} targetType="post" targetId={post.id} /> : <button className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors cursor-pointer">
             <MoreHorizontal className="w-5 h-5 text-neutral-400" />
-          </button>
+          </button>}
         </div>
       </div>
     </div>

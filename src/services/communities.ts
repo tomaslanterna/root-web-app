@@ -6,6 +6,8 @@ import type {
   CommunityFilters,
   CommunityMembershipResponse,
   CreateCommunityAnnouncementInput,
+  CommunityReportInput,
+  CommunityReportsResponse,
 } from "@/types/communities";
 import type { Post } from "@/types/posts";
 
@@ -82,4 +84,26 @@ export async function uploadCommunityAnnouncementImage(
     headers: { "Content-Type": "multipart/form-data" },
   });
   return data.key;
+}
+
+const communityPath = (id: string) => `/v1/communities/${encodeURIComponent(id)}`;
+export async function setCommunityMuted(id: string, muted: boolean): Promise<void> {
+  await api.put(`${communityPath(id)}/membership/preferences`, { muted });
+}
+export async function markCommunityRead(id: string, postId: string): Promise<void> {
+  await api.post(`${communityPath(id)}/read`, { postId });
+}
+export async function setAnnouncementPinned(id: string, postId: string, pinned: boolean): Promise<void> {
+  await api.put(`${communityPath(id)}/announcements/${encodeURIComponent(postId)}/pin`, { pinned });
+}
+export async function reportCommunityContent(id: string, input: CommunityReportInput): Promise<{ id: string }> {
+  const { data } = await api.post<{ id: string }>(`${communityPath(id)}/reports`, input);
+  return data;
+}
+export async function getCommunityReports(id: string, offset = 0): Promise<CommunityReportsResponse> {
+  const { data } = await api.get<CommunityReportsResponse>(`${communityPath(id)}/reports`, { params: { limit: 10, offset } });
+  return data;
+}
+export async function reviewCommunityReport(id: string, reportId: string, status: "reviewed" | "dismissed"): Promise<void> {
+  await api.patch(`${communityPath(id)}/reports/${encodeURIComponent(reportId)}`, { status });
 }

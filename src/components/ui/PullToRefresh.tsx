@@ -11,8 +11,10 @@ interface PullToRefreshProps {
 export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
   const [pullY, setPullY] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
+  const [pullActive, setPullActive] = useState(false);
   
   const startY = useRef(0);
+  const startX = useRef(0);
   const currentY = useRef(0);
   const isPulling = useRef(false);
 
@@ -21,7 +23,9 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
     if (window.scrollY <= 0) {
       const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
       startY.current = clientY;
+      startX.current = 'touches' in e ? e.touches[0].clientX : e.clientX;
       isPulling.current = true;
+      setPullActive(true);
     }
   };
 
@@ -29,6 +33,8 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
     if (!isPulling.current || refreshing) return;
     
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    if (Math.abs(clientX - startX.current) > 12 && Math.abs(clientX - startX.current) > Math.abs(clientY - startY.current)) { isPulling.current = false; setPullActive(false); setPullY(0); return; }
     currentY.current = clientY;
     
     const diff = currentY.current - startY.current;
@@ -43,6 +49,7 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
   const handleTouchEnd = async () => {
     if (!isPulling.current) return;
     isPulling.current = false;
+    setPullActive(false);
 
     if (pullY >= 60) {
       setRefreshing(true);
@@ -108,7 +115,7 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
       <div 
         style={{ 
           transform: `translateY(${pullY}px)`, 
-          transition: isPulling.current ? 'none' : 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)' 
+          transition: pullActive ? 'none' : 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)'
         }}
         className="w-full h-full"
       >

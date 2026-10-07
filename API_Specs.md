@@ -156,7 +156,37 @@ El chat utiliza HTTP para enviar mensajes y cargar historial, y WebSocket nativo
 - `sent` significa guardado; `delivered`, recibido por los otros participantes; `read`, leído por ellos. `sending` y `failed` son locales. La lectura depende de visibilidad del mensaje y de una pestaña visible/enfocada; una respuesta no implica lectura.
 - PostgreSQL LISTEN/NOTIFY distribuye eventos entre instancias después del commit. Configuración de orígenes, conexión directa a la base, TLS/proxy y pruebas se documenta en `root-backend-service/CHAT_REALTIME.md`.
 
-## 4. Notificaciones push Android
+## 4. Comunidades: membresía, lectura y moderación
+
+`GET /v1/communities` conserva los filtros combinables y la respuesta `{ data, meta: { total, limit, offset, hasMore } }`. Añade `scope=mine` (JWT obligatorio) y `scope=explore` (excluye las comunidades propias si hay sesión). Sin `scope` mantiene el listado anterior. `limit` 1–50, por defecto 12. El servidor obtiene la identidad del JWT, nunca de parámetros del cliente.
+
+Cada comunidad incluye `unreadCount`, `muted` y, si existe un RRPP responsable, `contact: { id, name, username, avatarUrl }`. El contacto prioriza al propietario RRPP y luego un manager RRPP; no inventa un administrador. Contactar usa el endpoint de chat directo existente.
+
+- `PUT /v1/communities/{id}/membership/preferences`: `{ muted: boolean }`, solo miembros. Silencia el indicador de novedades, sin abandonar la comunidad ni modificar notificaciones de chats. No implementa push de anuncios.
+- `POST /v1/communities/{id}/read`: `{ postId: UUID }`, solo miembros. El listado de anuncios devuelve `readThroughPostId` calculado en el servidor, preservando precisión y desempates incluso con fijados. Marca lectura hasta ese anuncio cargado, con watermark `(timestamp, id)` monotónico. Anuncios concurrentes posteriores permanecen sin leer. Los anuncios anteriores a la incorporación no cuentan como nuevos.
+- `PUT /v1/communities/{id}/announcements/{postID}/pin`: `{ pinned: boolean }`, solo ADMIN o RRPP autorizado por la comunidad. El listado se ordena por `is_pinned DESC, timestamp DESC, id DESC` en PostgreSQL; cada anuncio incluye `isPinned`.
+- `POST /v1/communities/{id}/reports`: JWT, `{ targetType: "post" | "comment", targetId: UUID, reason: "spam" | "abuse" | "other", details: string }`. Detalles recortados, máximo 1000 caracteres. Verifica que el anuncio/comentario pertenezca a esa comunidad. Un reporte por usuario y contenido, idempotente. Devuelve `{ id }`.
+- `GET /v1/communities/{id}/reports?limit=10&offset=0`: solo administración autorizada, pendientes paginados, snapshot de contenido y nombre del denunciante. Nunca devuelve reportes a otros miembros.
+- `PATCH /v1/communities/{id}/reports/{reportID}`: `{ status: "reviewed" | "dismissed" }`, solo administración autorizada; guarda quién revisó y cuándo. No elimina contenido.
+
+Todas las escrituras tienen autenticación y validación estricta del JSON (incluida prohibición de `userId`). Errores: 400 solicitud inválida, 401 sin sesión, 403 sin permiso, 404 comunidad/contenido inexistente, 500 persistencia fallida. Se reutilizan `community_members`, `posts`, `comments` y `community_managers`; `community_reports` es la única tabla nueva.
+
+### Navegación de mensajes
+
+Comunidades reemplaza Chat en la navegación principal. El Feed abre `/chat?from=feed` por botón o swipe horizontal izquierdo, mediante un slot interceptado limitado al Feed. Mantiene el Feed montado e inerte, bloquea el scroll de fondo y restaura foco/scroll al regresar. Recarga y accesos directos usan `/chat` normal. Conversaciones, squads y destinos de push siguen usando sus rutas originales y el mismo `ChatRealtimeProvider`.
+
+`FeedLayout` conserva una única instancia de la bandeja: durante el arrastre la revela desde la derecha en proporción 1:1 con el dedo, sin navegar todavía. Al superar el umbral y soltar completa la transición y actualiza la ruta; un gesto corto/cancelado vuelve a cero sin crear historial. La vuelta revela el Feed durante el arrastre derecho. Scroll vertical, carruseles, formularios y modales quedan excluidos; movimiento reducido evita desplazamientos visuales.
+
+Android usa `@capacitor/app` con un solo listener `backButton`, registrado/limpiado desde `CapacitorSetup`: primero cierra el overlay activo; luego vuelve en el historial o al padre de un deep link. Solo `/` y `/feed` ofrecen confirmar la salida mediante `ConfirmModal`. `SystemBars` de Capacitor 8 aporta los insets y el dock suma `--root-safe-bottom` a su margen inferior, con fallback al `env()` del navegador/iOS.
+
+En el directorio, los filtros se muestran únicamente en Explorar. Cambiar a Mis comunidades cierra el panel y elimina los filtros de descubrimiento para listar todas las membresías propias.
+
+### Verificación
+
+Frontend: `npx tsc --noEmit --incremental false`; lint de archivos modificados; `node --test src/lib/horizontalSwipe.test.mjs src/hooks/useHorizontalSwipe.test.mjs src/lib/nativeBack.test.mjs src/services/notifications.test.mjs`.
+Backend: `go test ./...`. Integración PostgreSQL opt-in: `COMMUNITY_TEST_DATABASE_URL` o `COMMUNITY_TEST_USE_LOCAL_ENV=1` y `go test ./internal/adapters/repository/postgres -run TestCommunityExperiencePostgresIntegration -v`. Crea un esquema aleatorio, verifica aislamiento y lo elimina al terminar; no modifica usuarios ni contenido reales.
+
+## 5. Contrato de notificaciones push Android
 
 - `GET /v1/push/status` (JWT) → `{ "enabled": boolean }`.
 - `PUT /v1/push/devices/{installationUUID}` (JWT) → 204. Body: `{ "token": "<FCM token>", "platform": "android" }`. No acepta identidad del usuario en el body. 400 para campos/token/plataforma/UUID inválidos, 503 si Firebase no está configurado, 500 para errores de persistencia.

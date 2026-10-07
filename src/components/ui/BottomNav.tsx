@@ -1,25 +1,27 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Home,
   Calendar,
   Sparkles,
-  MessageSquare,
+  Users,
   User,
-  Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { QuickActionMenu } from "@/components/ui/QuickActionMenu";
+import { Avatar } from "@/components/ui/Avatar";
+
+const subscribeMounted = () => () => {};
 
 const NAV_ITEMS = [
   { label: "Feed", href: "/feed", icon: Home },
   { label: "Eventos", href: "/events", icon: Calendar },
   { label: "Crews", href: "/match", icon: Sparkles },
-  { label: "Chat", href: "/chat", icon: MessageSquare },
+  { label: "Comunidades", href: "/communities", icon: Users },
   { label: "Perfil", href: "/profile", icon: User },
 ];
 
@@ -29,13 +31,12 @@ export function BottomNav() {
   const searchParams = useSearchParams();
   const { user } = useAuth();
 
-  const [mounted, setMounted] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const mounted = useSyncExternalStore(subscribeMounted, () => true, () => false);
+  const [isMenuOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const lastScrollY = useRef(0);
 
   useEffect(() => {
-    setMounted(true);
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
@@ -76,6 +77,7 @@ export function BottomNav() {
 
   // Determinamos si deberíamos ocultar la barra en mobile según la ruta
   const hideOnMobile =
+    (pathname === "/chat" && searchParams.get("from") === "feed") ||
     pathname === "/search" ||
     pathname.startsWith("/transfers/") ||
     pathname.startsWith("/posts/") ||
@@ -103,7 +105,7 @@ export function BottomNav() {
     ...(user
       ? [
           { label: "Crews", href: "/match", icon: Sparkles },
-          { label: "Chat", href: "/chat", icon: MessageSquare },
+          { label: "Comunidades", href: "/communities", icon: Users },
         ]
       : []),
   ];
@@ -166,6 +168,8 @@ export function BottomNav() {
                 <Link
                   key={item.href}
                   href={item.href}
+                  aria-label={item.label}
+                  aria-current={isActive ? "page" : undefined}
                   className={cn(
                     "relative flex items-center gap-2 px-4 py-1.5 rounded-full text-xs transition-all duration-200",
                     isActive
@@ -204,9 +208,9 @@ export function BottomNav() {
                 )}
               >
                 {user.avatarUrl ? (
-                  <img
+                  <Avatar
                     src={user.avatarUrl}
-                    alt={user.username || "Usuario"}
+                    fallback={user.username || "Usuario"}
                     className="w-5 h-5 rounded-full object-cover border border-white/20"
                   />
                 ) : (
@@ -247,12 +251,15 @@ export function BottomNav() {
 
       {/* 2. Mobile Floating Bottom Dock (Pill inferior para móviles) */}
       <nav
+        aria-label="Navegación principal móvil"
+        inert={hideOnMobile}
+        aria-hidden={hideOnMobile || undefined}
         className={cn(
-          "fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-4 transition-transform duration-300 md:hidden",
+          "fixed bottom-[var(--root-mobile-nav-bottom)] left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-4 transition-transform duration-300 md:hidden",
           hideOnMobile ? "translate-y-32 opacity-0 pointer-events-none" : "",
         )}
       >
-        <div className="glass-obsidian w-full rounded-full p-1.5 flex items-center justify-around shadow-2xl backdrop-blur-2xl border border-white/10">
+        <div className="glass-obsidian h-[var(--root-mobile-nav-height)] w-full rounded-full p-1.5 flex items-center justify-around shadow-2xl backdrop-blur-2xl border border-white/10">
           {visibleMobileItems.map((item) => {
             const isActive =
               pathname === item.href ||
@@ -266,8 +273,9 @@ export function BottomNav() {
                 href={item.href}
                 title={item.label}
                 aria-label={item.label}
+                aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "relative flex flex-col items-center justify-center py-1.5 px-3.5 rounded-full select-none transition-all duration-200 group",
+                  "relative min-w-0 flex flex-1 flex-col items-center justify-center py-1.5 px-1 rounded-full select-none transition-all duration-200 group",
                   isActive
                     ? "text-neutral-950 font-black"
                     : "text-neutral-400 hover:text-white",
@@ -285,7 +293,8 @@ export function BottomNav() {
                 />
                 <span
                   className={cn(
-                    "text-[9px] uppercase tracking-wider font-black mt-0.5 transition-colors",
+                    "text-[9px] uppercase font-black mt-0.5 transition-colors",
+                    item.label === "Comunidades" ? "tracking-tight" : "tracking-wider",
                     isActive
                       ? "text-neutral-950"
                       : "text-neutral-400 group-hover:text-white",
@@ -301,7 +310,7 @@ export function BottomNav() {
 
       <QuickActionMenu
         isOpen={isMenuOpen}
-        onClose={() => setIsMenuOpen(false)}
+        onClose={() => {}}
       />
     </>
   );

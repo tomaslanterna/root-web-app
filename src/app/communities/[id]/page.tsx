@@ -13,6 +13,9 @@ import {
   UserMinus,
   UserPlus,
   Users,
+  BellOff,
+  Bell,
+  MessageSquare,
 } from "lucide-react";
 import { CommunityAnnouncementCard } from "@/components/communities/CommunityAnnouncementCard";
 import { CommunityAnnouncementComposer } from "@/components/communities/CommunityAnnouncementComposer";
@@ -24,6 +27,9 @@ import {
   useCommunityDetail,
 } from "@/hooks/useCommunities";
 import type { CreateCommunityAnnouncementInput } from "@/types/communities";
+import { Avatar } from "@/components/ui/Avatar";
+import { CommunityModeration } from "@/components/communities/CommunityModeration";
+import { useCommunityContact } from "@/hooks/useCommunityModeration";
 
 interface CommunityDetailPageProps {
   params: Promise<{ id: string }>;
@@ -55,6 +61,7 @@ export default function CommunityDetailPage({ params }: CommunityDetailPageProps
     isChangingMembership,
     error,
     membershipError,
+    setMuted, isMuting, muteError, markRead, readError,
   } = useCommunityDetail(id);
   const {
     announcements,
@@ -65,7 +72,18 @@ export default function CommunityDetailPage({ params }: CommunityDetailPageProps
     isPublishing,
     error: announcementsError,
     publishError,
+    pin, isPinning, pinError,
+    readThroughPostId: newestVisible,
   } = useCommunityAnnouncements(id);
+  const contact = useCommunityContact();
+
+  useEffect(() => {
+    if (!community?.isMember || !newestVisible) return;
+    const read = () => { if (document.visibilityState === "visible") void markRead(newestVisible).then(() => refresh()).catch(() => undefined); };
+    read();
+    document.addEventListener("visibilitychange", read);
+    return () => document.removeEventListener("visibilitychange", read);
+  }, [community?.isMember, newestVisible, markRead, refresh]);
 
   useEffect(() => {
     void refresh().catch(() => undefined);
@@ -203,7 +221,12 @@ export default function CommunityDetailPage({ params }: CommunityDetailPageProps
                 No pudimos actualizar tu membresía. Intentá nuevamente.
               </p>
             )}
+            {community.isMember && <Button variant="outline" className="w-full" disabled={isMuting} onClick={() => void setMuted(!community.muted).catch(() => undefined)}>{community.muted ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}{community.muted ? "Activar avisos" : "Silenciar comunidad"}</Button>}
+            {community.isMember && <p className="text-[11px] text-neutral-500">{community.muted ? "Los avisos de novedades están silenciados. Seguís siendo miembro." : "Los avisos de novedades están activos."}</p>}
+            {(muteError || readError) && <p role="alert" className="text-xs text-red-400">No pudimos guardar tus preferencias de avisos o lectura.</p>}
+            {community.contact && <div className="space-y-3 border-t border-white/10 pt-4"><div className="flex min-w-0 items-center gap-2"><Avatar size="sm" src={community.contact.avatarUrl} fallback={community.contact.name} /><div className="min-w-0"><p className="truncate text-xs font-bold">{community.contact.name}</p><p className="text-[10px] text-neutral-500">RRPP · @{community.contact.username}</p></div></div>{community.contact.id !== user?.id && <Button variant="outline" className="w-full" disabled={contact.isLoading} onClick={() => { if (!user) router.push("/login"); else void contact.mutate(community.contact!.id).then((chat) => router.push(`/chat/${chat.id}`)).catch(() => undefined); }}><MessageSquare className="h-4 w-4" />Contactar al RRPP</Button>}{contact.error && <p role="alert" className="text-xs text-red-400">No pudimos abrir el chat. Intentá nuevamente.</p>}</div>}
           </div>
+          {community.canPublish && <CommunityModeration communityId={community.id} />}
         </aside>
 
         <div className="space-y-5 md:col-span-8 lg:col-span-9">
@@ -227,6 +250,7 @@ export default function CommunityDetailPage({ params }: CommunityDetailPageProps
               {meta.total} publicaciones
             </span>
           </div>
+          {pinError && <p role="alert" className="text-xs text-red-400">No pudimos actualizar el anuncio fijado. Intentá nuevamente.</p>}
 
           {announcementsError && announcements.length === 0 ? (
             <div className="rounded-3xl border border-red-500/20 bg-red-500/5 p-8 text-center">
@@ -261,6 +285,9 @@ export default function CommunityDetailPage({ params }: CommunityDetailPageProps
                 <CommunityAnnouncementCard
                   key={announcement.id}
                   announcement={announcement}
+                  canPin={community.canPublish}
+                  isPinning={isPinning}
+                  onPin={() => void pin({ postId: announcement.id, pinned: !announcement.isPinned }).catch(() => undefined)}
                 />
               ))}
             </div>

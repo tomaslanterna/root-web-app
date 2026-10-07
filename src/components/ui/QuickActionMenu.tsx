@@ -1,9 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { Plus, X, Image, Ticket, Users, ShieldCheck, Sparkles } from "lucide-react";
+import { X, Image, Users, Sparkles } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { useNativeBackHandler } from "@/hooks/useNativeBack";
 
 interface QuickActionMenuProps {
   isOpen: boolean;
@@ -28,10 +28,11 @@ const ACTIONS = [
 ];
 
 export function QuickActionMenu({ isOpen, onClose }: QuickActionMenuProps) {
+  useNativeBackHandler(isOpen, onClose);
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-neutral-950/80 backdrop-blur-2xl animate-fade-in">
+    <div role="dialog" aria-modal="true" aria-label="Acciones rápidas" className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-neutral-950/80 backdrop-blur-2xl animate-fade-in">
       <div
         className="fixed inset-0"
         onClick={onClose}

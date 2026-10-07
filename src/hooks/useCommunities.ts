@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useMutation } from "@/hooks/useMutation";
 import { compressImageToJpeg } from "@/lib/compressImage";
 import {
@@ -11,6 +11,9 @@ import {
   joinCommunity,
   leaveCommunity,
   uploadCommunityAnnouncementImage,
+  setCommunityMuted,
+  setAnnouncementPinned,
+  markCommunityRead,
 } from "@/services/communities";
 import type {
   Community,
@@ -25,6 +28,7 @@ import type { Post } from "@/types/posts";
 interface DirectoryRequest {
   filters: CommunityFilters;
   append: boolean;
+  sequence: number;
 }
 
 const EMPTY_META: PaginationMeta = {
@@ -35,6 +39,7 @@ const EMPTY_META: PaginationMeta = {
 };
 
 export function useCommunityDirectory() {
+  const sequence = useRef(0);
   const [communities, setCommunities] = useState<Community[]>([]);
   const [meta, setMeta] = useState<PaginationMeta>(EMPTY_META);
 
@@ -42,6 +47,7 @@ export function useCommunityDirectory() {
     ({ filters }) => getCommunities(filters),
     {
       onSuccess: (response, variables) => {
+        if (variables.sequence !== sequence.current) return;
         setCommunities((current) =>
           variables.append ? [...current, ...response.data] : response.data,
         );
@@ -53,8 +59,10 @@ export function useCommunityDirectory() {
   const mutateDirectory = mutation.mutate;
 
   const load = useCallback(
-    (filters: CommunityFilters, append = false) =>
-      mutateDirectory({ filters, append }),
+    (filters: CommunityFilters, append = false) => {
+      if (!append) { sequence.current++; setCommunities([]); setMeta(EMPTY_META); }
+      return mutateDirectory({ filters, append, sequence: sequence.current });
+    },
     [mutateDirectory],
   );
 
@@ -94,9 +102,17 @@ export function useCommunityDetail(identifier: string) {
               }
             : current,
         );
+        // Membership preferences and the read marker belong to the persisted
+        // membership; reload them after leaving or joining again.
+        void detailMutation.mutate().catch(() => undefined);
       },
     },
   );
+
+  const muteMutation = useMutation((muted: boolean) => setCommunityMuted(identifier, muted), {
+    onSuccess: (_, muted) => setCommunity((current) => current ? { ...current, muted } : current),
+  });
+  const readMutation = useMutation((postId: string) => markCommunityRead(identifier, postId));
 
   return {
     community,
@@ -106,6 +122,11 @@ export function useCommunityDetail(identifier: string) {
     isChangingMembership: membershipMutation.isLoading,
     error: detailMutation.error,
     membershipError: membershipMutation.error,
+    setMuted: muteMutation.mutate,
+    isMuting: muteMutation.isLoading,
+    muteError: muteMutation.error,
+    markRead: readMutation.mutate,
+    readError: readMutation.error,
   };
 }
 
@@ -120,6 +141,7 @@ interface CreateAnnouncementRequest {
 }
 
 export function useCommunityAnnouncements(identifier: string) {
+  const [readThroughPostId, setReadThroughPostId] = useState<string>();
   const [announcements, setAnnouncements] = useState<Post[]>([]);
   const [meta, setMeta] = useState<PaginationMeta>({ ...EMPTY_META, limit: 10 });
 
@@ -134,6 +156,7 @@ export function useCommunityAnnouncements(identifier: string) {
           variables.append ? [...current, ...response.data] : response.data,
         );
         setMeta(response.meta);
+        setReadThroughPostId(response.readThroughPostId);
       },
     },
   );
@@ -151,12 +174,17 @@ export function useCommunityAnnouncements(identifier: string) {
       });
     },
     {
-      onSuccess: (post) => {
-        setAnnouncements((current) => [post, ...current]);
-        setMeta((current) => ({ ...current, total: current.total + 1 }));
+      onSuccess: () => {
+        void listMutation.mutate({ offset: 0, append: false }).catch(() => undefined);
       },
     },
   );
+
+  const pinMutation = useMutation(async ({ postId, pinned }: { postId: string; pinned: boolean }) => {
+    await setAnnouncementPinned(identifier, postId, pinned);
+    // A pin changes server pagination order: restart the page instead of sorting locally.
+    return getCommunityAnnouncements(identifier, 10, 0);
+  }, { onSuccess: (response) => { setAnnouncements(response.data); setMeta(response.meta); setReadThroughPostId(response.readThroughPostId); } });
 
   return {
     announcements,
@@ -167,5 +195,9 @@ export function useCommunityAnnouncements(identifier: string) {
     isPublishing: createMutation.isLoading,
     error: listMutation.error,
     publishError: createMutation.error,
+    pin: pinMutation.mutate,
+    isPinning: pinMutation.isLoading,
+    pinError: pinMutation.error,
+    readThroughPostId,
   };
 }

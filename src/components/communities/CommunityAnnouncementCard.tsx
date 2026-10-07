@@ -1,15 +1,22 @@
 import Link from "next/link";
 import Image from "next/image";
-import { CalendarDays, ChevronRight } from "lucide-react";
+import { CalendarDays, ChevronRight, Pin } from "lucide-react";
+import { ReportContentAction } from "./ReportContentAction";
 import { Avatar } from "@/components/ui/Avatar";
 import type { Post } from "@/types/posts";
 
 interface CommunityAnnouncementCardProps {
   announcement: Post;
+  canPin?: boolean;
+  isPinning?: boolean;
+  onPin?: () => void;
 }
 
 export function CommunityAnnouncementCard({
   announcement,
+  canPin,
+  isPinning,
+  onPin,
 }: CommunityAnnouncementCardProps) {
   return (
     <article className="overflow-hidden rounded-3xl border border-white/10 bg-[#14171F] shadow-xl">
@@ -26,6 +33,11 @@ export function CommunityAnnouncementCard({
         </div>
       )}
       <div className="space-y-4 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          {announcement.isPinned && <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase text-[#D4FF00]"><Pin className="h-3.5 w-3.5" /> Fijado</span>}
+          {canPin && <button type="button" disabled={isPinning} onClick={onPin} className="text-[10px] font-bold text-[#D4FF00] disabled:opacity-50">{announcement.isPinned ? "Desfijar" : "Fijar anuncio"}</button>}
+          {announcement.communityId && <ReportContentAction communityId={announcement.communityId} targetType="post" targetId={announcement.id} />}
+        </div>
         <div className="flex items-center gap-3">
           <Avatar
             src={announcement.authorAvatar}

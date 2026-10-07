@@ -20,56 +20,63 @@ export function SwipeControls({
   disabled = false,
 }: SwipeControlsProps) {
   return (
-    <div className="flex items-center justify-center gap-4 py-3 select-none">
-      {/* 1. Vibe Filter Button */}
-      <button
-        type="button"
-        onClick={onOpenPreferences}
-        className="w-12 h-12 rounded-full bg-[#14171F] border border-white/10 hover:border-white/30 text-neutral-400 hover:text-white flex items-center justify-center shadow-lg active:scale-90 transition-all cursor-pointer"
-        title="Ajustar Filtros de Vibra"
+    // Reserve the controls' space in the deck while docking above the mobile nav.
+    <div className="h-[84px] shrink-0 md:h-auto">
+      <div
+        role="group"
+        aria-label="Acciones del matcher"
+        className="fixed bottom-[calc(var(--root-mobile-nav-clearance)+0.5rem)] left-1/2 z-40 flex w-full max-w-md -translate-x-1/2 items-center justify-center gap-4 bg-[#0B0D10]/95 px-4 py-3 select-none md:static md:w-auto md:max-w-none md:translate-x-0 md:bg-transparent md:px-0"
       >
-        <SlidersHorizontal className="w-5 h-5" />
-      </button>
+        {/* 1. Vibe Filter Button */}
+        <button
+          type="button"
+          onClick={onOpenPreferences}
+          className="w-12 h-12 rounded-full bg-[#14171F] border border-white/10 hover:border-white/30 text-neutral-400 hover:text-white flex items-center justify-center shadow-lg active:scale-90 transition-all cursor-pointer"
+          title="Ajustar Filtros de Vibra"
+        >
+          <SlidersHorizontal className="w-5 h-5" />
+        </button>
 
-      {/* 2. Pass / Descartar Button */}
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={onPass}
-        className={cn(
-          "w-15 h-15 rounded-full bg-[#14171F] border border-white/15 hover:border-rose-500/50 text-neutral-300 hover:text-rose-500 flex items-center justify-center shadow-xl active:scale-90 transition-all cursor-pointer disabled:opacity-50 disabled:pointer-events-none group"
-        )}
-        title="Descartar (Pass)"
-      >
-        <X className="w-7 h-7 stroke-[2.5] transition-transform group-hover:scale-110" />
-      </button>
+        {/* 2. Pass / Descartar Button */}
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={onPass}
+          className={cn(
+            "w-15 h-15 rounded-full bg-[#14171F] border border-white/15 hover:border-rose-500/50 text-neutral-300 hover:text-rose-500 flex items-center justify-center shadow-xl active:scale-90 transition-all cursor-pointer disabled:opacity-50 disabled:pointer-events-none group"
+          )}
+          title="Descartar (Pass)"
+        >
+          <X className="w-7 h-7 stroke-[2.5] transition-transform group-hover:scale-110" />
+        </button>
 
-      {/* 3. Super Crew / Flame Button */}
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={onSuperlike}
-        className={cn(
-          "w-12 h-12 rounded-full bg-[#14171F] border border-[#D4FF00]/40 text-[#D4FF00] flex items-center justify-center shadow-lg shadow-[#D4FF00]/10 hover:shadow-[#D4FF00]/25 active:scale-90 transition-all cursor-pointer disabled:opacity-50 disabled:pointer-events-none group relative"
-        )}
-        title="Super Crew (Prioridad)"
-      >
-        <Flame className="w-6 h-6 fill-[#D4FF00] transition-transform group-hover:scale-110" />
-        <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[#D4FF00] animate-ping" />
-      </button>
+        {/* 3. Super Crew / Flame Button */}
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={onSuperlike}
+          className={cn(
+            "w-12 h-12 rounded-full bg-[#14171F] border border-[#D4FF00]/40 text-[#D4FF00] flex items-center justify-center shadow-lg shadow-[#D4FF00]/10 hover:shadow-[#D4FF00]/25 active:scale-90 transition-all cursor-pointer disabled:opacity-50 disabled:pointer-events-none group relative"
+          )}
+          title="Super Crew (Prioridad)"
+        >
+          <Flame className="w-6 h-6 fill-[#D4FF00] transition-transform group-hover:scale-110" />
+          <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[#D4FF00] animate-ping" />
+        </button>
 
-      {/* 4. Like / Crew Match Button */}
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={onLike}
-        className={cn(
-          "w-15 h-15 rounded-full bg-[#D4FF00] text-neutral-950 flex items-center justify-center shadow-xl shadow-[#D4FF00]/25 hover:bg-[#bce400] active:scale-90 transition-all cursor-pointer disabled:opacity-50 disabled:pointer-events-none group"
-        )}
-        title="Buscar Crew para este Evento"
-      >
-        <Check className="w-8 h-8 stroke-[3.5] transition-transform group-hover:scale-110" />
-      </button>
+        {/* 4. Like / Crew Match Button */}
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={onLike}
+          className={cn(
+            "w-15 h-15 rounded-full bg-[#D4FF00] text-neutral-950 flex items-center justify-center shadow-xl shadow-[#D4FF00]/25 hover:bg-[#bce400] active:scale-90 transition-all cursor-pointer disabled:opacity-50 disabled:pointer-events-none group"
+          )}
+          title="Buscar Crew para este Evento"
+        >
+          <Check className="w-8 h-8 stroke-[3.5] transition-transform group-hover:scale-110" />
+        </button>
+      </div>
     </div>
   );
 }

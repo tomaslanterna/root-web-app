@@ -72,6 +72,7 @@ export function CommunityCard({ community }: CommunityCardProps) {
           {community.membersCount} MIEMBROS
         </div>
 
+        {community.isMember && <div className="absolute left-3 top-3 rounded-full bg-neutral-950/90 px-3 py-1 text-[10px] font-bold text-[#D4FF00]">{community.muted ? "Silenciada" : community.unreadCount > 0 ? `${community.unreadCount} novedades` : "Al día"}</div>}
         {/* Content over image */}
         <div className="absolute inset-0 p-4 flex flex-col justify-end space-y-1.5">
           <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.18em] text-[#D4FF00]">
