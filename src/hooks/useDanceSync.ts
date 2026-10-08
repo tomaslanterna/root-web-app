@@ -19,8 +19,7 @@ export function useDanceSync() {
 
   const syncToBackend = useCallback(async (event: Event, currentSteps: number) => {
     if (currentSteps === 0) {
-      console.log("USE_DANCESYNC: Tick de 5s omitido. No hay pasos nuevos.");
-      return;
+      return; // No steps, do nothing quietly
     }
     try {
       setIsSyncing(true);
@@ -38,9 +37,9 @@ export function useDanceSync() {
         lng
       });
       
+      console.log(`USE_DANCESYNC: ${currentSteps} pasos registrados en el servidor exitosamente.`);
       setTotalSessionSteps(prev => prev + currentSteps);
       setSteps(0);
-      console.log("USE_DANCESYNC: Pasos guardados en DB exitosamente.");
     } catch (e) {
       console.error("USE_DANCESYNC: Error syncing steps", e);
     } finally {
@@ -48,37 +47,37 @@ export function useDanceSync() {
     }
   }, [requestLocation, setSteps]);
 
-  const startDanceSession = useCallback(async (event: Event) => {
-    console.log("USE_DANCESYNC: startDanceSession ejecutado para el evento", event?.id);
+  const startDanceSession = useCallback(async (event: Event, initialSteps: number = 0) => {
     if (syncInterval.current) clearInterval(syncInterval.current);
+    
+    // Seteamos el estado inicial con lo que haya en la DB, solo si no teníamos pasos acumulados en memoria
+    setTotalSessionSteps(prev => prev > 0 ? prev : initialSteps);
     
     const checkAndToggleTracking = async () => {
       try {
-        console.log("USE_DANCESYNC: Evaluando lógica de tiempo...");
         const now = new Date();
         const safeDateString = typeof event.date === 'string' ? event.date.replace(' ', 'T') : event.date;
         const eventStart = new Date(safeDateString);
-        if (isNaN(eventStart.getTime())) {
-            console.error("USE_DANCESYNC: La fecha sigue siendo inválida después del parche:", event.date);
+        
+        // Usar endDate si existe, de lo contrario +12 horas
+        let eventEnd = new Date(eventStart.getTime() + 12 * 60 * 60 * 1000);
+        if (event.endDate) {
+          const safeEndDateString = typeof event.endDate === 'string' ? event.endDate.replace(' ', 'T') : event.endDate;
+          eventEnd = new Date(safeEndDateString);
         }
-        const eventEnd = new Date(eventStart.getTime() + 12 * 60 * 60 * 1000);
         
-        console.log(`USE_DANCESYNC: Ahora=${now.toISOString()}, Inicio=${eventStart.toISOString()}`);
-        
-        const isDuringEvent = now >= eventStart && now <= eventEnd;
+        // Verificar si estamos dentro del horario (con un pequeño margen de 2h antes)
+        // Similar a la DB: NOW() >= e.date - INTERVAL '2 hours'
+        const eventStartMargin = new Date(eventStart.getTime() - 2 * 60 * 60 * 1000);
+        const isDuringEvent = now >= eventStartMargin && now <= eventEnd;
 
         if (isDuringEvent) {
           if (!isTrackingRef.current) {
-            console.log("USE_DANCESYNC: Hora del evento alcanzada. Activando podómetro...");
             await startTracking();
-          } else {
-            console.log("USE_DANCESYNC: Podómetro ya activo, omitiendo encendido.");
           }
           syncToBackend(event, stepsRef.current);
         } else {
-          console.log("USE_DANCESYNC: isDuringEvent es FALSE.");
           if (isTrackingRef.current) {
-            console.log("USE_DANCESYNC: Apagando podómetro por estar fuera de horario.");
             stopTracking();
           }
         }
@@ -92,7 +91,6 @@ export function useDanceSync() {
   }, [startTracking, stopTracking, syncToBackend]);
 
   const stopDanceSession = useCallback(() => {
-    console.log("USE_DANCESYNC: stopDanceSession llamado.");
     stopTracking();
     if (syncInterval.current) {
       clearInterval(syncInterval.current);

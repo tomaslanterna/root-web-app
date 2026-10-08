@@ -1,69 +1,79 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
+import { Health } from '@capgo/capacitor-health';
 import { Capacitor } from '@capacitor/core';
-import { Motion } from '@capacitor/motion';
 
 export function usePedometer() {
   const [steps, setSteps] = useState(0);
   const [isTracking, setIsTracking] = useState(false);
+  const sessionStartTimeRef = useRef<Date | null>(null);
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const startTracking = useCallback(async () => {
-    console.log("USE_PEDOMETER: startTracking iniciado.");
-    setIsTracking(true);
-    
-    if (!Capacitor.isNativePlatform()) {
-      const interval = setInterval(() => {
-        setSteps(prev => {
-          const added = Math.floor(Math.random() * 5);
-          return prev + added;
-        });
-      }, 2000);
-      return () => clearInterval(interval);
-    } else {
+    if (Capacitor.isNativePlatform()) {
       try {
-        console.log("USE_PEDOMETER: Registrando listener NATIVO de ORIENTACIÓN (Giroscopio)...");
-        let tickCounter = 0;
-        let lastBeta = 0;
-        let lastGamma = 0;
+        await Health.requestAuthorization({
+          read: ['steps'],
+          write: [],
+        });
+      } catch (err) {
+        console.error("USE_PEDOMETER: Error solicitando permisos de salud:", err);
+      }
+    }
+
+    setIsTracking(true);
+    setSteps(0);
+    sessionStartTimeRef.current = new Date();
+
+    if (!Capacitor.isNativePlatform()) {
+      pollIntervalRef.current = setInterval(() => {
+        setSteps(prev => prev + Math.floor(Math.random() * 5));
+      }, 2000);
+      return () => { if (pollIntervalRef.current) clearInterval(pollIntervalRef.current); };
+    } else {
+      // Polling de Apple Health / Google Fit cada 5 segundos
+      let lastStepTotal = 0;
+      
+      pollIntervalRef.current = setInterval(async () => {
+        if (!sessionStartTimeRef.current) return;
         
-        await Motion.addListener('orientation', (event) => {
-          const beta = event.beta || 0;
-          const gamma = event.gamma || 0;
-          
-          // Calcular el cambio brusco de inclinación
-          const deltaBeta = Math.abs(beta - lastBeta);
-          const deltaGamma = Math.abs(gamma - lastGamma);
-          
-          lastBeta = beta;
-          lastGamma = gamma;
-          
-          const magnitude = deltaBeta + deltaGamma;
-          
-          tickCounter++;
-          if (tickCounter % 60 === 0) {
-            console.log(`USE_PEDOMETER [Latido Giroscopio]: Mag=${magnitude.toFixed(2)} Beta:${beta.toFixed(2)}`);
+        try {
+          // Consultar los pasos desde el momento en que se activó el tracking
+          const { samples } = await Health.queryAggregated({
+            dataType: 'steps',
+            startDate: sessionStartTimeRef.current.toISOString(),
+            endDate: new Date().toISOString(),
+            bucket: 'hour',
+            aggregation: 'sum'
+          });
+
+          // Sumar todos los buckets obtenidos
+          let totalSteps = 0;
+          for (const sample of samples) {
+            if (sample.value) {
+                totalSteps += sample.value;
+            }
           }
 
-          // Un cambio de más de 15 grados en un frame suele ser una sacudida
-          if (magnitude > 15) { 
-            setSteps(prev => {
-              const newSteps = prev + 1;
-              console.log(`USE_PEDOMETER: ¡Paso Físico Detectado (Giroscopio)! 🕺 Mag: ${magnitude.toFixed(2)} - Total: ${newSteps}`);
-              return newSteps;
-            });
+          if (totalSteps > lastStepTotal) {
+            const newSteps = totalSteps - lastStepTotal;
+            setSteps(prev => prev + newSteps);
+            lastStepTotal = totalSteps;
           }
-        });
-        console.log("USE_PEDOMETER: Listener de orientación registrado exitosamente.");  } catch (e) {
-        console.error("USE_PEDOMETER: Falló al inicializar Motion tracking", e);
-      }
-      return () => { Motion.removeAllListeners(); };
+        } catch (e) {
+          console.error("USE_PEDOMETER: Error leyendo HealthKit:", e);
+        }
+      }, 5000); // Polling cada 5 segundos
+
+      return () => {
+        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+      };
     }
   }, []);
 
   const stopTracking = useCallback(() => {
-    console.log("USE_PEDOMETER: stopTracking llamado.");
     setIsTracking(false);
-    if (Capacitor.isNativePlatform()) {
-      Motion.removeAllListeners();
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
     }
   }, []);
 

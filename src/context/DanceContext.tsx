@@ -56,9 +56,13 @@ export function DanceProvider({ children }: { children: React.ReactNode }) {
         if (mounted && res.data?.isLive && res.data?.event) {
           console.log("DANCE_CONTEXT: ¡Fiesta detectada! Activando startDanceSession...");
           setLiveEvent(res.data.event);
-          startDanceSession(res.data.event);
+          
+          const existingSteps = res.data.userSteps || 0;
+          startDanceSession(res.data.event, existingSteps);
         } else {
-          console.log("DANCE_CONTEXT: No hay fiesta en esta ubicación.");
+          console.log("DANCE_CONTEXT: No hay fiesta activa en esta ubicación o el horario expiró.");
+          setLiveEvent(null);
+          stopDanceSession();
         }
       } catch (error) {
         console.error("DANCE_CONTEXT: Error crítico chequeando estado:", error);
@@ -66,9 +70,12 @@ export function DanceProvider({ children }: { children: React.ReactNode }) {
     };
 
     checkLiveStatus();
+    // Validar ubicación y horario cada 60 segundos
+    const interval = setInterval(checkLiveStatus, 60000);
 
     return () => {
       mounted = false;
+      clearInterval(interval);
       stopDanceSession();
     };
   }, [user, startDanceSession, stopDanceSession]);
