@@ -49,8 +49,8 @@ export function SurveyCard({ surveyEvent }: SurveyCardProps) {
           <h3 className="text-lg md:text-xl font-black italic tracking-tight text-white leading-tight">
             Queremos saber tu opinión
           </h3>
-          <p className="text-sm text-neutral-300 font-medium max-w-lg">
-            ¿Cómo te fue en <span className="font-bold text-white line-clamp-1">{surveyEvent.title}</span>? Tu reseña ayuda a la comunidad.
+          <p className="text-sm text-neutral-300 font-medium w-full">
+            ¿Cómo te fue en <span className="font-bold text-white">{surveyEvent.title}</span>? Tu reseña ayuda a la comunidad.
           </p>
         </div>
         <button className="whitespace-nowrap w-full md:w-auto px-6 py-2.5 rounded-full bg-white text-black font-black uppercase tracking-wider text-xs shadow-lg hover:bg-neutral-200 transition-colors">

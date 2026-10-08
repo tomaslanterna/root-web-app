@@ -31,7 +31,7 @@ import { eventsApi } from "@/services/events";
 import { cn } from "@/lib/utils";
 import type { Event, EventFilters, EventListResponse } from "@/types/events";
 
-const pageSize = 12;
+const pageSize = 10;
 const emptyFilters: EventFilters = {
   genre: "all",
   location: "",
@@ -1274,28 +1274,13 @@ export default function EventsPage() {
           </div>
         )}
 
-        {/* Skeletons de Carga Continua (Scroll Infinito) */}
+        {/* Indicador de Carga Continua (Scroll Infinito) */}
         {isLoadingEvents && events.length > 0 && (
-          <div
-            className={cn(
-              viewMode === "list"
-                ? "flex flex-col gap-3 pt-2"
-                : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-5 md:gap-6 pt-2",
-            )}
-          >
-            {[1, 2, 3].map((item) =>
-              viewMode === "list" ? (
-                <div
-                  key={item}
-                  className="h-20 w-full animate-pulse rounded-2xl md:rounded-3xl border border-white/5 bg-[#14171F]"
-                />
-              ) : (
-                <div
-                  key={item}
-                  className="mx-auto aspect-[4/5] w-full max-w-md animate-pulse rounded-3xl border border-white/5 bg-[#14171F] md:max-w-none"
-                />
-              ),
-            )}
+          <div className="flex flex-col items-center justify-center pt-8 pb-4 gap-3 animate-in fade-in duration-300">
+            <Loader2 className="h-6 w-6 animate-spin text-[#D4FF00]" />
+            <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400">
+              Cargando más eventos...
+            </span>
           </div>
         )}
 

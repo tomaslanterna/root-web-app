@@ -38,7 +38,7 @@ export function EventCard({ event, variant = "swimlane", className }: EventCardP
   const image = event.cinematicBannerUrl?.trim() || fallbackBanner;
   const priceLabel =
     event.price == null
-      ? "Precio a confirmar"
+      ? null
       : event.price === 0
         ? "Gratis"
         : `$${event.price.toLocaleString("es-AR")}`;
@@ -129,9 +129,11 @@ export function EventCard({ event, variant = "swimlane", className }: EventCardP
 
             {/* Price & Social Attendance */}
             <div className="flex flex-col items-end justify-center shrink-0 pl-2 space-y-1">
-              <span className="text-xs md:text-sm font-black text-[#D4FF00] tracking-wide">
-                {priceLabel}
-              </span>
+              {priceLabel && (
+                <span className="text-xs md:text-sm font-black text-[#D4FF00] tracking-wide">
+                  {priceLabel}
+                </span>
+              )}
               {event.goingCount > 0 && (
                 <div className="flex items-center gap-1 text-[9px] md:text-[10px] font-extrabold uppercase text-neutral-300">
                   <CheckCircle2 className="h-3 w-3 text-[#D4FF00] shrink-0" />
@@ -182,19 +184,21 @@ export function EventCard({ event, variant = "swimlane", className }: EventCardP
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/50 to-transparent opacity-90" />
 
         {/* Floating Top Badges en Liquid Glass */}
-        <div className="absolute inset-x-3.5 top-3.5 z-10 flex items-start justify-between gap-2">
+        <div className={cn("absolute inset-x-3.5 top-3.5 z-10 flex items-start gap-2", priceLabel ? "justify-between" : "justify-end")}>
           {/* Price / Free Badge */}
-          <span
-            className={cn(
-              "flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] md:text-[11px] font-black uppercase tracking-wider backdrop-blur-xl shadow-md border",
-              event.price === 0
-                ? "bg-[#D4FF00] text-neutral-950 border-[#D4FF00] shadow-[0_4px_15px_rgba(212,255,0,0.35)]"
-                : "bg-gradient-to-b from-white/[0.15] to-black/75 text-[#D4FF00] border-white/20 shadow-[inset_0_1px_1px_rgba(255,255,255,0.25)]",
-            )}
-          >
-            <Tag className="h-2.5 w-2.5 shrink-0" />
-            <span>{priceLabel}</span>
-          </span>
+          {priceLabel && (
+            <span
+              className={cn(
+                "flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] md:text-[11px] font-black uppercase tracking-wider backdrop-blur-xl shadow-md border",
+                event.price === 0
+                  ? "bg-[#D4FF00] text-neutral-950 border-[#D4FF00] shadow-[0_4px_15px_rgba(212,255,0,0.35)]"
+                  : "bg-gradient-to-b from-white/[0.15] to-black/75 text-[#D4FF00] border-white/20 shadow-[inset_0_1px_1px_rgba(255,255,255,0.25)]",
+              )}
+            >
+              <Tag className="h-2.5 w-2.5 shrink-0" />
+              <span>{priceLabel}</span>
+            </span>
+          )}
 
           {/* Date Badge */}
           <span className="flex items-center gap-1.5 rounded-full border border-white/20 bg-gradient-to-b from-white/[0.15] to-black/75 backdrop-blur-xl px-2.5 py-1 text-[10px] md:text-[11px] font-black uppercase tracking-widest text-white shadow-[inset_0_1px_1px_rgba(255,255,255,0.25)]">

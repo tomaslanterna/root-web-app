@@ -111,9 +111,14 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     )}&location=${encodeURIComponent(event.location)}`;
   };
 
-  const googleMapsUrl = event
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`
-    : "#";
+  let googleMapsUrl = "#";
+  if (event) {
+    if (event.latitude != null && event.longitude != null) {
+      googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${event.latitude},${event.longitude}`;
+    } else {
+      googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`;
+    }
+  }
 
   const handleBuyTicket = (tierId?: string) => {
     if (!event) return;
@@ -128,55 +133,22 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   };
 
   const ticketTiers = useMemo(() => {
-    if (!event) return [];
-    if (event.isFree || event.price === 0) {
-      return [
-        {
-          id: "free",
-          name: "Acceso General Libre",
-          description: "Entrada sin cargo válida hasta agotar capacidad del predio",
-          priceLabel: "Gratis",
-          status: "available" as const,
-          statusLabel: "Disponible",
-          perk: "Ingreso con registro previo y DNI físico",
-        },
-      ];
-    }
-    const basePrice = event.price || 25000;
-    return [
-      {
-        id: "early_bird",
-        name: "Early Bird Pass",
-        description: "Acceso promocional para los primeros en llegar",
-        priceLabel: `$${Math.round(basePrice * 0.75).toLocaleString("es-AR")}`,
-        status: "sold_out" as const,
-        statusLabel: "Agotado",
-        perk: "Ingreso sin restricción horaria",
-      },
-      {
-        id: "general",
-        name: "General Access",
-        description: "Acceso a pista principal y barras oficiales toda la noche",
-        priceLabel: `$${basePrice.toLocaleString("es-AR")}`,
-        status: "available" as const,
-        statusLabel: "Disponible",
-        perk: "Pase completo sin límite de permanencia",
-      },
-      {
-        id: "vip",
-        name: "VIP Backstage Experience",
-        description: "Tarima preferencial elevada, barra dedicada y sanitarios exclusivos",
-        priceLabel: `$${Math.round(basePrice * 1.6).toLocaleString("es-AR")}`,
-        status: "limited" as const,
-        statusLabel: "Últimos pases",
-        perk: "Fast pass prioritario sin filas de espera",
-      },
-    ];
+    if (!event || !event.ticketTiers) return null;
+
+    return event.ticketTiers.map((tier, idx) => ({
+      id: `tier_${idx}`,
+      name: tier.name,
+      description: "",
+      priceLabel: tier.currency === "UYU" ? `$${tier.price.toLocaleString("es-UY")}` : `$${tier.price.toLocaleString("es-AR")} ${tier.currency}`,
+      status: tier.soldOut ? ("sold_out" as const) : tier.fewRemaining ? ("limited" as const) : ("available" as const),
+      statusLabel: tier.soldOut ? "Agotado" : tier.fewRemaining ? "Últimos pases" : "Disponible",
+      perk: "",
+    }));
   }, [event]);
 
   // Selección automática del primer tier disponible
   useEffect(() => {
-    if (ticketTiers.length > 0) {
+    if (ticketTiers && ticketTiers.length > 0) {
       const available = ticketTiers.find((t) => t.status !== "sold_out") || ticketTiers[0];
       if (available && !ticketTiers.some((t) => t.id === selectedTier && t.status !== "sold_out")) {
         setSelectedTier(available.id);
@@ -244,7 +216,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         : `$${event.price.toLocaleString("es-AR")}`;
 
   const banner = event.cinematicBannerUrl?.trim() || fallbackBanner;
-  const currentTierObj = ticketTiers.find((t) => t.id === selectedTier) || ticketTiers[0];
+  const currentTierObj = ticketTiers?.find((t) => t.id === selectedTier) || ticketTiers?.[0];
 
   const updateAttendance = (response: RSVPResponse) => {
     setEvent((current) =>
@@ -347,25 +319,23 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         </div>
 
         {/* 1. Hero Poster Cinemático & Atmosférico en Liquid Glass */}
-        <div className="relative group rounded-3xl overflow-hidden border border-white/[0.14] bg-neutral-950 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.2)]">
-          {/* Specular top rim light */}
-          <div className="pointer-events-none absolute inset-x-8 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/40 to-transparent z-20 opacity-80" />
-
+        <div className="relative group overflow-hidden">
           {/* Ambient light glow */}
           <div
-            className="absolute -inset-6 bg-cover bg-center rounded-3xl opacity-25 blur-3xl pointer-events-none hidden md:block"
+            className="absolute -inset-6 bg-cover bg-center opacity-25 blur-3xl pointer-events-none hidden md:block"
             style={{ backgroundImage: `url(${banner})` }}
           />
 
-          <div className="relative aspect-[16/9] sm:aspect-[18/9] md:aspect-[21/9] w-full overflow-hidden">
+          <div className="relative aspect-[4/5] sm:aspect-square md:aspect-[16/9] w-full overflow-hidden rounded-t-3xl shadow-[0_-10px_60px_-15px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.05)]">
             <div
               role="img"
               aria-label={`Portada de ${event.title}`}
               className="w-full h-full bg-cover bg-center transition-transform duration-1000 ease-out group-hover:scale-[1.02]"
               style={{ backgroundImage: `url(${banner})` }}
             />
-            {/* Viñeta cinematográfica envolvente */}
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-[#0B0D10] via-[#0B0D10]/70 to-transparent" />
+            {/* Viñeta cinematográfica envolvente que se difumina hacia el color de fondo de la página */}
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-[#0B0D10] via-[#0B0D10]/80 to-transparent" />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-[#0B0D10] to-transparent" />
 
             {/* Micro-etiqueta de género musical en Liquid Glass */}
             {event.genre && (
@@ -379,7 +349,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         </div>
 
         {/* 2. Ficha de Identidad Editorial (Estilo Resident Advisor / Pitchfork) */}
-        <div className="space-y-3.5 border-b border-white/10 pb-8">
+        <div className="relative z-10 !-mt-12 sm:!-mt-24 space-y-3.5 border-b border-white/10 pb-8 px-2 sm:px-4">
           <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm font-semibold tracking-wide text-[#D4FF00]">
             <span className="capitalize">{formattedDate}</span>
             <span className="text-neutral-600">•</span>
@@ -441,106 +411,127 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
           {/* Lotes de Pases Estilo Ticket Stub en Vidrio Ahumado (Liquid Glass Pass) */}
           <div className="space-y-3 relative z-10">
-            {ticketTiers.map((tier) => {
-              const isSoldOut = tier.status === "sold_out";
-              const isSelected = selectedTier === tier.id;
-              return (
-                <div
-                  key={tier.id}
-                  onClick={() => !isSoldOut && setSelectedTier(tier.id)}
-                  className={cn(
-                    "group relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl border transition-all duration-300 select-none overflow-hidden",
-                    isSoldOut
-                      ? "border-white/5 bg-white/[0.01] opacity-40 cursor-not-allowed"
-                      : isSelected
-                        ? "border-[#D4FF00]/80 bg-gradient-to-r from-[#D4FF00]/15 via-[#D4FF00]/[0.04] to-transparent backdrop-blur-2xl shadow-[0_0_30px_rgba(212,255,0,0.18),inset_0_1px_1px_rgba(255,255,255,0.22)] cursor-pointer"
-                        : "border-white/[0.10] bg-gradient-to-b from-white/[0.04] to-white/[0.01] backdrop-blur-xl hover:border-white/25 hover:bg-white/[0.06] cursor-pointer shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)]",
-                  )}
-                >
-                  {/* Subtle specular line for selected pass */}
-                  {isSelected && (
-                    <div className="pointer-events-none absolute inset-x-4 top-0 h-[1px] bg-gradient-to-r from-transparent via-[#D4FF00]/50 to-transparent" />
-                  )}
+            {event?.ticketTiers === undefined || event?.ticketTiers === null ? (
+              <div className="flex flex-col items-center justify-center p-8 rounded-2xl border border-white/5 bg-white/[0.02]">
+                <p className="text-sm font-medium text-neutral-400 text-center">
+                  Aun no tenemos informacion sobre entradas oficiales para este evento
+                </p>
+              </div>
+            ) : event.ticketTiers.length === 0 ? (
+              <div className="flex flex-col items-center justify-center p-8 rounded-2xl border border-[#D4FF00]/20 bg-[#D4FF00]/5">
+                <p className="text-sm font-medium text-[#D4FF00] text-center animate-pulse">
+                  Estamos buscando y calculando las entradas oficiales para este evento
+                </p>
+              </div>
+            ) : (
+              ticketTiers &&
+              ticketTiers.map((tier) => {
+                const isSoldOut = tier.status === "sold_out";
+                const isSelected = selectedTier === tier.id;
+                return (
+                  <div
+                    key={tier.id}
+                    onClick={() => !isSoldOut && setSelectedTier(tier.id)}
+                    className={cn(
+                      "group relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl border transition-all duration-300 select-none overflow-hidden",
+                      isSoldOut
+                        ? "border-white/5 bg-white/[0.01] opacity-40 cursor-not-allowed"
+                        : isSelected
+                          ? "border-[#D4FF00]/80 bg-gradient-to-r from-[#D4FF00]/15 via-[#D4FF00]/[0.04] to-transparent backdrop-blur-2xl shadow-[0_0_30px_rgba(212,255,0,0.18),inset_0_1px_1px_rgba(255,255,255,0.22)] cursor-pointer"
+                          : "border-white/[0.10] bg-gradient-to-b from-white/[0.04] to-white/[0.01] backdrop-blur-xl hover:border-white/25 hover:bg-white/[0.06] cursor-pointer shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)]",
+                    )}
+                  >
+                    {/* Subtle specular line for selected pass */}
+                    {isSelected && (
+                      <div className="pointer-events-none absolute inset-x-4 top-0 h-[1px] bg-gradient-to-r from-transparent via-[#D4FF00]/50 to-transparent" />
+                    )}
 
-                  <div className="space-y-1 min-w-0">
-                    <div className="flex items-center gap-2.5">
-                      <span className={cn(
-                        "text-base sm:text-lg font-extrabold tracking-tight transition-colors",
-                        isSelected ? "text-white" : "text-neutral-200",
-                      )}>
-                        {tier.name}
-                      </span>
-                      {isSoldOut ? (
-                        <span className="rounded-full bg-rose-500/15 border border-rose-500/30 px-2 py-0.5 text-[10px] font-bold text-rose-400">
-                          Agotado
+                    <div className="space-y-1 min-w-0">
+                      <div className="flex items-center gap-2.5">
+                        <span className={cn(
+                          "text-base sm:text-lg font-extrabold tracking-tight transition-colors",
+                          isSelected ? "text-white" : "text-neutral-200",
+                        )}>
+                          {tier.name}
                         </span>
-                      ) : tier.status === "limited" ? (
-                        <span className="rounded-full bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-bold text-amber-300">
-                          Últimos pases
-                        </span>
-                      ) : null}
-                    </div>
-                    <p className="text-xs text-neutral-400 leading-relaxed">
-                      {tier.description}
-                    </p>
-                    <p className="text-[11px] text-neutral-500">
-                      • {tier.perk}
-                    </p>
-                  </div>
-
-                  <div className="flex sm:flex-col items-baseline sm:items-end justify-between sm:justify-center shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-white/5">
-                    <span
-                      className={cn(
-                        "text-xl sm:text-2xl font-black tracking-tight",
-                        isSoldOut ? "text-neutral-600 line-through" : "text-[#D4FF00]",
+                        {isSoldOut ? (
+                          <span className="rounded-full bg-rose-500/15 border border-rose-500/30 px-2 py-0.5 text-[10px] font-bold text-rose-400">
+                            Agotado
+                          </span>
+                        ) : tier.status === "limited" ? (
+                          <span className="rounded-full bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-bold text-amber-300">
+                            Últimos pases
+                          </span>
+                        ) : null}
+                      </div>
+                      {tier.description && (
+                        <p className="text-xs text-neutral-400 leading-relaxed">
+                          {tier.description}
+                        </p>
                       )}
-                    >
-                      {tier.priceLabel}
-                    </span>
-                    <span className="text-[10px] text-neutral-500 font-medium">
-                      {isSoldOut ? "Sin cupo" : "Precio final"}
-                    </span>
+                      {tier.perk && (
+                        <p className="text-[11px] text-neutral-500">
+                          • {tier.perk}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex sm:flex-col items-baseline sm:items-end justify-between sm:justify-center shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-white/5">
+                      <span
+                        className={cn(
+                          "text-xl sm:text-2xl font-black tracking-tight",
+                          isSoldOut ? "text-neutral-600 line-through" : "text-[#D4FF00]",
+                        )}
+                      >
+                        {tier.priceLabel}
+                      </span>
+                      <span className="text-[10px] text-neutral-500 font-medium">
+                        {isSoldOut ? "Sin cupo" : "Precio final"}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
 
           {/* Botón Principal Dominante de Compra */}
-          <div className="pt-2 space-y-3 relative z-10">
-            <button
-              type="button"
-              onClick={() => handleBuyTicket(selectedTier)}
-              disabled={currentTierObj?.status === "sold_out"}
-              className={cn(
-                "flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-sm font-black uppercase tracking-wider transition-all duration-200 shadow-2xl cursor-pointer active:scale-[0.99]",
-                currentTierObj?.status === "sold_out"
-                  ? "bg-neutral-800 text-neutral-500 cursor-not-allowed shadow-none"
-                  : "bg-gradient-to-b from-[#D4FF00] to-lime-400 text-neutral-950 shadow-[0_10px_35px_rgba(212,255,0,0.35),inset_0_1px_1px_rgba(255,255,255,0.5)] hover:brightness-105 active:scale-[0.99]",
-              )}
-            >
-              <Ticket className="h-4.5 w-4.5 stroke-[2.5]" />
-              <span>
-                {event.isFree
-                  ? "Obtener Pase Gratuito ↗"
-                  : `Conseguir Ticket — ${currentTierObj?.name} (${currentTierObj?.priceLabel}) ↗`}
-              </span>
-            </button>
+          {ticketTiers && ticketTiers.length > 0 && (
+            <div className="pt-2 space-y-3 relative z-10">
+              <button
+                type="button"
+                onClick={() => handleBuyTicket(selectedTier)}
+                disabled={currentTierObj?.status === "sold_out"}
+                className={cn(
+                  "flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-sm font-black uppercase tracking-wider transition-all duration-200 shadow-2xl cursor-pointer active:scale-[0.99]",
+                  currentTierObj?.status === "sold_out"
+                    ? "bg-neutral-800 text-neutral-500 cursor-not-allowed shadow-none"
+                    : "bg-gradient-to-b from-[#D4FF00] to-lime-400 text-neutral-950 shadow-[0_10px_35px_rgba(212,255,0,0.35),inset_0_1px_1px_rgba(255,255,255,0.5)] hover:brightness-105 active:scale-[0.99]",
+                )}
+              >
+                <Ticket className="h-4.5 w-4.5 stroke-[2.5]" />
+                <span>
+                  {event.isFree
+                    ? "Obtener Pase Gratuito ↗"
+                    : `Conseguir Ticket — ${currentTierObj?.name} (${currentTierObj?.priceLabel}) ↗`}
+                </span>
+              </button>
 
-            {/* Gancho Social: Ticket = Match de Squad Desbloqueado */}
-            <div className="flex items-center justify-center gap-2 pt-1 text-center text-xs font-semibold text-neutral-300">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#D4FF00]/20 text-[#D4FF00] shrink-0">
-                <Flame className="h-3 w-3 fill-[#D4FF00]" />
-              </span>
-              <span>
-                Al conseguir tu entrada desbloqueás tu match en el <strong>Squad de Previa</strong> de este evento.
-              </span>
+              {/* Gancho Social: Ticket = Match de Squad Desbloqueado */}
+              <div className="flex items-center justify-center gap-2 pt-1 text-center text-xs font-semibold text-neutral-300">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#D4FF00]/20 text-[#D4FF00] shrink-0">
+                  <Flame className="h-3 w-3 fill-[#D4FF00]" />
+                </span>
+                <span>
+                  Al conseguir tu entrada desbloqueás tu match en el <strong>Squad de Previa</strong> de este evento.
+                </span>
+              </div>
+
+              <p className="text-center text-[11px] text-neutral-500 font-medium">
+                Acceso digital nominal e intransferible • Redirección directa y segura con código RRPP Root
+              </p>
             </div>
-
-            <p className="text-center text-[11px] text-neutral-500 font-medium">
-              Acceso digital nominal e intransferible • Redirección directa y segura con código RRPP Root
-            </p>
-          </div>
+          )}
         </section>
 
         {/* 4. Pestañas de Contenido Progresivo en Liquid Glass */}
