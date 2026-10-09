@@ -1,24 +1,25 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button";
-import { Loader2, Mail, Lock, ChevronRight } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { PasswordInput } from "@/components/ui/PasswordInput";
+import { Loader2, Mail, ChevronRight } from "lucide-react";
 import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
-import { authApi } from "@/services/auth";
-import { useMutation } from "@/hooks/useMutation";
+import { useLogin } from "@/hooks/useLogin";
+import Image from "next/image";
 import { Capacitor } from "@capacitor/core";
 import { GoogleSignIn } from "@capawesome/capacitor-google-sign-in";
 
-function GoogleAuthWrapper({ onSuccess, onError, handleGoogleSuccess }: any) {
-  const [isNative, setIsNative] = useState(false);
+interface GoogleAuthWrapperProps {
+  onSuccess: (idToken: string) => void;
+  onError: () => void;
+  handleGoogleSuccess: (response: CredentialResponse) => void;
+}
+const subscribeNativePlatform = () => () => {};
 
-  React.useEffect(() => {
-    setIsNative(Capacitor.isNativePlatform());
-  }, []);
+function GoogleAuthWrapper({ onSuccess, onError, handleGoogleSuccess }: GoogleAuthWrapperProps) {
+  const isNative = React.useSyncExternalStore(subscribeNativePlatform, () => Capacitor.isNativePlatform(), () => false);
 
   const handleNativeLogin = async () => {
     try {
@@ -35,8 +36,7 @@ function GoogleAuthWrapper({ onSuccess, onError, handleGoogleSuccess }: any) {
       } else {
         onError();
       }
-    } catch (err) {
-      console.error(err);
+    } catch {
       onError();
     }
   };
@@ -96,38 +96,7 @@ function GoogleAuthWrapper({ onSuccess, onError, handleGoogleSuccess }: any) {
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  const { login } = useAuth();
-  const router = useRouter();
-
-  const handleLoginSuccess = (data: any) => {
-    login(data.token, data.user);
-    if (!data.user.dob || !data.user.documentId || !data.user.country) {
-      router.push("/complete-profile");
-    } else {
-      router.push("/feed");
-    }
-  };
-
-  const { mutate: loginMutate } = useMutation(
-    async (credentials: any) => {
-      const response = await authApi.login(credentials);
-      return response;
-    },
-    {
-      onSuccess: handleLoginSuccess,
-      onError: (err: any) => {
-        if (err.response?.status === 401) {
-          setError("Credenciales inválidas.");
-        } else {
-          setError("Ocurrió un error inesperado. Intenta de nuevo.");
-        }
-        setIsLoading(false);
-      },
-    },
-  );
+  const { password: passwordLogin, google: googleLogin, error, setError, isLoading } = useLogin();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -138,25 +107,12 @@ export default function LoginPage() {
       return;
     }
 
-    setIsLoading(true);
-    loginMutate({ email, password });
+    await passwordLogin.mutate({ email: email.trim(), password }).catch(() => undefined);
   };
-
-  const { mutate: googleAuthMutate } = useMutation(
-    async (idToken: string) => {
-      const response = await authApi.googleLogin(idToken);
-      return response;
-    },
-    {
-      onSuccess: handleLoginSuccess,
-      onError: (err) => {
-        console.error("Error in Google Auth:", err);
-        setError(
-          "Falló la autenticación con Google. Por favor intenta nuevamente.",
-        );
-      },
-    },
-  );
+  const googleAuthMutate = (idToken: string) => {
+    setError("");
+    void googleLogin.mutate(idToken).catch(() => undefined);
+  };
 
   const handleGoogleSuccess = (credentialResponse: CredentialResponse) => {
     if (credentialResponse.credential) {
@@ -174,7 +130,9 @@ export default function LoginPage() {
     <div className="flex flex-col md:flex-row min-h-[100dvh] bg-obsidian text-white relative overflow-hidden">
       {/* Left Column (Image) - Desktop Only */}
       <div className="hidden md:block md:w-1/2 relative bg-black">
-        <img
+        <Image
+          fill
+          unoptimized
           src="https://images.unsplash.com/photo-1574169208507-84376144848b?q=80&w=2079&auto=format&fit=crop"
           alt="Root Web App"
           className="w-full h-full object-cover opacity-60"
@@ -215,6 +173,11 @@ export default function LoginPage() {
                 <Mail size={18} />
               </div>
               <input
+                id="login-email"
+                name="email"
+                aria-label="Email"
+                autoComplete="username"
+                required
                 type="email"
                 placeholder="Email"
                 value={email}
@@ -225,22 +188,25 @@ export default function LoginPage() {
           </div>
 
           <div className="space-y-1">
-            <div className="relative group">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-neutral-500 group-focus-within:text-acid-lime transition-colors">
-                <Lock size={18} />
-              </div>
-              <input
-                type="password"
-                placeholder="Contraseña"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-[#14171F]/80 backdrop-blur-md border border-white/10 rounded-2xl py-3.5 pl-11 pr-4 text-white placeholder:text-neutral-500 focus:outline-none focus:border-acid-lime/50 focus:ring-1 focus:ring-acid-lime/50 transition-all font-medium text-sm"
-              />
-            </div>
+            <PasswordInput
+              id="login-password"
+              name="password"
+              aria-label="Contraseña"
+              autoComplete="current-password"
+              required
+              placeholder="Contraseña"
+              value={password}
+              onChange={event => setPassword(event.target.value)}
+            />
+          </div>
+          <div className="text-right">
+            <Link href="/forgot-password" className="inline-block py-2 text-xs font-semibold text-acid-lime hover:underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-acid-lime rounded">
+              He olvidado mi contraseña
+            </Link>
           </div>
 
           {error && (
-            <div className="text-red-400 text-xs font-semibold px-2 text-center animate-fade-in">
+            <div role="alert" className="text-red-400 text-xs font-semibold px-2 text-center animate-fade-in">
               {error}
             </div>
           )}

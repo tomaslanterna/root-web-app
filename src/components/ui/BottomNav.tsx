@@ -72,6 +72,8 @@ export function BottomNav() {
   const isAuthOrOnboarding =
     pathname === "/register" ||
     pathname === "/login" ||
+    pathname === "/forgot-password" ||
+    pathname === "/reset-password" ||
     pathname === "/complete-profile" ||
     pathname === "/kyc";
 
