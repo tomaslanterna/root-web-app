@@ -273,6 +273,12 @@ export default function CommunitiesPage() {
             </Button>
           </div>
         )}
+
+        {scope === "explore" && (
+          <p className="border-t border-white/10 px-2 pt-6 text-center text-sm font-medium leading-relaxed text-neutral-400">
+            si sos RRPP y queres tener tu comunidad, contactanos!
+          </p>
+        )}
       </main>
     </div>
   );

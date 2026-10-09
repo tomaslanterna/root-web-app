@@ -2,7 +2,6 @@
 
 import { use, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   CheckCircle2,
@@ -18,6 +17,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { CommunityAnnouncementCard } from "@/components/communities/CommunityAnnouncementCard";
+import { CommunityCover } from "@/components/communities/CommunityCover";
 import { CommunityAnnouncementComposer } from "@/components/communities/CommunityAnnouncementComposer";
 import { Button } from "@/components/ui/Button";
 import { DetailHeader } from "@/components/ui/DetailHeader";
@@ -148,20 +148,12 @@ export default function CommunityDetailPage({ params }: CommunityDetailPageProps
       <DetailHeader showBrand onBack={() => router.push(origin || "/communities")} />
 
       <section className="relative h-56 w-full overflow-hidden bg-neutral-950 md:h-80">
-        {community.coverImageUrl ? (
-          <Image
-            src={community.coverImageUrl}
-            alt={community.name}
-            fill
-            unoptimized
-            sizes="100vw"
-            className="object-cover opacity-75"
-          />
-        ) : (
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,rgba(212,255,0,0.28),transparent_30%),linear-gradient(140deg,#1a2028,#07080a)]">
-            <Radio className="absolute right-[10%] top-[16%] h-40 w-40 text-[#D4FF00]/10" />
-          </div>
-        )}
+        <CommunityCover
+          coverImageUrl={community.coverImageUrl}
+          category={community.category}
+          sizes="100vw"
+          className="opacity-75"
+        />
         <div className="absolute inset-0 bg-gradient-to-t from-[#0B0D10] via-black/30 to-transparent" />
         <div className="absolute inset-x-4 bottom-5 mx-auto max-w-6xl space-y-2 md:inset-x-8">
           <div className="flex flex-wrap gap-2">
