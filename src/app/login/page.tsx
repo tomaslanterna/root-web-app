@@ -96,39 +96,7 @@ function GoogleAuthWrapper({ onSuccess, onError, handleGoogleSuccess }: GoogleAu
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  const { login } = useAuth();
   const { password: passwordLogin, google: googleLogin, error, setError, isLoading } = useLogin();
-  const router = useRouter();
-
-  const handleLoginSuccess = (data: any) => {
-    login(data.token, data.user);
-    if (!data.user.dob || !data.user.documentId || !data.user.country) {
-      router.push("/complete-profile");
-    } else {
-      router.push("/events");
-    }
-  };
-
-  const { mutate: loginMutate } = useMutation(
-    async (credentials: any) => {
-      const response = await authApi.login(credentials);
-      return response;
-    },
-    {
-      onSuccess: handleLoginSuccess,
-      onError: (err: any) => {
-        if (err.response?.status === 401) {
-          setError("Credenciales inválidas.");
-        } else {
-          setError("Ocurrió un error inesperado. Intenta de nuevo.");
-        }
-        setIsLoading(false);
-      },
-    },
-  );
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
