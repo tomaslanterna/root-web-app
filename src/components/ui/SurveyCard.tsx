@@ -34,9 +34,7 @@ export function SurveyCard({ surveyEvent }: SurveyCardProps) {
       onClick={() => router.push(`/events/${surveyEvent.id}/survey`)}
       className={cn(
         "relative overflow-hidden w-full shrink-0 snap-center rounded-3xl bg-gradient-to-r from-indigo-900 via-purple-900 to-[#14171F] border border-purple-500/30 p-5 md:p-6 cursor-pointer hover:scale-[1.01] active:scale-[0.98] transition-all duration-[600ms] ease-[cubic-bezier(0.23,1,0.32,1)] group shadow-xl shadow-purple-900/20",
-        isVisible 
-          ? "scale-100 opacity-100 translate-y-0 blur-none" 
-          : "scale-[0.70] md:scale-[0.92] opacity-0 md:opacity-60 translate-y-16 md:translate-y-0 blur-sm md:blur-none"
+        isVisible ? "opacity-100" : "opacity-0"
       )}
     >
       <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-purple-500/30 transition-colors" />

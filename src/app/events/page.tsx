@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   Calendar,
@@ -15,7 +16,9 @@ import {
   List,
   Loader2,
   MapPin,
+  MessageSquare,
   Music,
+  Plus,
   RefreshCw,
   Search,
   SlidersHorizontal,
@@ -25,9 +28,16 @@ import {
 } from "lucide-react";
 import { EventCard } from "@/components/ui/EventCard";
 import { Button } from "@/components/ui/Button";
+import { PullToRefresh } from "@/components/ui/PullToRefresh";
+import { SurveyCard } from "@/components/ui/SurveyCard";
+import { QuickActionMenu } from "@/components/ui/QuickActionMenu";
+import { LiveEventBanner } from "@/components/LiveEventBanner";
+import { EventCalendarView } from "@/components/events/EventCalendarView";
 import { useMutation } from "@/hooks/useMutation";
+import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
 import { eventsApi } from "@/services/events";
+import { surveysApi } from "@/services/surveys";
 import { cn } from "@/lib/utils";
 import type { Event, EventFilters, EventListResponse } from "@/types/events";
 
@@ -212,7 +222,11 @@ function groupEventsChronologically(eventsList: Event[]): ChronologicalGroup[] {
 }
 
 export default function EventsPage() {
+  const router = useRouter();
+  const { user } = useAuth();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [events, setEvents] = useState<Event[]>([]);
+  const [pendingSurveys, setPendingSurveys] = useState<Event[]>([]);
   const [draftFilters, setDraftFilters] = useState<EventFilters>({ ...emptyFilters });
   const [appliedFilters, setAppliedFilters] = useState<EventFilters>({ ...emptyFilters });
   const [temporalPreset, setTemporalPreset] = useState<TemporalPreset>("all");
@@ -223,13 +237,31 @@ export default function EventsPage() {
   const [hasMore, setHasMore] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [viewMode, setViewMode] = useState<"grid" | "list" | "calendar">("grid");
   const [sortBy, setSortBy] = useState<"date" | "popular">("date");
   const [isWhenOpen, setIsWhenOpen] = useState(false);
   const [isGenreOpen, setIsGenreOpen] = useState(false);
   const whenDropdownRef = useRef<HTMLDivElement>(null);
   const genreDropdownRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
+
+  const { mutate: fetchPendingSurveys } = useMutation<Event[], void>(
+    surveysApi.getPendingSurveys,
+    {
+      onSuccess: (data) => {
+        setPendingSurveys(data);
+      },
+      onError: (err) => {
+        console.error("Error fetching pending surveys:", err);
+      },
+    }
+  );
+
+  useEffect(() => {
+    if (user) {
+      void fetchPendingSurveys().catch(() => undefined);
+    }
+  }, [fetchPendingSurveys, user]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent | TouchEvent) => {
@@ -354,6 +386,17 @@ export default function EventsPage() {
     return groupEventsChronologically(displayEvents);
   }, [displayEvents]);
 
+  const handleRefresh = async () => {
+    try {
+      await fetchEvents({ filters: appliedFilters, offset: 0, append: false, query: debouncedQuery });
+      if (user) {
+        await fetchPendingSurveys();
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const applyFilters = (event?: FormEvent) => {
     event?.preventDefault();
     setShowFilters(false);
@@ -466,88 +509,65 @@ export default function EventsPage() {
     (appliedFilters.location ? 1 : 0) +
     (appliedFilters.priceType !== "all" ? 1 : 0) +
     (appliedFilters.minPrice || appliedFilters.maxPrice ? 1 : 0) +
-    (appliedFilters.startDate || appliedFilters.endDate ? 1 : 0);
+    (appliedFilters.startDate || appliedFilters.endDate ? 1 : 0) +
+    (sortBy === "popular" ? 1 : 0);
 
   const hasActiveChips =
     !!appliedFilters.location ||
     appliedFilters.priceType !== "all" ||
     !!appliedFilters.minPrice ||
     !!appliedFilters.maxPrice ||
+    sortBy === "popular" ||
     !!debouncedQuery;
 
   return (
     <div className="flex min-h-screen flex-col bg-[#0B0D10] text-white">
-      {/* Cabecera solo para móvil */}
-      <header className="md:hidden glass-header-obsidian sticky top-0 z-40 flex flex-col gap-2 px-4 py-3">
-        <div className="flex items-center justify-between gap-3">
+      {/* Root Sticky Header (Móvil) */}
+      <header
+        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        className="md:hidden sticky top-0 z-40 glass-header-obsidian transition-all duration-300 cursor-pointer pt-[var(--root-safe-top)]"
+      >
+        <div className="px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <Film className="h-5 w-5 text-[#D4FF00]" />
-            <h1 className="text-lg font-black uppercase tracking-wider">Eventos</h1>
+            <div className="w-8 h-8 rounded-full bg-[#D4FF00] text-neutral-950 flex items-center justify-center font-black italic text-sm tracking-tighter shadow-md shadow-[#D4FF00]/15">
+              r
+            </div>
+            <h1 className="text-xl font-black italic tracking-tighter text-white">root</h1>
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Mobile search toggle button */}
             <button
               type="button"
-              onClick={() => setIsSearchOpenMobile((prev) => !prev)}
-              aria-label="Buscar"
-              className={cn(
-                "sm:hidden rounded-full p-2 transition-colors cursor-pointer",
-                isSearchOpenMobile || searchQuery
-                  ? "bg-[#D4FF00] text-neutral-950"
-                  : "bg-white/10 text-neutral-300 hover:bg-white/20",
-              )}
+              aria-label={user ? "Abrir mensajes" : "Iniciar sesión para ver mensajes"}
+              onClick={(event) => {
+                event.stopPropagation();
+                if (!user) {
+                  router.push("/login");
+                  return;
+                }
+                router.push("/chat?from=events");
+              }}
+              className="rounded-full border border-white/10 bg-white/5 p-2.5 text-[#D4FF00] hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-[#D4FF00]"
             >
-              <Search className="h-4 w-4" />
+              <MessageSquare className="h-5 w-5" />
             </button>
-
             <button
-              type="button"
-              onClick={() => setShowFilters(true)}
-              className={cn(
-                "flex items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-black uppercase tracking-wider transition-all cursor-pointer",
-                showFilters || activeFilters > 0
-                  ? "border-[#D4FF00] bg-[#D4FF00] text-neutral-950 shadow-sm shadow-[#D4FF00]/20"
-                  : "border-white/10 bg-white/10 text-neutral-300 hover:bg-white/20",
-              )}
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsMenuOpen(true);
+              }}
+              className="bg-[#D4FF00] text-neutral-950 p-2 rounded-full hover:bg-[#bce400] active:scale-95 transition-all shadow-md shadow-[#D4FF00]/10 flex items-center justify-center gap-1.5 px-3.5 text-xs font-black uppercase tracking-wider cursor-pointer"
             >
-              <SlidersHorizontal className="h-4 w-4" />
-              <span className="hidden sm:inline">Filtros</span>
-              {activeFilters > 0 && (
-                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-neutral-950 text-[10px] text-[#D4FF00]">
-                  {activeFilters}
-                </span>
-              )}
+              <Plus className="w-4 h-4 stroke-[3]" />
+              <span className="hidden sm:inline">Crear</span>
             </button>
           </div>
         </div>
-
-        {/* Mobile expandable search bar */}
-        {isSearchOpenMobile && (
-          <div className="sm:hidden relative w-full pt-1 animate-fade-in">
-            <Search className="absolute left-3 top-3.5 h-3.5 w-3.5 text-neutral-400 pointer-events-none" />
-            <input
-              autoFocus
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar por fiesta, club o DJ..."
-              className="w-full rounded-full bg-[#14171F] border border-white/10 pl-8 pr-7 py-2 text-xs text-white placeholder-neutral-500 focus:border-[#D4FF00] focus:outline-none"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-3.5 text-neutral-400 hover:text-white"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            )}
-          </div>
-        )}
       </header>
 
-      <div className="space-y-6 px-4 sm:px-0 pt-4 pb-28 w-full">
-        {/* Slide-over Drawer lateral para Filtros Avanzados (Cero Layout Shift) */}
+      <PullToRefresh onRefresh={handleRefresh}>
+        <div className="space-y-6 px-4 md:px-6 pt-4 md:pt-24 pb-28 w-full max-w-7xl mx-auto">
+          {/* Slide-over Drawer lateral para Filtros Avanzados (Cero Layout Shift) */}
         {showFilters && (
           <div className="fixed inset-0 z-50 flex justify-end">
             <div
@@ -570,6 +590,39 @@ export default function EventsPage() {
                       <X className="h-4 w-4" />
                     </button>
                   </div>
+
+                  <fieldset className="space-y-1.5">
+                    <legend className="flex items-center gap-1 text-[11px] font-extrabold uppercase tracking-wider text-neutral-400">
+                      <Flame className="h-3 w-3 text-[#D4FF00]" /> Ordenar por
+                    </legend>
+                    <div className="flex rounded-2xl border border-white/10 bg-[#14171F] p-1">
+                      <button
+                        type="button"
+                        onClick={() => setSortBy("date")}
+                        className={cn(
+                          "flex-1 rounded-xl py-1.5 text-xs font-extrabold transition-all cursor-pointer",
+                          sortBy === "date"
+                            ? "bg-[#D4FF00] text-neutral-950"
+                            : "text-neutral-400 hover:text-white",
+                        )}
+                      >
+                        Próximos
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSortBy("popular")}
+                        className={cn(
+                          "flex-1 rounded-xl py-1.5 text-xs font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5",
+                          sortBy === "popular"
+                            ? "bg-[#D4FF00] text-neutral-950"
+                            : "text-neutral-400 hover:text-white",
+                        )}
+                      >
+                        <Flame className={cn("h-3.5 w-3.5", sortBy === "popular" ? "text-neutral-950 fill-neutral-950" : "text-[#D4FF00]")} />
+                        Más votados
+                      </button>
+                    </div>
+                  </fieldset>
 
                   <div className="space-y-1.5">
                     <label className="flex items-center gap-1 text-[11px] font-extrabold uppercase tracking-wider text-neutral-400">
@@ -703,6 +756,7 @@ export default function EventsPage() {
                       size="full"
                       onClick={() => {
                         clearFilters();
+                        setSortBy("date");
                         setShowFilters(false);
                       }}
                     >
@@ -711,6 +765,38 @@ export default function EventsPage() {
                   )}
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Live Activity Banner */}
+        <LiveEventBanner />
+
+        {/* Searchbar */}
+        <div className="w-full">
+          <div
+            onClick={() => router.push("/search")}
+            className="w-full bg-[#14171F] border border-white/10 rounded-full px-4 py-3 flex items-center gap-3 text-neutral-400 hover:bg-[#1A1F2B] transition-colors cursor-text shadow-lg"
+          >
+            <Sparkles className="w-4 h-4 text-[#D4FF00]" />
+            <span className="text-sm font-semibold tracking-wide">
+              Buscar eventos, artistas o clubes...
+            </span>
+          </div>
+        </div>
+
+        {/* Swimlane de Encuestas Pendientes */}
+        {pendingSurveys.length > 0 && (
+          <div className="mt-2 mb-2">
+            <div
+              className={cn(
+                "flex overflow-x-auto overflow-y-hidden touch-pan-x snap-x snap-mandatory hide-scrollbar gap-4 py-1 scroll-px-4",
+                pendingSurveys.length === 1 ? "justify-center" : "justify-start"
+              )}
+            >
+              {pendingSurveys.map((surveyEvent) => (
+                <SurveyCard key={surveyEvent.id} surveyEvent={surveyEvent} />
+              ))}
             </div>
           </div>
         )}
@@ -800,307 +886,279 @@ export default function EventsPage() {
           </Link>
         )}
 
-        {/* Barra de Descubrimiento Unificada (Estilo Resident Advisor - 1 sola fila de 44px) */}
-        <div className="relative z-20 flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 py-2.5 px-3 md:px-4 rounded-2xl bg-[#14171F]/80 backdrop-blur-xl border border-white/10 shadow-lg shadow-black/30 transition-all">
-          {/* Lado Izquierdo: Ciudad + Fecha + Géneros + Filtros */}
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* 1. Selector de Polo Electrónico / Ciudad */}
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-bold text-neutral-300 hover:text-white hover:border-white/20 transition-all cursor-pointer select-none">
-              <MapPin className="h-3.5 w-3.5 text-[#D4FF00] shrink-0" />
-              <span>Buenos Aires</span>
-            </div>
-
-            {/* Dropdown ¿Cuándo? (Comprimido y minimalista) */}
-            <div ref={whenDropdownRef} className="relative shrink-0">
-            <div
-              className={cn(
-                "flex items-center rounded-full border transition-all select-none",
-                isDateActive
-                  ? "border-[#D4FF00]/50 bg-[#D4FF00]/15 text-[#D4FF00] shadow-sm shadow-[#D4FF00]/10"
-                  : "border-white/10 bg-[#14171F] text-neutral-300 hover:border-white/20 hover:text-white",
-              )}
-            >
-              <button
-                type="button"
-                onClick={() => {
-                  setIsWhenOpen((prev) => !prev);
-                  setIsGenreOpen(false);
-                }}
-                className={cn(
-                  "flex items-center gap-1.5 py-1.5 text-xs font-bold tracking-wide cursor-pointer",
-                  isDateActive ? "pl-3.5 pr-1.5" : "px-3.5",
-                )}
-              >
-                <Calendar className={cn("h-3.5 w-3.5", isDateActive ? "text-[#D4FF00]" : "text-neutral-400")} />
-                <span>{getDateLabel()}</span>
-                {!isDateActive && (
-                  <ChevronDown
-                    className={cn(
-                      "h-3.5 w-3.5 text-neutral-400 transition-transform duration-200",
-                      isWhenOpen && "rotate-180",
-                    )}
-                  />
-                )}
-              </button>
-
-              {isDateActive && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    clearDateFilter();
-                  }}
-                  className="pr-3 pl-1 py-1.5 text-[#D4FF00]/80 hover:text-white transition-colors cursor-pointer"
-                  title="Quitar filtro de fecha"
-                  aria-label="Quitar filtro de fecha"
+        {/* Barra de Filtros y Selector de Vistas (Organizado en 2 filas) */}
+        <div className="relative z-20 flex flex-col gap-2.5 py-2.5 px-3 md:px-4 rounded-2xl bg-[#14171F]/80 backdrop-blur-xl border border-white/10 shadow-lg shadow-black/30 transition-all">
+          {/* Fila 1: Filtros (Únicamente ¿Cuándo?, Categorías y Botón de Filtros) */}
+          <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Dropdown ¿Cuándo? */}
+              <div ref={whenDropdownRef} className="relative shrink-0">
+                <div
+                  className={cn(
+                    "flex items-center rounded-full border transition-all select-none",
+                    isDateActive
+                      ? "border-[#D4FF00]/50 bg-[#D4FF00]/15 text-[#D4FF00] shadow-sm shadow-[#D4FF00]/10"
+                      : "border-white/10 bg-[#14171F] text-neutral-300 hover:border-white/20 hover:text-white",
+                  )}
                 >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsWhenOpen((prev) => !prev);
+                      setIsGenreOpen(false);
+                    }}
+                    className={cn(
+                      "flex items-center gap-1.5 py-1.5 text-xs font-bold tracking-wide cursor-pointer",
+                      isDateActive ? "pl-3.5 pr-1.5" : "px-3.5",
+                    )}
+                  >
+                    <Calendar className={cn("h-3.5 w-3.5", isDateActive ? "text-[#D4FF00]" : "text-neutral-400")} />
+                    <span>{getDateLabel()}</span>
+                    {!isDateActive && (
+                      <ChevronDown
+                        className={cn(
+                          "h-3.5 w-3.5 text-neutral-400 transition-transform duration-200",
+                          isWhenOpen && "rotate-180",
+                        )}
+                      />
+                    )}
+                  </button>
 
-            {/* Menú Desplegable flotante de Fecha */}
-            {isWhenOpen && (
-              <div className="absolute left-0 top-full mt-2 w-52 rounded-2xl border border-white/10 bg-[#14171F] p-1.5 shadow-2xl shadow-black/90 z-50 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-xl">
-                <div className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-neutral-400">
-                  ¿Cuándo?
+                  {isDateActive && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        clearDateFilter();
+                      }}
+                      className="pr-3 pl-1 py-1.5 text-[#D4FF00]/80 hover:text-white transition-colors cursor-pointer"
+                      title="Quitar filtro de fecha"
+                      aria-label="Quitar filtro de fecha"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
                 </div>
-                {[
-                  { id: "weekend", label: "Este finde", desc: "Vie a Dom" },
-                  { id: "week", label: "Próximos 7 días", desc: "Semana entrante" },
-                  { id: "month", label: "Este mes", desc: "Mes en curso" },
-                ].map((opt) => {
-                  const isSelected = temporalPreset === opt.id;
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() => handleSelectTemporal(opt.id as TemporalPreset)}
-                      className={cn(
-                        "flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-xs font-bold transition-all cursor-pointer",
-                        isSelected
-                          ? "bg-[#D4FF00]/15 text-[#D4FF00]"
-                          : "text-neutral-300 hover:bg-white/5 hover:text-white",
-                      )}
-                    >
-                      <div className="flex flex-col text-left">
-                        <span>{opt.label}</span>
-                        <span className="text-[10px] font-normal text-neutral-500">{opt.desc}</span>
-                      </div>
-                      {isSelected && <Check className="h-3.5 w-3.5 text-[#D4FF00]" />}
-                    </button>
-                  );
-                })}
 
-                {isDateActive && (
-                  <>
-                    <div className="my-1 border-t border-white/10" />
-                    <button
-                      type="button"
-                      onClick={clearDateFilter}
-                      className="flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-[11px] font-semibold text-neutral-400 hover:bg-white/5 hover:text-white transition-all cursor-pointer"
-                    >
-                      <span>Cualquier fecha</span>
-                      <X className="h-3 w-3" />
-                    </button>
-                  </>
+                {/* Menú Desplegable flotante de Fecha */}
+                {isWhenOpen && (
+                  <div className="absolute left-0 top-full mt-2 w-52 rounded-2xl border border-white/10 bg-[#14171F] p-1.5 shadow-2xl shadow-black/90 z-50 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-xl">
+                    <div className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-neutral-400">
+                      ¿Cuándo?
+                    </div>
+                    {[
+                      { id: "weekend", label: "Este finde", desc: "Vie a Dom" },
+                      { id: "week", label: "Próximos 7 días", desc: "Semana entrante" },
+                      { id: "month", label: "Este mes", desc: "Mes en curso" },
+                    ].map((opt) => {
+                      const isSelected = temporalPreset === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => handleSelectTemporal(opt.id as TemporalPreset)}
+                          className={cn(
+                            "flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-xs font-bold transition-all cursor-pointer",
+                            isSelected
+                              ? "bg-[#D4FF00]/15 text-[#D4FF00]"
+                              : "text-neutral-300 hover:bg-white/5 hover:text-white",
+                          )}
+                        >
+                          <div className="flex flex-col text-left">
+                            <span>{opt.label}</span>
+                            <span className="text-[10px] font-normal text-neutral-500">{opt.desc}</span>
+                          </div>
+                          {isSelected && <Check className="h-3.5 w-3.5 text-[#D4FF00]" />}
+                        </button>
+                      );
+                    })}
+
+                    {isDateActive && (
+                      <>
+                        <div className="my-1 border-t border-white/10" />
+                        <button
+                          type="button"
+                          onClick={clearDateFilter}
+                          className="flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-[11px] font-semibold text-neutral-400 hover:bg-white/5 hover:text-white transition-all cursor-pointer"
+                        >
+                          <span>Cualquier fecha</span>
+                          <X className="h-3 w-3" />
+                        </button>
+                      </>
+                    )}
+                  </div>
                 )}
               </div>
-            )}
-          </div>
 
-          {/* Dropdown Categorías (Comportamiento exacto al de ¿Cuándo?) */}
-          <div ref={genreDropdownRef} className="relative shrink-0">
-            <div
-              className={cn(
-                "flex items-center rounded-full border transition-all select-none",
-                isGenreActive
-                  ? "border-[#D4FF00]/50 bg-[#D4FF00]/15 text-[#D4FF00] shadow-sm shadow-[#D4FF00]/10"
-                  : "border-white/10 bg-[#14171F] text-neutral-300 hover:border-white/20 hover:text-white",
-              )}
-            >
-              <button
-                type="button"
-                onClick={() => {
-                  setIsGenreOpen((prev) => !prev);
-                  setIsWhenOpen(false);
-                }}
-                className={cn(
-                  "flex items-center gap-1.5 py-1.5 text-xs font-bold tracking-wide cursor-pointer",
-                  isGenreActive ? "pl-3.5 pr-1.5" : "px-3.5",
-                )}
-              >
-                <Music className={cn("h-3.5 w-3.5", isGenreActive ? "text-[#D4FF00]" : "text-neutral-400")} />
-                <span>{getGenreLabel()}</span>
-                {!isGenreActive && (
-                  <ChevronDown
-                    className={cn(
-                      "h-3.5 w-3.5 text-neutral-400 transition-transform duration-200",
-                      isGenreOpen && "rotate-180",
-                    )}
-                  />
-                )}
-              </button>
-
-              {isGenreActive && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    clearGenreFilter();
-                  }}
-                  className="pr-3 pl-1 py-1.5 text-[#D4FF00]/80 hover:text-white transition-colors cursor-pointer"
-                  title="Quitar filtro de categoría"
-                  aria-label="Quitar filtro de categoría"
+              {/* Dropdown Categorías */}
+              <div ref={genreDropdownRef} className="relative shrink-0">
+                <div
+                  className={cn(
+                    "flex items-center rounded-full border transition-all select-none",
+                    isGenreActive
+                      ? "border-[#D4FF00]/50 bg-[#D4FF00]/15 text-[#D4FF00] shadow-sm shadow-[#D4FF00]/10"
+                      : "border-white/10 bg-[#14171F] text-neutral-300 hover:border-white/20 hover:text-white",
+                  )}
                 >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsGenreOpen((prev) => !prev);
+                      setIsWhenOpen(false);
+                    }}
+                    className={cn(
+                      "flex items-center gap-1.5 py-1.5 text-xs font-bold tracking-wide cursor-pointer",
+                      isGenreActive ? "pl-3.5 pr-1.5" : "px-3.5",
+                    )}
+                  >
+                    <Music className={cn("h-3.5 w-3.5", isGenreActive ? "text-[#D4FF00]" : "text-neutral-400")} />
+                    <span>{getGenreLabel()}</span>
+                    {!isGenreActive && (
+                      <ChevronDown
+                        className={cn(
+                          "h-3.5 w-3.5 text-neutral-400 transition-transform duration-200",
+                          isGenreOpen && "rotate-180",
+                        )}
+                      />
+                    )}
+                  </button>
 
-            {/* Menú Desplegable flotante de Categorías */}
-            {isGenreOpen && (
-              <div className="absolute left-0 top-full mt-2 w-52 rounded-2xl border border-white/10 bg-[#14171F] p-1.5 shadow-2xl shadow-black/90 z-50 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-xl">
-                <div className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-neutral-400">
-                  Categoría
+                  {isGenreActive && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        clearGenreFilter();
+                      }}
+                      className="pr-3 pl-1 py-1.5 text-[#D4FF00]/80 hover:text-white transition-colors cursor-pointer"
+                      title="Quitar filtro de categoría"
+                      aria-label="Quitar filtro de categoría"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
                 </div>
-                {genreOptions.map((opt) => {
-                  const isSelected =
-                    opt.id === "all"
-                      ? !isGenreActive
-                      : appliedFilters.genre.toLowerCase() === opt.id.toLowerCase();
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() => handleSelectGenre(opt.id)}
-                      className={cn(
-                        "flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-xs font-bold transition-all cursor-pointer",
-                        isSelected
-                          ? "bg-[#D4FF00]/15 text-[#D4FF00]"
-                          : "text-neutral-300 hover:bg-white/5 hover:text-white",
-                      )}
-                    >
-                      <span>{opt.label}</span>
-                      {isSelected && <Check className="h-3.5 w-3.5 text-[#D4FF00]" />}
-                    </button>
-                  );
-                })}
 
-                {isGenreActive && (
-                  <>
-                    <div className="my-1 border-t border-white/10" />
-                    <button
-                      type="button"
-                      onClick={clearGenreFilter}
-                      className="flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-[11px] font-semibold text-neutral-400 hover:bg-white/5 hover:text-white transition-all cursor-pointer"
-                    >
-                      <span>Todas las categorías</span>
-                      <X className="h-3 w-3" />
-                    </button>
-                  </>
+                {/* Menú Desplegable flotante de Categorías */}
+                {isGenreOpen && (
+                  <div className="absolute left-0 top-full mt-2 w-52 rounded-2xl border border-white/10 bg-[#14171F] p-1.5 shadow-2xl shadow-black/90 z-50 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-xl">
+                    <div className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-neutral-400">
+                      Categoría
+                    </div>
+                    {genreOptions.map((opt) => {
+                      const isSelected =
+                        opt.id === "all"
+                          ? !isGenreActive
+                          : appliedFilters.genre.toLowerCase() === opt.id.toLowerCase();
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => handleSelectGenre(opt.id)}
+                          className={cn(
+                            "flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-xs font-bold transition-all cursor-pointer",
+                            isSelected
+                              ? "bg-[#D4FF00]/15 text-[#D4FF00]"
+                              : "text-neutral-300 hover:bg-white/5 hover:text-white",
+                          )}
+                        >
+                          <span>{opt.label}</span>
+                          {isSelected && <Check className="h-3.5 w-3.5 text-[#D4FF00]" />}
+                        </button>
+                      );
+                    })}
+
+                    {isGenreActive && (
+                      <>
+                        <div className="my-1 border-t border-white/10" />
+                        <button
+                          type="button"
+                          onClick={clearGenreFilter}
+                          className="flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-[11px] font-semibold text-neutral-400 hover:bg-white/5 hover:text-white transition-all cursor-pointer"
+                        >
+                          <span>Todas las categorías</span>
+                          <X className="h-3 w-3" />
+                        </button>
+                      </>
+                    )}
+                  </div>
                 )}
               </div>
-            )}
+            </div>
+
+            {/* Botón Drawer de Filtros Avanzados */}
+            <button
+              type="button"
+              onClick={() => setShowFilters(true)}
+              aria-label="Filtros avanzados"
+              title="Filtros avanzados"
+              className={cn(
+                "shrink-0 flex items-center justify-center gap-1.5 rounded-full border p-2 text-xs font-black transition-all cursor-pointer select-none",
+                showFilters || activeFilters > 0
+                  ? "border-[#D4FF00] bg-[#D4FF00] text-neutral-950 shadow-sm shadow-[#D4FF00]/20"
+                  : "border-white/10 bg-white/5 text-neutral-300 hover:bg-white/10 hover:text-white",
+              )}
+            >
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+              {activeFilters > 0 && (
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-neutral-950 text-[10px] text-[#D4FF00]">
+                  {activeFilters}
+                </span>
+              )}
+            </button>
           </div>
 
-          {/* Separador vertical sutil */}
-          <div className="h-4 w-px bg-white/10 shrink-0" />
-
-          {/* Botón rápido: Más votados (Encuestas de asistencia) */}
-          <button
-            type="button"
-            onClick={() => setSortBy((prev) => (prev === "popular" ? "date" : "popular"))}
-            className={cn(
-              "shrink-0 flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer select-none",
-              sortBy === "popular"
-                ? "border-[#D4FF00] bg-[#D4FF00] text-neutral-950 shadow-sm shadow-[#D4FF00]/20"
-                : "border-white/10 bg-[#14171F] text-neutral-300 hover:border-white/20 hover:text-white",
-            )}
-            title="Ordenar por mayor convocatoria en encuestas de asistencia"
-          >
-            <Flame className={cn("h-3.5 w-3.5", sortBy === "popular" ? "text-neutral-950 fill-neutral-950" : "text-[#D4FF00]")} />
-            <span>Más votados</span>
-          </button>
-
-          {/* 5. Botón Drawer de Filtros Avanzados */}
-          <button
-            type="button"
-            onClick={() => setShowFilters(true)}
-            className={cn(
-              "shrink-0 flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-black uppercase tracking-wider transition-all cursor-pointer select-none",
-              showFilters || activeFilters > 0
-                ? "border-[#D4FF00] bg-[#D4FF00] text-neutral-950 shadow-sm shadow-[#D4FF00]/20"
-                : "border-white/10 bg-white/5 text-neutral-300 hover:bg-white/10 hover:text-white",
-            )}
-          >
-            <SlidersHorizontal className="h-3.5 w-3.5" />
-            <span className="hidden md:inline">Filtros</span>
-            {activeFilters > 0 && (
-              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-neutral-950 text-[10px] text-[#D4FF00]">
-                {activeFilters}
-              </span>
-            )}
-          </button>
-        </div>
-
-        {/* Lado Derecho: Buscador Integrado en la Misma Fila + Switch de Vistas (Grilla / Agenda) */}
-        <div className="flex items-center gap-2.5 w-full sm:w-auto justify-between sm:justify-end">
-          {/* Buscador Compacto en la Misma Fila */}
-          <div className="relative flex-1 sm:flex-initial flex items-center">
-            <Search className="absolute left-3 h-3.5 w-3.5 text-neutral-400 pointer-events-none" />
-            <input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar por fiesta, club o DJ..."
-              className="w-full sm:w-44 md:w-52 lg:w-60 focus:sm:w-64 rounded-full bg-[#14171F] border border-white/10 pl-8 pr-7 py-1.5 text-xs text-white placeholder-neutral-500 focus:border-[#D4FF00] focus:outline-none transition-all shadow-inner"
-            />
-            {searchQuery && (
+          {/* Fila 2: Elección del Layout (Grilla / Agenda / Calendario) */}
+          <div className="flex items-center justify-start sm:justify-end pt-2 border-t border-white/5">
+            <div className="flex items-center rounded-full border border-white/10 bg-[#0B0D10] p-0.5 shrink-0">
               <button
                 type="button"
-                onClick={() => setSearchQuery("")}
-                className="absolute right-2.5 text-neutral-400 hover:text-white cursor-pointer"
+                onClick={() => setViewMode("grid")}
+                title="Vista Cuadrícula"
+                aria-label="Vista Cuadrícula"
+                className={cn(
+                  "flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold transition-all cursor-pointer",
+                  viewMode === "grid"
+                    ? "bg-[#D4FF00] text-neutral-950 shadow-sm"
+                    : "text-neutral-400 hover:text-white"
+                )}
               >
-                <X className="h-3 w-3" />
+                <LayoutGrid className="h-3.5 w-3.5" />
+                <span className="text-[10px] font-black uppercase">Grilla</span>
               </button>
-            )}
-          </div>
-
-          {/* Switch de Vistas: Grilla / Agenda */}
-          <div className="flex items-center rounded-full border border-white/10 bg-[#14171F] p-0.5 shrink-0">
-            <button
-              type="button"
-              onClick={() => setViewMode("grid")}
-              title="Vista Cuadrícula"
-              aria-label="Vista Cuadrícula"
-              className={cn(
-                "flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold transition-all cursor-pointer",
-                viewMode === "grid"
-                  ? "bg-[#D4FF00] text-neutral-950 shadow-sm"
-                  : "text-neutral-400 hover:text-white"
-              )}
-            >
-              <LayoutGrid className="h-3.5 w-3.5" />
-              <span className="hidden lg:inline text-[10px] font-black uppercase">Grilla</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode("list")}
-              title="Vista Agenda"
-              aria-label="Vista Agenda"
-              className={cn(
-                "flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold transition-all cursor-pointer",
-                viewMode === "list"
-                  ? "bg-[#D4FF00] text-neutral-950 shadow-sm"
-                  : "text-neutral-400 hover:text-white"
-              )}
-            >
-              <List className="h-3.5 w-3.5" />
-              <span className="hidden lg:inline text-[10px] font-black uppercase">Agenda</span>
-            </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("list")}
+                title="Vista Agenda"
+                aria-label="Vista Agenda"
+                className={cn(
+                  "flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold transition-all cursor-pointer",
+                  viewMode === "list"
+                    ? "bg-[#D4FF00] text-neutral-950 shadow-sm"
+                    : "text-neutral-400 hover:text-white"
+                )}
+              >
+                <List className="h-3.5 w-3.5" />
+                <span className="text-[10px] font-black uppercase">Agenda</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("calendar")}
+                title="Vista Calendario"
+                aria-label="Vista Calendario"
+                className={cn(
+                  "flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold transition-all cursor-pointer",
+                  viewMode === "calendar"
+                    ? "bg-[#D4FF00] text-neutral-950 shadow-sm"
+                    : "text-neutral-400 hover:text-white"
+                )}
+              >
+                <Calendar className="h-3.5 w-3.5" />
+                <span className="text-[10px] font-black uppercase">Calendario</span>
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
         {/* Chips de Filtros Activos (solo para filtros adicionales no cubiertos directamente en la barra principal) */}
         {hasActiveChips && (
@@ -1147,6 +1205,20 @@ export default function EventsPage() {
                 </button>
               </span>
             )}
+            {sortBy === "popular" && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-[#D4FF00]/40 bg-[#D4FF00]/15 px-2.5 py-0.5 text-[11px] font-semibold text-[#D4FF00]">
+                <Flame className="h-3 w-3 fill-[#D4FF00]" />
+                Más votados
+                <button
+                  type="button"
+                  onClick={() => setSortBy("date")}
+                  className="hover:text-white cursor-pointer"
+                  title="Quitar más votados"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            )}
             {debouncedQuery && (
               <span className="inline-flex items-center gap-1 rounded-full border border-[#D4FF00]/30 bg-[#D4FF00]/10 px-2.5 py-0.5 text-[11px] font-semibold text-[#D4FF00]">
                 "{debouncedQuery}"
@@ -1183,9 +1255,18 @@ export default function EventsPage() {
           </div>
         </div>
 
-        {/* Contenedor Principal de Eventos (Grilla o Lista Cronológica) */}
+        {/* Contenedor Principal de Eventos (Grilla, Lista Cronológica o Calendario estilo BeReal) */}
         {!hasLoaded && isLoadingEvents ? (
-          viewMode === "list" ? (
+          viewMode === "calendar" ? (
+            <div className="rounded-3xl border border-white/5 bg-[#14171F] p-5 space-y-4 animate-pulse">
+              <div className="h-8 w-48 rounded-full bg-white/10" />
+              <div className="grid grid-cols-7 gap-2 pt-4">
+                {Array.from({ length: 28 }).map((_, i) => (
+                  <div key={i} className="aspect-square rounded-2xl bg-white/5" />
+                ))}
+              </div>
+            </div>
+          ) : viewMode === "list" ? (
             <div className="flex flex-col gap-3">
               {[1, 2, 3, 4, 5, 6].map((item) => (
                 <div
@@ -1219,7 +1300,10 @@ export default function EventsPage() {
             </Button>
           </div>
         ) : displayEvents.length > 0 ? (
-          viewMode === "list" ? (
+          viewMode === "calendar" ? (
+            /* Vista Calendario estilo Recuerdos BeReal */
+            <EventCalendarView events={displayEvents} />
+          ) : viewMode === "list" ? (
             /* Vista Agenda Cronológica Agrupada */
             <div className="flex flex-col gap-6 animate-in fade-in duration-300">
               {chronologicalGroups.map((group) => (
@@ -1286,7 +1370,10 @@ export default function EventsPage() {
 
         {/* Sentinel invisible para IntersectionObserver (Scroll Infinito automático) */}
         <div ref={sentinelRef} className="h-6 w-full pointer-events-none" />
-      </div>
+        </div>
+      </PullToRefresh>
+
+      <QuickActionMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
     </div>
   );
 }

@@ -79,11 +79,11 @@ function CreatePostContent() {
       };
       await api.post("/v1/posts", payload);
       
-      // Go back to feed or community
+      // Go back to events or community
       if (communityId) {
         router.push(`/communities/${communityId}`);
       } else {
-        router.push("/feed");
+        router.push("/events");
       }
     } catch (err) {
       console.error("Error creating post:", err);

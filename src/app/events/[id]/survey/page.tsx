@@ -76,7 +76,7 @@ export default function SurveyPage() {
       
       // Redirect after showing success briefly
       setTimeout(() => {
-        router.push("/feed");
+        router.push("/events");
       }, 2000);
     } catch (error) {
       console.error("Error submitting survey:", error);

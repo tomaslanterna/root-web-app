@@ -4,7 +4,6 @@ import { useState, useEffect, useRef, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
-  Home,
   Calendar,
   Sparkles,
   Users,
@@ -18,7 +17,6 @@ import { Avatar } from "@/components/ui/Avatar";
 const subscribeMounted = () => () => {};
 
 const NAV_ITEMS = [
-  { label: "Feed", href: "/feed", icon: Home },
   { label: "Eventos", href: "/events", icon: Calendar },
   { label: "Crews", href: "/match", icon: Sparkles },
   { label: "Comunidades", href: "/communities", icon: Users },
@@ -77,7 +75,9 @@ export function BottomNav() {
 
   // Determinamos si deberíamos ocultar la barra en mobile según la ruta
   const hideOnMobile =
-    (pathname === "/chat" && searchParams.get("from") === "feed") ||
+    (pathname === "/chat" &&
+      (searchParams.get("from") === "feed" ||
+        searchParams.get("from") === "events")) ||
     pathname === "/search" ||
     pathname.startsWith("/transfers/") ||
     pathname.startsWith("/posts/") ||
@@ -89,7 +89,7 @@ export function BottomNav() {
   if (!mounted || isAuthOrOnboarding) return null;
 
   const isItemActive = (href: string) => {
-    if (href === "/feed" && (pathname === "/" || pathname === "/feed"))
+    if (href === "/events" && (pathname === "/" || pathname === "/events"))
       return true;
     return (
       pathname === href || (href !== "/" && pathname.startsWith(`${href}/`))
@@ -100,7 +100,6 @@ export function BottomNav() {
 
   // Items para la cápsula flotante de escritorio
   const desktopCenterItems = [
-    { label: "Feed", href: "/feed", icon: Home },
     { label: "Eventos", href: "/events", icon: Calendar },
     ...(user
       ? [
@@ -141,7 +140,7 @@ export function BottomNav() {
           {/* Lado Izquierdo: Brand Logo de Root */}
           <div className="flex items-center gap-3 relative z-10">
             <Link
-              href="/feed"
+              href="/events"
               title="root"
               aria-label="root home"
               className="flex items-center gap-2.5 group"

@@ -107,7 +107,7 @@ export default function LoginPage() {
     if (!data.user.dob || !data.user.documentId || !data.user.country) {
       router.push("/complete-profile");
     } else {
-      router.push("/feed");
+      router.push("/events");
     }
   };
 

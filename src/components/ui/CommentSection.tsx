@@ -9,6 +9,7 @@ import { ReportContentAction } from "@/components/communities/ReportContentActio
 import type { EventComment } from "@/types/events";
 import { Avatar } from "./Avatar";
 import { Button } from "./Button";
+import { cn } from "@/lib/utils";
 
 interface CommentSectionProps {
   targetId: string;
@@ -34,8 +35,16 @@ export function CommentSection({
   const { user } = useAuth();
   
   const [content, setContent] = useState("");
+  const [policyError, setPolicyError] = useState<string | null>(null);
+  const [generalError, setGeneralError] = useState<string | null>(null);
 
-  const { comments, total, hasMore, hasLoaded, fetchComments, postComment, isLoadingComments, isPostingComment, commentsError, createCommentError } = useComments(targetId, endpointType, isMock, mockComments);
+  const { comments, total, hasMore, hasLoaded, fetchComments, postComment, isLoadingComments, isPostingComment, commentsError } = useComments(targetId, endpointType, isMock, mockComments);
+
+  const handleContentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setContent(e.target.value);
+    if (policyError) setPolicyError(null);
+    if (generalError) setGeneralError(null);
+  };
 
   const submitComment = (event: FormEvent) => {
     event.preventDefault();
@@ -45,7 +54,31 @@ export function CommentSection({
       return;
     }
     if (trimmed && trimmed.length <= 1000 && !isPostingComment) {
-      void postComment(trimmed).then(() => setContent("")).catch(() => undefined);
+      setPolicyError(null);
+      setGeneralError(null);
+      void postComment(trimmed)
+        .then(() => {
+          setContent("");
+          setPolicyError(null);
+          setGeneralError(null);
+        })
+        .catch((err: any) => {
+          const errMsg =
+            err?.response?.data?.message ||
+            err?.response?.data?.error ||
+            err?.message ||
+            "";
+          if (
+            typeof errMsg === "string" &&
+            (errMsg.toLowerCase().includes("políticas de violencia") ||
+              errMsg.toLowerCase().includes("politicas de violencia") ||
+              errMsg.toLowerCase().includes("violencia"))
+          ) {
+            setPolicyError("este mensaje infringe nuestras politicas de violencia");
+          } else {
+            setGeneralError("No pudimos publicar el comentario. Intentá nuevamente.");
+          }
+        });
     }
   };
 
@@ -63,26 +96,43 @@ export function CommentSection({
 
       {/* Input box */}
       {user ? (
-        <form onSubmit={submitComment} className="flex gap-3 mb-10">
-          <Avatar src={user.avatarUrl} fallback={user.name || "Tú"} size="sm" className="ring-1 ring-white/10" />
-          <div className="min-w-0 flex-1 bg-[#14171F] border border-white/10 rounded-2xl p-1 flex items-center shadow-inner focus-within:border-white/30 transition-colors">
-            <input 
-              type="text" 
-              maxLength={1000}
-              aria-label="Escribir comentario"
-              placeholder="Deja tu opinión..." 
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              className="min-w-0 flex-1 bg-transparent border-none text-sm text-white px-3 focus:outline-none placeholder:text-neutral-500 font-medium"
-            />
-            <button 
-              type="submit"
-              disabled={!content.trim() || isPostingComment}
-              className="bg-[#D4FF00] text-neutral-950 text-[10px] sm:text-xs font-black uppercase tracking-wider px-3 sm:px-4 py-2 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#bce400] transition-colors cursor-pointer flex items-center gap-2"
-            >
-              {isPostingComment ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
-              Enviar
-            </button>
+        <form onSubmit={submitComment} className="mb-10">
+          <div className="flex gap-3">
+            <Avatar src={user.avatarUrl} fallback={user.name || "Tú"} size="sm" className="ring-1 ring-white/10 shrink-0 mt-1" />
+            <div className="min-w-0 flex-1">
+              <div
+                className={cn(
+                  "bg-[#14171F] rounded-2xl p-1 flex items-center shadow-inner transition-all",
+                  policyError
+                    ? "border border-rose-500 ring-2 ring-rose-500/40 bg-rose-500/[0.04]"
+                    : "border border-white/10 focus-within:border-white/30"
+                )}
+              >
+                <input 
+                  type="text" 
+                  maxLength={1000}
+                  aria-label="Escribir comentario"
+                  placeholder="Deja tu opinión..." 
+                  value={content}
+                  onChange={handleContentChange}
+                  className="min-w-0 flex-1 bg-transparent border-none text-sm text-white px-3 focus:outline-none placeholder:text-neutral-500 font-medium"
+                />
+                <button 
+                  type="submit"
+                  disabled={!content.trim() || isPostingComment}
+                  className="bg-[#D4FF00] text-neutral-950 text-[10px] sm:text-xs font-black uppercase tracking-wider px-3 sm:px-4 py-2 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#bce400] transition-colors cursor-pointer flex items-center gap-2 shrink-0"
+                >
+                  {isPostingComment ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                  Enviar
+                </button>
+              </div>
+
+              {policyError && (
+                <p className="mt-2 text-xs font-semibold text-rose-500 pl-1 animate-in fade-in slide-in-from-top-1 duration-200">
+                  {policyError}
+                </p>
+              )}
+            </div>
           </div>
         </form>
       ) : (
@@ -97,9 +147,9 @@ export function CommentSection({
         </div>
       )}
 
-      {createCommentError && (
+      {generalError && (
         <p className="text-center text-[11px] font-semibold text-rose-400 mb-6">
-          No pudimos publicar el comentario. Intentá nuevamente.
+          {generalError}
         </p>
       )}
 
