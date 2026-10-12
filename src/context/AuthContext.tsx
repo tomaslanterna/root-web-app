@@ -3,18 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { revokePushForLogout } from '@/services/notifications';
-
-interface User {
-  id: string;
-  name: string;
-  username: string;
-  role: string;
-  avatarUrl?: string;
-  isKycVerified: boolean;
-  dob?: string;
-  documentId?: string;
-  country?: string;
-}
+import type { AuthUser as User } from '@/types/auth';
 
 interface AuthContextType {
   user: User | null;

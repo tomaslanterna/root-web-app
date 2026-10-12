@@ -10,6 +10,20 @@ Se estiman entre **20 y 25 endpoints principales** para cubrir la funcionalidad 
 
 ### Usuarios y Vibe Profile (Auth & Preferences)
 
+#### Recuperación de contraseña (implementada, requiere configurar email en backend)
+
+- `POST /v1/auth/forgot-password`: `{ "email": "user@example.com" }` → 202 `{ "message": "Solicitud recibida. Si corresponde a una cuenta con contraseña, recibirás un enlace de recuperación." }`.
+  - Respuesta idéntica para email existente, ausente y cuentas exclusivamente Google. 202 confirma una solicitud encolada, **no** entrega de email. UI no afirma que el correo fue enviado.
+- `POST /v1/auth/reset-password`: `{ "token": "...", "password": "...", "confirmPassword": "..." }` → 200 `{ "message": "Contraseña actualizada. Iniciá sesión nuevamente." }`.
+  - Token de un solo uso, TTL 30 minutos, hash en DB y consumo atómico. No acepta userId/email como autorización. Mínimo 8 caracteres Unicode y máximo 72 bytes UTF-8, compartido con registro; login conserva passwords antiguos.
+- Errores: 400 datos/token inválidos, 429 demasiados intentos, 503 recuperación sin configurar, 500 error interno. `Cache-Control: no-store`.
+- Rutas: `/forgot-password`, `/reset-password#token=...`. El fragmento evita enviar el token en URL al servidor; se envía solo al confirmar mediante POST. No-referrer/noindex en reset.
+- Services: `src/services/auth.ts`; hooks: `useLogin`, `usePasswordRecovery`, `useResetPassword`; input reutilizable `PasswordInput`. Todas las llamadas usan `api` y `useMutation`.
+- Proveedor elegido: Resend. Backend: ver `root-backend-service/PASSWORD_RECOVERY.md` y `.env.recovery.example` para configurar credenciales, remitente, clave privada y FRONTEND_URL. El envío sigue desactivado hasta completar esa configuración. No requiere nuevas variables públicas del frontend.
+- Reset invalida sesiones anteriores (HTTP/nuevos WS inmediatamente, sockets abiertos en heartbeat ≤25 segundos) y revoca dispositivos push; se deben reactivar notificaciones después de iniciar sesión. Google mantiene su flujo.
+
+Pruebas frontend: `node --test src/components/ui/PasswordInput.test.mjs src/lib/passwordRecovery.test.mjs src/services/auth.test.mjs`. La recepción/apertura de email real y el cambio manual en Android dependen de configurar el proveedor; no se simulan.
+
 - `POST /v1/auth/login` (Autenticación y registro).
   - **Request Body**: `{ "email": "user@example.com", "password": "..." }`
   - **Response (200 OK)**: `{ "token": "jwt-token-string", "user": { "id": "1", "name": "Admin Root", "username": "admin", "role": "ADMIN", "avatarUrl": "https://...", "isKycVerified": true } }`
