@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useMemo, useState } from "react";
+import { use, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -51,8 +51,40 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const [isAttendeesOpen, setIsAttendeesOpen] = useState(false);
   const [copiedShare, setCopiedShare] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
-  const [selectedTier, setSelectedTier] = useState<string>("general");
-  const [activeTab, setActiveTab] = useState<"lineup" | "info" | "venue" | "community">("lineup");
+  const [activeTab, setActiveTab] = useState<"info" | "venue" | "rules">("info");
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const tabsListRef = useRef<HTMLDivElement>(null);
+
+  const handleTabChange = (
+    tab: "info" | "venue" | "rules",
+    e?: React.MouseEvent<HTMLButtonElement>,
+  ) => {
+    setActiveTab(tab);
+
+    // 1. Auto-scroll horizontal suave dentro de la barra de tabs para centrar el botón activo
+    if (e?.currentTarget && tabsListRef.current) {
+      const button = e.currentTarget;
+      const container = tabsListRef.current;
+      const buttonRect = button.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      const targetScrollLeft =
+        buttonRect.left - containerRect.left + container.scrollLeft - container.clientWidth / 2 + buttonRect.width / 2;
+      container.scrollTo({
+        left: Math.max(0, targetScrollLeft),
+        behavior: "smooth",
+      });
+    }
+
+    // 2. Auto-scroll vertical de la pantalla hacia la sección
+    if (tabsRef.current) {
+      const elementPosition = tabsRef.current.getBoundingClientRect().top + window.pageYOffset;
+      const offset = 80;
+      window.scrollTo({
+        top: elementPosition - offset,
+        behavior: "smooth",
+      });
+    }
+  };
 
   const {
     mutate: fetchEvent,
@@ -111,9 +143,14 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     )}&location=${encodeURIComponent(event.location)}`;
   };
 
-  const googleMapsUrl = event
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`
-    : "#";
+  let googleMapsUrl = "#";
+  if (event) {
+    if (event.latitude != null && event.longitude != null) {
+      googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${event.latitude},${event.longitude}`;
+    } else {
+      googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`;
+    }
+  }
 
   const handleBuyTicket = (tierId?: string) => {
     if (!event) return;
@@ -128,73 +165,23 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   };
 
   const ticketTiers = useMemo(() => {
-    if (!event) return [];
-    if (event.isFree || event.price === 0) {
-      return [
-        {
-          id: "free",
-          name: "Acceso General Libre",
-          description: "Entrada sin cargo válida hasta agotar capacidad del predio",
-          priceLabel: "Gratis",
-          status: "available" as const,
-          statusLabel: "Disponible",
-          perk: "Ingreso con registro previo y DNI físico",
-        },
-      ];
-    }
-    const basePrice = event.price || 25000;
-    return [
-      {
-        id: "early_bird",
-        name: "Early Bird Pass",
-        description: "Acceso promocional para los primeros en llegar",
-        priceLabel: `$${Math.round(basePrice * 0.75).toLocaleString("es-AR")}`,
-        status: "sold_out" as const,
-        statusLabel: "Agotado",
-        perk: "Ingreso sin restricción horaria",
-      },
-      {
-        id: "general",
-        name: "General Access",
-        description: "Acceso a pista principal y barras oficiales toda la noche",
-        priceLabel: `$${basePrice.toLocaleString("es-AR")}`,
-        status: "available" as const,
-        statusLabel: "Disponible",
-        perk: "Pase completo sin límite de permanencia",
-      },
-      {
-        id: "vip",
-        name: "VIP Backstage Experience",
-        description: "Tarima preferencial elevada, barra dedicada y sanitarios exclusivos",
-        priceLabel: `$${Math.round(basePrice * 1.6).toLocaleString("es-AR")}`,
-        status: "limited" as const,
-        statusLabel: "Últimos pases",
-        perk: "Fast pass prioritario sin filas de espera",
-      },
-    ];
-  }, [event]);
+    if (!event || !event.ticketTiers) return null;
 
-  // Selección automática del primer tier disponible
-  useEffect(() => {
-    if (ticketTiers.length > 0) {
-      const available = ticketTiers.find((t) => t.status !== "sold_out") || ticketTiers[0];
-      if (available && !ticketTiers.some((t) => t.id === selectedTier && t.status !== "sold_out")) {
-        setSelectedTier(available.id);
-      }
-    }
-  }, [ticketTiers, selectedTier]);
+    return event.ticketTiers.map((tier, idx) => ({
+      id: `tier_${idx}`,
+      name: tier.name,
+      description: "",
+      priceLabel: tier.currency === "UYU" ? `$${tier.price.toLocaleString("es-UY")}` : `$${tier.price.toLocaleString("es-AR")} ${tier.currency}`,
+      status: tier.soldOut ? ("sold_out" as const) : tier.fewRemaining ? ("limited" as const) : ("available" as const),
+      statusLabel: tier.soldOut ? "Agotado" : tier.fewRemaining ? "Últimos pases" : "Disponible",
+      perk: "",
+    }));
+  }, [event]);
 
   const hasLineup = useMemo(() => {
     if (!event) return false;
     return (event.artists && event.artists.length > 0) || (event.lineup && event.lineup.length > 0);
   }, [event]);
-
-  // Ajuste de pestaña si no hay lineup
-  useEffect(() => {
-    if (event && !hasLineup && activeTab === "lineup") {
-      setActiveTab("info");
-    }
-  }, [event, hasLineup, activeTab]);
 
   if (!hasLoaded && isLoadingEvent) {
     return (
@@ -244,7 +231,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         : `$${event.price.toLocaleString("es-AR")}`;
 
   const banner = event.cinematicBannerUrl?.trim() || fallbackBanner;
-  const currentTierObj = ticketTiers.find((t) => t.id === selectedTier) || ticketTiers[0];
+  const currentTierObj = ticketTiers?.[0];
 
   const updateAttendance = (response: RSVPResponse) => {
     setEvent((current) =>
@@ -347,25 +334,23 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         </div>
 
         {/* 1. Hero Poster Cinemático & Atmosférico en Liquid Glass */}
-        <div className="relative group rounded-3xl overflow-hidden border border-white/[0.14] bg-neutral-950 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.2)]">
-          {/* Specular top rim light */}
-          <div className="pointer-events-none absolute inset-x-8 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/40 to-transparent z-20 opacity-80" />
-
+        <div className="relative group overflow-hidden">
           {/* Ambient light glow */}
           <div
-            className="absolute -inset-6 bg-cover bg-center rounded-3xl opacity-25 blur-3xl pointer-events-none hidden md:block"
+            className="absolute -inset-6 bg-cover bg-center opacity-25 blur-3xl pointer-events-none hidden md:block"
             style={{ backgroundImage: `url(${banner})` }}
           />
 
-          <div className="relative aspect-[16/9] sm:aspect-[18/9] md:aspect-[21/9] w-full overflow-hidden">
+          <div className="relative aspect-[4/5] sm:aspect-square md:aspect-[16/9] w-full overflow-hidden rounded-t-3xl shadow-[0_-10px_60px_-15px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.05)]">
             <div
               role="img"
               aria-label={`Portada de ${event.title}`}
               className="w-full h-full bg-cover bg-center transition-transform duration-1000 ease-out group-hover:scale-[1.02]"
               style={{ backgroundImage: `url(${banner})` }}
             />
-            {/* Viñeta cinematográfica envolvente */}
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-[#0B0D10] via-[#0B0D10]/70 to-transparent" />
+            {/* Viñeta cinematográfica envolvente que se difumina hacia el color de fondo de la página */}
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-[#0B0D10] via-[#0B0D10]/80 to-transparent" />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-[#0B0D10] to-transparent" />
 
             {/* Micro-etiqueta de género musical en Liquid Glass */}
             {event.genre && (
@@ -379,7 +364,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         </div>
 
         {/* 2. Ficha de Identidad Editorial (Estilo Resident Advisor / Pitchfork) */}
-        <div className="space-y-3.5 border-b border-white/10 pb-8">
+        <div className="relative z-10 !-mt-12 sm:!-mt-24 space-y-3.5 border-b border-white/10 pb-8 px-2 sm:px-4">
           <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm font-semibold tracking-wide text-[#D4FF00]">
             <span className="capitalize">{formattedDate}</span>
             <span className="text-neutral-600">•</span>
@@ -415,160 +400,68 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           </div>
         </div>
 
-        {/* 3. Boletería de Noche (Liquid Glass Ticket Desk) */}
-        <section
-          id="tickets-section"
-          className="relative space-y-6 rounded-3xl border border-white/[0.14] bg-gradient-to-b from-white/[0.09] via-neutral-950/80 to-[#0B0D10]/90 backdrop-blur-2xl backdrop-saturate-150 p-6 sm:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.18),inset_0_-1px_1px_rgba(0,0,0,0.6)] overflow-hidden scroll-mt-28"
-        >
-          {/* Specular top rim light */}
-          <div className="pointer-events-none absolute inset-x-8 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-80" />
-          {/* Ambient soft refraction */}
-          <div className="pointer-events-none absolute -top-16 left-1/2 -translate-x-1/2 w-96 h-28 bg-[#D4FF00]/[0.08] blur-3xl rounded-full" />
+        {/* 2. Radar de Asistencia en Pista (Liquid Glass Hub) */}
+        <div className="pt-2">
+          {/* Tarjeta Radar de la Pista (Liquid Glass con VOY / NO VOY directo) */}
+          <div className="relative rounded-3xl border border-white/[0.14] bg-gradient-to-b from-white/[0.08] via-neutral-950/80 to-[#0B0D10]/90 backdrop-blur-2xl p-6 sm:p-7 shadow-[0_20px_50px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.18)] space-y-5 flex flex-col justify-between overflow-hidden">
+            {/* Top specular rim light */}
+            <div className="pointer-events-none absolute inset-x-6 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/35 to-transparent" />
 
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-4 relative z-10">
-            <div>
-              <h2 className="text-lg font-black tracking-tight text-white flex items-center gap-2">
-                Pases & Entradas Oficiales
-              </h2>
-              <p className="text-xs text-neutral-400 mt-0.5">
-                Boletería directa y autorizada con acreditación RRPP Root
-              </p>
-            </div>
-            <span className="self-start sm:self-auto inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] backdrop-blur-md px-3.5 py-1 text-xs font-semibold text-neutral-200 shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)]">
-              <ShieldCheck className="h-3.5 w-3.5 text-[#D4FF00]" /> Boletería Oficial
-            </span>
-          </div>
-
-          {/* Lotes de Pases Estilo Ticket Stub en Vidrio Ahumado (Liquid Glass Pass) */}
-          <div className="space-y-3 relative z-10">
-            {ticketTiers.map((tier) => {
-              const isSoldOut = tier.status === "sold_out";
-              const isSelected = selectedTier === tier.id;
-              return (
-                <div
-                  key={tier.id}
-                  onClick={() => !isSoldOut && setSelectedTier(tier.id)}
-                  className={cn(
-                    "group relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl border transition-all duration-300 select-none overflow-hidden",
-                    isSoldOut
-                      ? "border-white/5 bg-white/[0.01] opacity-40 cursor-not-allowed"
-                      : isSelected
-                        ? "border-[#D4FF00]/80 bg-gradient-to-r from-[#D4FF00]/15 via-[#D4FF00]/[0.04] to-transparent backdrop-blur-2xl shadow-[0_0_30px_rgba(212,255,0,0.18),inset_0_1px_1px_rgba(255,255,255,0.22)] cursor-pointer"
-                        : "border-white/[0.10] bg-gradient-to-b from-white/[0.04] to-white/[0.01] backdrop-blur-xl hover:border-white/25 hover:bg-white/[0.06] cursor-pointer shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)]",
-                  )}
-                >
-                  {/* Subtle specular line for selected pass */}
-                  {isSelected && (
-                    <div className="pointer-events-none absolute inset-x-4 top-0 h-[1px] bg-gradient-to-r from-transparent via-[#D4FF00]/50 to-transparent" />
-                  )}
-
-                  <div className="space-y-1 min-w-0">
-                    <div className="flex items-center gap-2.5">
-                      <span className={cn(
-                        "text-base sm:text-lg font-extrabold tracking-tight transition-colors",
-                        isSelected ? "text-white" : "text-neutral-200",
-                      )}>
-                        {tier.name}
-                      </span>
-                      {isSoldOut ? (
-                        <span className="rounded-full bg-rose-500/15 border border-rose-500/30 px-2 py-0.5 text-[10px] font-bold text-rose-400">
-                          Agotado
-                        </span>
-                      ) : tier.status === "limited" ? (
-                        <span className="rounded-full bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-bold text-amber-300">
-                          Últimos pases
-                        </span>
-                      ) : null}
-                    </div>
-                    <p className="text-xs text-neutral-400 leading-relaxed">
-                      {tier.description}
-                    </p>
-                    <p className="text-[11px] text-neutral-500">
-                      • {tier.perk}
-                    </p>
-                  </div>
-
-                  <div className="flex sm:flex-col items-baseline sm:items-end justify-between sm:justify-center shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-white/5">
-                    <span
-                      className={cn(
-                        "text-xl sm:text-2xl font-black tracking-tight",
-                        isSoldOut ? "text-neutral-600 line-through" : "text-[#D4FF00]",
-                      )}
-                    >
-                      {tier.priceLabel}
-                    </span>
-                    <span className="text-[10px] text-neutral-500 font-medium">
-                      {isSoldOut ? "Sin cupo" : "Precio final"}
-                    </span>
-                  </div>
+            <div className="space-y-3.5 relative z-10">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-2 w-2 rounded-full bg-[#D4FF00] animate-pulse" />
+                  <span className="text-xs font-black uppercase tracking-wider text-white">
+                    Radar de la Pista
+                  </span>
                 </div>
-              );
-            })}
-          </div>
+                <span className="text-xs font-bold text-[#D4FF00]">En Vivo</span>
+              </div>
 
-          {/* Botón Principal Dominante de Compra */}
-          <div className="pt-2 space-y-3 relative z-10">
-            <button
-              type="button"
-              onClick={() => handleBuyTicket(selectedTier)}
-              disabled={currentTierObj?.status === "sold_out"}
-              className={cn(
-                "flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-sm font-black uppercase tracking-wider transition-all duration-200 shadow-2xl cursor-pointer active:scale-[0.99]",
-                currentTierObj?.status === "sold_out"
-                  ? "bg-neutral-800 text-neutral-500 cursor-not-allowed shadow-none"
-                  : "bg-gradient-to-b from-[#D4FF00] to-lime-400 text-neutral-950 shadow-[0_10px_35px_rgba(212,255,0,0.35),inset_0_1px_1px_rgba(255,255,255,0.5)] hover:brightness-105 active:scale-[0.99]",
-              )}
-            >
-              <Ticket className="h-4.5 w-4.5 stroke-[2.5]" />
-              <span>
-                {event.isFree
-                  ? "Obtener Pase Gratuito ↗"
-                  : `Conseguir Ticket — ${currentTierObj?.name} (${currentTierObj?.priceLabel}) ↗`}
-              </span>
-            </button>
-
-            {/* Gancho Social: Ticket = Match de Squad Desbloqueado */}
-            <div className="flex items-center justify-center gap-2 pt-1 text-center text-xs font-semibold text-neutral-300">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#D4FF00]/20 text-[#D4FF00] shrink-0">
-                <Flame className="h-3 w-3 fill-[#D4FF00]" />
-              </span>
-              <span>
-                Al conseguir tu entrada desbloqueás tu match en el <strong>Squad de Previa</strong> de este evento.
-              </span>
+              {/* Votación Limpia y Directa: VOY / NO VOY */}
+              <EventAttendanceVote
+                eventId={event.id}
+                initialGoing={event.goingCount}
+                initialNotGoing={event.notGoingCount}
+                initialStatus={event.userRsvp}
+                onChange={updateAttendance}
+                showMetrics
+              />
             </div>
 
-            <p className="text-center text-[11px] text-neutral-500 font-medium">
-              Acceso digital nominal e intransferible • Redirección directa y segura con código RRPP Root
-            </p>
-          </div>
-        </section>
+            <div className="flex items-center justify-between pt-2 border-t border-white/10 text-xs relative z-10">
+              {event.goingCount > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setIsAttendeesOpen(true)}
+                  className="text-neutral-300 hover:text-[#D4FF00] transition-colors cursor-pointer font-medium"
+                >
+                  Ver quiénes van en pista ({event.goingCount}) →
+                </button>
+              ) : (
+                <span className="text-neutral-500">Sé el primero en confirmar</span>
+              )}
 
-        {/* 4. Pestañas de Contenido Progresivo en Liquid Glass */}
-        <div className="space-y-6">
-          {/* Segmented Control Liquid Glass */}
-          <div className="flex items-center gap-2 border-b border-white/10 pb-4 overflow-x-auto scrollbar-none">
-            {hasLineup && (
-              <button
-                type="button"
-                onClick={() => setActiveTab("lineup")}
-                className={cn(
-                  "flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold tracking-wide transition-all duration-200 shrink-0 cursor-pointer",
-                  activeTab === "lineup"
-                    ? "bg-gradient-to-b from-white to-neutral-200 text-neutral-950 font-black shadow-[0_4px_15px_rgba(255,255,255,0.25)]"
-                    : "text-neutral-400 hover:text-white hover:bg-white/[0.06] backdrop-blur-md"
-                )}
+              <Link
+                href={`/events/${event.id}/survey`}
+                className="text-neutral-400 hover:text-white transition-colors"
               >
-                <Disc3 className="w-3.5 h-3.5" />
-                <span>Lineup & Horarios</span>
-                <span className="text-[10px] opacity-75">
-                  ({event.artists?.length || event.lineup.length})
-                </span>
-              </button>
-            )}
+                Dejar reseña →
+              </Link>
+            </div>
+          </div>
+        </div>
 
+        {/* 3. Pestañas de Contenido Progresivo en Liquid Glass */}
+        <div ref={tabsRef} id="tabs-section" className="space-y-6 scroll-mt-24">
+          {/* Segmented Control Liquid Glass con Scroll Horizontal Suave */}
+          <div
+            ref={tabsListRef}
+            className="flex items-center gap-2 border-b border-white/10 pb-4 overflow-x-auto scrollbar-none scroll-smooth"
+          >
             <button
               type="button"
-              onClick={() => setActiveTab("info")}
+              onClick={(e) => handleTabChange("info", e)}
               className={cn(
                 "flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold tracking-wide transition-all duration-200 shrink-0 cursor-pointer",
                 activeTab === "info"
@@ -577,12 +470,17 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
               )}
             >
               <Sparkles className="w-3.5 h-3.5" />
-              <span>La Fiesta & Concepto</span>
+              <span>La Fiesta & Lineup</span>
+              {hasLineup && (
+                <span className="text-[10px] opacity-75">
+                  ({event.artists?.length || event.lineup.length})
+                </span>
+              )}
             </button>
 
             <button
               type="button"
-              onClick={() => setActiveTab("venue")}
+              onClick={(e) => handleTabChange("venue", e)}
               className={cn(
                 "flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold tracking-wide transition-all duration-200 shrink-0 cursor-pointer",
                 activeTab === "venue"
@@ -596,111 +494,115 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
             <button
               type="button"
-              onClick={() => setActiveTab("community")}
+              onClick={(e) => handleTabChange("rules", e)}
               className={cn(
                 "flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold tracking-wide transition-all duration-200 shrink-0 cursor-pointer",
-                activeTab === "community"
+                activeTab === "rules"
                   ? "bg-gradient-to-b from-white to-neutral-200 text-neutral-950 font-black shadow-[0_4px_15px_rgba(255,255,255,0.25)]"
                   : "text-neutral-400 hover:text-white hover:bg-white/[0.06] backdrop-blur-md"
               )}
             >
-              <Users className="w-3.5 h-3.5" />
-              <span>Muro & Comunidad</span>
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>Reglas de convivencia</span>
             </button>
           </div>
 
-          {/* Pestaña: Lineup (Cartelera de Festival Real en Liquid Glass) */}
-          {activeTab === "lineup" && hasLineup && (
-            <section className="space-y-5 rounded-3xl border border-white/[0.12] bg-gradient-to-b from-white/[0.06] via-neutral-950/70 to-[#0B0D10]/85 backdrop-blur-2xl p-6 sm:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.7),inset_0_1px_1px_rgba(255,255,255,0.15)] animate-in fade-in duration-200">
-              <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                <h3 className="text-sm font-black tracking-tight text-white">
-                  Lineup Confirmado & Set Times
-                </h3>
-                <span className="text-xs text-neutral-400">Timetable Oficial</span>
-              </div>
+          {/* Pestaña: Sobre la Fiesta, Lineup & Concepto en Liquid Glass */}
+          {activeTab === "info" && (
+            <section className="space-y-6 rounded-3xl border border-white/[0.12] bg-gradient-to-b from-white/[0.06] via-neutral-950/70 to-[#0B0D10]/85 backdrop-blur-2xl p-6 sm:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.7),inset_0_1px_1px_rgba(255,255,255,0.15)] animate-in fade-in duration-200">
+              {/* Bloque Lineup & Horarios integrado */}
+              {hasLineup && (
+                <div className="space-y-4 border-b border-white/10 pb-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Disc3 className="w-4 h-4 text-[#D4FF00]" />
+                      <h3 className="text-sm font-black tracking-tight text-white uppercase">
+                        Lineup Confirmado & Set Times
+                      </h3>
+                    </div>
+                    <span className="text-xs text-neutral-400">Timetable Oficial</span>
+                  </div>
 
-              {event.artists && event.artists.length > 0 ? (
-                <div className="space-y-3">
-                  {event.artists.map((ea) => (
-                    <div
-                      key={ea.artistId}
-                      className={cn(
-                        "flex items-center justify-between gap-4 p-4 rounded-2xl border transition-all",
-                        ea.isHeadliner
-                          ? "border-[#D4FF00]/40 bg-[#D4FF00]/[0.05] shadow-[inset_0_1px_1px_rgba(212,255,0,0.2)]"
-                          : "border-white/5 bg-white/[0.02]",
-                      )}
-                    >
-                      <div className="flex items-center gap-4 min-w-0">
-                        <div className="relative w-12 h-12 rounded-full overflow-hidden bg-neutral-900 shrink-0 border border-white/15">
-                          {ea.artist?.avatarUrl ? (
-                            <img
-                              src={ea.artist.avatarUrl}
-                              alt={ea.artist.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-sm font-black text-[#D4FF00] bg-neutral-950">
-                              {ea.artist?.name?.[0] || "DJ"}
+                  {event.artists && event.artists.length > 0 ? (
+                    <div className="space-y-3">
+                      {event.artists.map((ea) => (
+                        <div
+                          key={ea.artistId}
+                          className={cn(
+                            "flex items-center justify-between gap-4 p-4 rounded-2xl border transition-all",
+                            ea.isHeadliner
+                              ? "border-[#D4FF00]/40 bg-[#D4FF00]/[0.05] shadow-[inset_0_1px_1px_rgba(212,255,0,0.2)]"
+                              : "border-white/5 bg-white/[0.02]",
+                          )}
+                        >
+                          <div className="flex items-center gap-4 min-w-0">
+                            <div className="relative w-12 h-12 rounded-full overflow-hidden bg-neutral-900 shrink-0 border border-white/15">
+                              {ea.artist?.avatarUrl ? (
+                                <img
+                                  src={ea.artist.avatarUrl}
+                                  alt={ea.artist.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-sm font-black text-[#D4FF00] bg-neutral-950">
+                                  {ea.artist?.name?.[0] || "DJ"}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <h4 className={cn(
+                                  "font-black tracking-tight truncate",
+                                  ea.isHeadliner ? "text-lg text-white" : "text-base text-neutral-200",
+                                )}>
+                                  {ea.artist?.name}
+                                </h4>
+                                {ea.isHeadliner && (
+                                  <span className="rounded-full bg-[#D4FF00] px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-neutral-950">
+                                    Headliner
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-neutral-400">
+                                {ea.artist?.artistType || "DJ Set"}
+                              </p>
+                            </div>
+                          </div>
+
+                          {ea.performanceTime && (
+                            <div className="text-right shrink-0">
+                              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#D4FF00]">
+                                <Clock className="w-3.5 h-3.5" />
+                                {ea.performanceTime}
+                              </span>
                             </div>
                           )}
                         </div>
-
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <h4 className={cn(
-                              "font-black tracking-tight truncate",
-                              ea.isHeadliner ? "text-lg text-white" : "text-base text-neutral-200",
-                            )}>
-                              {ea.artist?.name}
-                            </h4>
-                            {ea.isHeadliner && (
-                              <span className="rounded-full bg-[#D4FF00] px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-neutral-950">
-                                Headliner
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs text-neutral-400">
-                            {ea.artist?.artistType || "DJ Set"}
-                          </p>
-                        </div>
-                      </div>
-
-                      {ea.performanceTime && (
-                        <div className="text-right shrink-0">
-                          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#D4FF00]">
-                            <Clock className="w-3.5 h-3.5" />
-                            {ea.performanceTime}
-                          </span>
-                        </div>
-                      )}
+                      ))}
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-6 rounded-2xl border border-white/5 bg-white/[0.01] text-center space-y-3">
-                  <div className="flex flex-wrap items-center justify-center gap-3">
-                    {event.lineup.map((artist, idx) => (
-                      <span
-                        key={artist}
-                        className="text-lg sm:text-xl font-black text-white hover:text-[#D4FF00] transition-colors"
-                      >
-                        {artist}
-                        {idx < event.lineup.length - 1 && (
-                          <span className="text-neutral-600 ml-3">•</span>
-                        )}
-                      </span>
-                    ))}
-                  </div>
-                  <p className="text-xs text-neutral-400">Set Times y horarios a confirmar por la organización.</p>
+                  ) : (
+                    <div className="p-6 rounded-2xl border border-white/5 bg-white/[0.01] text-center space-y-3">
+                      <div className="flex flex-wrap items-center justify-center gap-3">
+                        {event.lineup.map((artist, idx) => (
+                          <span
+                            key={artist}
+                            className="text-lg sm:text-xl font-black text-white hover:text-[#D4FF00] transition-colors"
+                          >
+                            {artist}
+                            {idx < event.lineup.length - 1 && (
+                              <span className="text-neutral-600 ml-3">•</span>
+                            )}
+                          </span>
+                        ))}
+                      </div>
+                      <p className="text-xs text-neutral-400">Set Times y horarios a confirmar por la organización.</p>
+                    </div>
+                  )}
                 </div>
               )}
-            </section>
-          )}
 
-          {/* Pestaña: Sobre la Fiesta & Concepto en Liquid Glass */}
-          {activeTab === "info" && (
-            <section className="space-y-6 rounded-3xl border border-white/[0.12] bg-gradient-to-b from-white/[0.06] via-neutral-950/70 to-[#0B0D10]/85 backdrop-blur-2xl p-6 sm:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.7),inset_0_1px_1px_rgba(255,255,255,0.15)] animate-in fade-in duration-200">
+              {/* Bloque Concepto & Propuesta Musical */}
               <div className="space-y-2">
                 <h3 className="text-lg font-black tracking-tight text-white">
                   Concepto & Propuesta Musical
@@ -767,106 +669,169 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             </section>
           )}
 
-          {/* Pestaña: Muro de Comentarios */}
-          {activeTab === "community" && (
-            <div className="animate-in fade-in duration-200">
-              <CommentSection targetId={event.id} title="Muro de la fecha" />
-            </div>
+          {/* Pestaña: Reglas de convivencia */}
+          {activeTab === "rules" && (
+            <section className="space-y-6 rounded-3xl border border-white/[0.12] bg-gradient-to-b from-white/[0.06] via-neutral-950/70 to-[#0B0D10]/85 backdrop-blur-2xl p-6 sm:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.7),inset_0_1px_1px_rgba(255,255,255,0.15)] animate-in fade-in duration-200">
+              <div className="space-y-2 border-b border-white/10 pb-4">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-[#D4FF00]" />
+                  <h3 className="text-lg font-black tracking-tight text-white">
+                    Reglas de Convivencia
+                  </h3>
+                </div>
+                <p className="text-xs text-neutral-400">
+                  Valores esenciales y normas de conducta para cuidar la pista, el respeto mutuo y garantizar una experiencia segura.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-2">
+                  <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-[#D4FF00]" />
+                    Tolerancia Cero y Consentimiento
+                  </h4>
+                  <p className="text-xs text-neutral-300 leading-relaxed">
+                    No toleramos ninguna forma de acoso, discriminación, homofobia, transfobia ni violencia. El consentimiento es indiscutible en todo momento.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-2">
+                  <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-[#D4FF00]" />
+                    Cuidado Colectivo en Pista
+                  </h4>
+                  <p className="text-xs text-neutral-300 leading-relaxed">
+                    Cuidá tu espacio y el de quienes te rodean. Si notás que alguien necesita asistencia o agua, acercate o dale aviso inmediato al personal del club.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-2">
+                  <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-[#D4FF00]" />
+                    Conexión y Teléfonos
+                  </h4>
+                  <p className="text-xs text-neutral-300 leading-relaxed">
+                    Priorizá disfrutar la música y el presente. Mantené los flashes apagados y respetá la privacidad de las personas sin grabaciones invasivas.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-2">
+                  <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-[#D4FF00]" />
+                    Ingreso y Cuidado Personal
+                  </h4>
+                  <p className="text-xs text-neutral-300 leading-relaxed">
+                    Ingreso exclusivo para mayores de 18 años con documento físico vigente. Cuidá tu hidratación, tus pertenencias y consumí con responsabilidad.
+                  </p>
+                </div>
+              </div>
+            </section>
           )}
         </div>
 
-        {/* 5. Previa & Radar de Asistencia en Pista (Liquid Glass Hub) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-4">
-          {/* Tarjeta Squad de Previa (Liquid Glass) */}
-          <div className="relative rounded-3xl border border-white/[0.14] bg-gradient-to-br from-white/[0.08] via-neutral-950/80 to-[#121A0F] backdrop-blur-2xl p-6 sm:p-7 shadow-[0_20px_50px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.18)] space-y-5 flex flex-col justify-between overflow-hidden group">
-            {/* Top specular rim light */}
-            <div className="pointer-events-none absolute inset-x-6 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/35 to-transparent" />
-            {/* Neon lime ambient corner glow */}
-            <div className="pointer-events-none absolute -top-12 -right-12 w-44 h-44 bg-[#D4FF00]/10 blur-3xl rounded-full group-hover:bg-[#D4FF00]/15 transition-all duration-500" />
+        {/* 4. Boletería de Noche (Liquid Glass Ticket Desk) */}
+        <section
+          id="tickets-section"
+          className="relative space-y-6 rounded-3xl border border-white/[0.14] bg-gradient-to-b from-white/[0.09] via-neutral-950/80 to-[#0B0D10]/90 backdrop-blur-2xl backdrop-saturate-150 p-6 sm:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.18),inset_0_-1px_1px_rgba(0,0,0,0.6)] overflow-hidden scroll-mt-28"
+        >
+          {/* Specular top rim light */}
+          <div className="pointer-events-none absolute inset-x-8 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-80" />
+          {/* Ambient soft refraction */}
+          <div className="pointer-events-none absolute -top-16 left-1/2 -translate-x-1/2 w-96 h-28 bg-[#D4FF00]/[0.08] blur-3xl rounded-full" />
 
-            <div className="space-y-3.5 relative z-10">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#D4FF00] text-neutral-950 shadow-md shadow-[#D4FF00]/25">
-                    <Flame className="h-3.5 w-3.5 fill-neutral-950" />
-                  </span>
-                  <span className="text-xs font-black uppercase tracking-wider text-[#D4FF00]">
-                    Squad de Previa
-                  </span>
-                </div>
-                <span className="rounded-full bg-white/10 border border-white/10 px-2.5 py-0.5 text-[10px] font-semibold text-neutral-300">
-                  Root Match
-                </span>
-              </div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-4 relative z-10">
+            <div>
+              <h2 className="text-lg font-black tracking-tight text-white flex items-center gap-2">
+                Pases & Entradas Oficiales
+              </h2>
+              <p className="text-xs text-neutral-400 mt-0.5">
+                Boletería directa y autorizada con acreditación RRPP Root
+              </p>
+            </div>
+            <span className="self-start sm:self-auto inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] backdrop-blur-md px-3.5 py-1 text-xs font-semibold text-neutral-200 shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)]">
+              <ShieldCheck className="h-3.5 w-3.5 text-[#D4FF00]" /> Boletería Oficial
+            </span>
+          </div>
 
-              <div className="space-y-1.5">
-                <h4 className="text-lg font-black tracking-tight text-white">
-                  ¿Armamos previa o vas solo?
-                </h4>
-                <p className="text-xs text-neutral-300 leading-relaxed">
-                  Conectá con un Squad afín de 3 a 5 personas con tu misma zona y estilo de fiesta para coordinar previa, viaje y pista.
+          {/* Lotes de Pases Estilo Ticket Stub en Vidrio Ahumado (Liquid Glass Pass) */}
+          <div className="space-y-3 relative z-10">
+            {event?.ticketTiers === undefined || event?.ticketTiers === null ? (
+              <div className="flex flex-col items-center justify-center p-8 rounded-2xl border border-white/5 bg-white/[0.02]">
+                <p className="text-sm font-medium text-neutral-400 text-center">
+                  Aun no tenemos informacion sobre entradas oficiales para este evento
                 </p>
               </div>
-            </div>
-
-            <Link
-              href="/match"
-              className="relative z-10 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-b from-[#D4FF00] to-lime-400 text-neutral-950 hover:brightness-105 py-3.5 text-xs font-black uppercase tracking-wider transition-all shadow-[0_8px_25px_rgba(212,255,0,0.3)] active:scale-[0.98]"
-            >
-              <span>Buscar mi Squad de Previa</span>
-              <ArrowRight className="h-3.5 w-3.5 stroke-[2.5]" />
-            </Link>
-          </div>
-
-          {/* Tarjeta Radar de la Pista (Liquid Glass con VOY / NO VOY directo) */}
-          <div className="relative rounded-3xl border border-white/[0.14] bg-gradient-to-b from-white/[0.08] via-neutral-950/80 to-[#0B0D10]/90 backdrop-blur-2xl p-6 sm:p-7 shadow-[0_20px_50px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.18)] space-y-5 flex flex-col justify-between overflow-hidden">
-            {/* Top specular rim light */}
-            <div className="pointer-events-none absolute inset-x-6 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/35 to-transparent" />
-
-            <div className="space-y-3.5 relative z-10">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="flex h-2 w-2 rounded-full bg-[#D4FF00] animate-pulse" />
-                  <span className="text-xs font-black uppercase tracking-wider text-white">
-                    Radar de la Pista
-                  </span>
-                </div>
-                <span className="text-xs font-bold text-[#D4FF00]">En Vivo</span>
+            ) : event.ticketTiers.length === 0 ? (
+              <div className="flex flex-col items-center justify-center p-8 rounded-2xl border border-[#D4FF00]/20 bg-[#D4FF00]/5">
+                <p className="text-sm font-medium text-[#D4FF00] text-center animate-pulse">
+                  Estamos buscando y calculando las entradas oficiales para este evento
+                </p>
               </div>
+            ) : (
+              ticketTiers &&
+              ticketTiers.map((tier) => {
+                const isSoldOut = tier.status === "sold_out";
+                return (
+                  <div
+                    key={tier.id}
+                    className={cn(
+                      "group relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl border transition-all duration-300 select-none overflow-hidden",
+                      isSoldOut
+                        ? "border-white/5 bg-white/[0.01] opacity-40"
+                        : "border-white/[0.10] bg-gradient-to-b from-white/[0.04] to-white/[0.01] backdrop-blur-xl hover:border-white/20 shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)]",
+                    )}
+                  >
+                    <div className="space-y-1 min-w-0">
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-base sm:text-lg font-extrabold tracking-tight text-white transition-colors">
+                          {tier.name}
+                        </span>
+                        {isSoldOut ? (
+                          <span className="rounded-full bg-rose-500/15 border border-rose-500/30 px-2 py-0.5 text-[10px] font-bold text-rose-400">
+                            Agotado
+                          </span>
+                        ) : tier.status === "limited" ? (
+                          <span className="rounded-full bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-bold text-amber-300">
+                            Últimos pases
+                          </span>
+                        ) : null}
+                      </div>
+                      {tier.description && (
+                        <p className="text-xs text-neutral-400 leading-relaxed">
+                          {tier.description}
+                        </p>
+                      )}
+                      {tier.perk && (
+                        <p className="text-[11px] text-neutral-500">
+                          • {tier.perk}
+                        </p>
+                      )}
+                    </div>
 
-              {/* Votación Limpia y Directa: VOY / NO VOY */}
-              <EventAttendanceVote
-                eventId={event.id}
-                initialGoing={event.goingCount}
-                initialNotGoing={event.notGoingCount}
-                initialStatus={event.userRsvp}
-                onChange={updateAttendance}
-                showMetrics
-              />
-            </div>
-
-            <div className="flex items-center justify-between pt-2 border-t border-white/10 text-xs relative z-10">
-              {event.goingCount > 0 ? (
-                <button
-                  type="button"
-                  onClick={() => setIsAttendeesOpen(true)}
-                  className="text-neutral-300 hover:text-[#D4FF00] transition-colors cursor-pointer font-medium"
-                >
-                  Ver quiénes van en pista ({event.goingCount}) →
-                </button>
-              ) : (
-                <span className="text-neutral-500">Sé el primero en confirmar</span>
-              )}
-
-              <Link
-                href={`/events/${event.id}/survey`}
-                className="text-neutral-400 hover:text-white transition-colors"
-              >
-                Dejar reseña →
-              </Link>
-            </div>
+                    <div className="flex sm:flex-col items-baseline sm:items-end justify-between sm:justify-center shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-white/5">
+                      <span
+                        className={cn(
+                          "text-xl sm:text-2xl font-black tracking-tight",
+                          isSoldOut ? "text-neutral-600 line-through" : "text-[#D4FF00]",
+                        )}
+                      >
+                        {tier.priceLabel}
+                      </span>
+                      <span className="text-[10px] text-neutral-500 font-medium">
+                        {isSoldOut ? "Sin cupo" : "Precio final"}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
-        </div>
+        </section>
+
+        {/* 5. Muro & Comunidad */}
+        <section className="pt-6 border-t border-white/10">
+          <CommentSection targetId={event.id} title="Muro & Comunidad" />
+        </section>
       </div>
 
       {/* Mobile Sticky Checkout Bar en Liquid Glass (Pase Rápido Nativo) */}
@@ -881,7 +846,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         </div>
         <button
           type="button"
-          onClick={() => handleBuyTicket(selectedTier)}
+          onClick={() => handleBuyTicket()}
           className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-gradient-to-b from-[#D4FF00] to-lime-400 text-neutral-950 font-black text-xs uppercase tracking-wider shadow-[0_5px_20px_rgba(212,255,0,0.35)] active:scale-95 transition-all cursor-pointer shrink-0"
         >
           <span>Conseguir Ticket ↗</span>

@@ -17,6 +17,8 @@ import { badgeFlyerUrl } from "@/services/badges";
 import { badgeLocation } from "@/lib/badgeLocation";
 import { ConfirmModal } from "@/components/ui/Modal";
 
+import { DetailHeader } from "@/components/ui/DetailHeader";
+
 export default function SurveyPage() {
   const { id } = useParams() as { id: string };
   const router = useRouter();
@@ -112,6 +114,11 @@ export default function SurveyPage() {
       await save(payload);
       setIsSuccess(true);
       
+      // Redirect after showing success briefly
+      setTimeout(() => {
+        router.push("/events");
+      }, 2000);
+      
     } catch {
       await loadDetail().then(result => { if (result.badge.review) hydrateDetail(result); }).catch(() => undefined);
     } finally {
@@ -152,6 +159,14 @@ export default function SurveyPage() {
 
   return (
     <div className="min-h-screen bg-[#0B0D10] text-white relative pb-24">
+      {/* Detail Header */}
+      <DetailHeader
+        onBack={() => router.back()}
+        showSave={false}
+        showShare={false}
+        showBrand={true}
+      />
+
       {/* Background Image Blurred */}
       <div className="fixed inset-0 z-0 w-full h-[60vh]">
         <Image
@@ -165,13 +180,7 @@ export default function SurveyPage() {
         <div className="absolute inset-0 bg-gradient-to-b from-[#0B0D10]/50 via-[#0B0D10]/80 to-[#0B0D10]" />
       </div>
 
-      <div className="relative z-10 max-w-3xl mx-auto px-4 pt-6">
-        {/* Header */}
-        <button onClick={() => router.back()} className="flex items-center gap-2 text-neutral-400 hover:text-white transition-colors mb-6 cursor-pointer">
-          <ChevronLeft className="w-5 h-5" />
-          <span className="text-sm font-bold uppercase tracking-wider">Volver</span>
-        </button>
-
+      <div className="relative z-10 max-w-3xl mx-auto px-4 pt-28 md:pt-32">
         <h1 className="text-3xl md:text-4xl font-black italic tracking-tighter leading-tight mb-2">
           ¿Cómo te fue en <span className="text-[#D4FF00]">{event.title}</span>?
         </h1>

@@ -88,7 +88,7 @@ export default function CrewDetailPage() {
       {/* Header */}
       <header className="sticky top-0 z-40 bg-[#0B0D10]/95 backdrop-blur-md px-4 pb-3 pt-safe-header border-b border-white/5">
         <div className="flex h-9 items-center">
-          <Link href="/feed" className="flex items-center gap-2" aria-label="Ir al feed de root">
+          <Link href="/events" className="flex items-center gap-2" aria-label="Ir a eventos de root">
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#D4FF00] text-sm font-black italic tracking-tighter text-neutral-950 shadow-md shadow-[#D4FF00]/15">
               r
             </span>

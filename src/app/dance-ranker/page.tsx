@@ -59,7 +59,21 @@ export default function DanceRankerPage() {
       api.get("/v1/crews")
     ])
       .then(([sessionsRes, crewsRes]) => {
-        setSessions(sessionsRes.data?.data || []);
+        const rawSessions = sessionsRes.data?.data || [];
+        // Agrupar los pasos por eventId para no repetir fiestas
+        const aggregatedMap = new Map<string, DanceSession>();
+        
+        rawSessions.forEach((session: DanceSession) => {
+          if (aggregatedMap.has(session.eventId)) {
+            const existing = aggregatedMap.get(session.eventId)!;
+            existing.stepsCount += session.stepsCount;
+          } else {
+            aggregatedMap.set(session.eventId, { ...session });
+          }
+        });
+        
+        const aggregatedSessions = Array.from(aggregatedMap.values());
+        setSessions(aggregatedSessions);
         setCrews(crewsRes.data?.data || []);
       })
       .catch((err) => console.error("Error fetching dance data:", err))

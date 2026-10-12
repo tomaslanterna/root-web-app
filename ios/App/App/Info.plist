@@ -2,14 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>NSMotionUsageDescription</key>
-	<string>Necesitamos acceso al acelerómetro para contar tus pasos mientras bailas en la fiesta.</string>
-	
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Necesitamos tu ubicación para mostrarte si estás en un evento en vivo y adaptar tu feed.</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Necesitamos tu ubicación para mostrarte si estás en un evento en vivo y adaptar tu feed.</string>
-	
 	<key>CAPACITOR_DEBUG</key>
 	<string>$(CAPACITOR_DEBUG)</string>
 	<key>CFBundleDevelopmentRegion</key>
@@ -47,6 +39,16 @@
 	<string>964994558509-vbrduu76ftkdq80ms9f464ol3cujbgp3.apps.googleusercontent.com</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Root necesita leer tus pasos para sumar puntos en la fiesta.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Root necesita sincronizar tus pasos.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Necesitamos tu ubicación para mostrarte si estás en un evento en vivo y adaptar tu feed.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Necesitamos tu ubicación para mostrarte si estás en un evento en vivo y adaptar tu feed.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>Necesitamos acceso al acelerómetro para contar tus pasos mientras bailas en la fiesta.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

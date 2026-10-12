@@ -18,11 +18,11 @@ export function consumeNativeBack() {
 }
 
 export function nativeBackDestination(pathname: string, canGoBack: boolean) {
-  if (pathname === "/" || pathname === "/feed") return "confirm-exit";
+  if (pathname === "/" || pathname === "/events" || pathname === "/feed") return "confirm-exit";
   if (canGoBack) return "history-back";
   // A notification/deep link may have no in-app history yet.
   for (const parent of ["/chat", "/communities", "/events", "/match", "/profile"]) {
     if (pathname.startsWith(`${parent}/`)) return parent;
   }
-  return "/feed";
+  return "/events";
 }

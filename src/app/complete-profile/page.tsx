@@ -73,7 +73,7 @@ export default function CompleteProfilePage() {
         if (token) {
           login(token, updatedUser);
         }
-        router.push('/feed');
+        router.push('/events');
       },
       onError: (err: any) => {
         if (err.response?.status === 409) {

@@ -41,18 +41,45 @@ export function DanceProvider({ children }: { children: React.ReactNode }) {
       if (!user) return;
 
       try {
-        const result = await checkPresence(undefined);
-        if (!mounted) return;
-        setLiveEvent(result.isLive ? result.event : null);
-        setAttendanceConfirmed(result.attendanceConfirmed === true);
-        if (result.isLive && result.event) await startDanceSession(result.event);
-      } catch { /* Location permission denial must not show a developer overlay. */ }
+        console.log("DANCE_CONTEXT: Pidiendo permisos / getCurrentPosition...");
+        const position = await Geolocation.getCurrentPosition({
+          enableHighAccuracy: true,
+          maximumAge: 300000, 
+          timeout: 10000
+        });
+        console.log("DANCE_CONTEXT: Ubicación obtenida:", position.coords.latitude, position.coords.longitude);
+
+        const res = await api.get('/v1/events/live-status', {
+          params: {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          }
+        });
+        console.log("DANCE_CONTEXT: Respuesta live-status:", res.data);
+
+        if (mounted && res.data?.isLive && res.data?.event) {
+          console.log("DANCE_CONTEXT: ¡Fiesta detectada! Activando startDanceSession...");
+          setLiveEvent(res.data.event);
+          
+          const existingSteps = res.data.userSteps || 0;
+          startDanceSession(res.data.event, existingSteps);
+        } else {
+          console.log("DANCE_CONTEXT: No hay fiesta activa en esta ubicación o el horario expiró.");
+          setLiveEvent(null);
+          stopDanceSession();
+        }
+      } catch (error) {
+        console.error("DANCE_CONTEXT: Error crítico chequeando estado:", error);
+      }
     };
 
     checkLiveStatus();
+    // Validar ubicación y horario cada 60 segundos
+    const interval = setInterval(checkLiveStatus, 60000);
 
     return () => {
       mounted = false;
+      clearInterval(interval);
       stopDanceSession();
     };
   }, [user, checkPresence, startDanceSession, stopDanceSession]);

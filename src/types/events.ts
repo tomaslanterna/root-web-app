@@ -18,14 +18,25 @@ export interface EventArtist {
   artist?: Artist;
 }
 
+export interface TicketTier {
+  name: string;
+  price: number;
+  currency: string;
+  soldOut: boolean;
+  fewRemaining: boolean;
+}
+
 export interface Event {
   id: string;
   title: string;
   producerId?: string;
   date: string;
+  endDate?: string;
   location: string;
   department?: string | null;
   country?: string | null;
+  latitude?: number;
+  longitude?: number;
   cinematicBannerUrl: string;
   description: string;
   lineup: string[];
@@ -37,6 +48,10 @@ export interface Event {
   goingCount: number;
   notGoingCount: number;
   userRsvp?: EventRSVPStatus | null;
+  ticketTiers?: TicketTier[];
+  ticketSource?: string;
+  ticketUrl?: string;
+  ticketInfoFetchedAt?: string;
   createdAt: string;
 }
 

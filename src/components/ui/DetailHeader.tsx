@@ -122,7 +122,7 @@ export function DetailHeader({
     return (
       <header className={cn("fixed top-0 inset-x-0 z-50 mx-auto w-full max-w-md bg-gradient-to-b from-black/90 via-black/60 to-transparent px-4 pb-4 pt-safe-header pointer-events-none md:max-w-[1360px]", className)}>
         <div className="flex h-9 items-center">
-          <Link href="/feed" className="pointer-events-auto flex items-center gap-2" aria-label="Ir al feed de root">
+          <Link href="/events" className="pointer-events-auto flex items-center gap-2" aria-label="Ir a eventos de root">
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#D4FF00] text-sm font-black italic tracking-tighter text-neutral-950 shadow-md shadow-[#D4FF00]/15">
               r
             </span>
