@@ -11,6 +11,7 @@ import { PushNotificationsProvider } from "@/context/PushNotificationsContext";
 import { DanceProvider } from "@/context/DanceContext";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { CapacitorSetup } from "@/components/CapacitorSetup";
+import { ReviewReminder } from "@/components/profile/ReviewReminder";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -51,6 +52,7 @@ export default function RootLayout({
           <ThemeProvider>
             <AuthProvider>
               <DanceProvider>
+                <ReviewReminder />
                 <PushNotificationsProvider>
                   <ChatRealtimeProvider>
                     <MatchProvider>

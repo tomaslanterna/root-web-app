@@ -1,5 +1,9 @@
 # Especificaciones de API y Arquitectura Frontend
 
+La funcionalidad de insignias y reseñas confirmadas está documentada en
+[INSIGNIAS.md](INSIGNIAS.md), con contratos de la API y migración en el
+documento homónimo del backend.
+
 Este documento detalla el relevamiento funcional del proyecto `root-web-app` para definir los endpoints necesarios en la creación de una futura API, así como las recomendaciones de arquitectura de estado y sistema de chat en tiempo real.
 
 ---
@@ -209,3 +213,36 @@ Backend: `go test ./...`. Integración PostgreSQL opt-in: `COMMUNITY_TEST_DATABA
 Las notificaciones se generan desde los mensajes persistidos de chats/squads con una cola transaccional. Payload: `type=chat.message`, `chat_id`, `message_id`, `recipient_id`. No muestran texto privado ni alteran recibos de entrega/lectura. El frontend pide permiso explícito desde Configuración, registra/renueva tokens y revoca al cerrar sesión. Navegar desde una notificación valida destinatario y UUID, y el chat conserva su autorización del backend.
 
 Esta integración no incluye Web Push ni iOS/APNs. Preparación de Firebase y prueba por USB sin Google Play: `ANDROID_PUSH.md`; arquitectura/variables del servidor: `root-backend-service/PUSH_NOTIFICATIONS.md`.
+
+## 6. Colección de insignias
+
+Los campos opcionales `department`, `country`, `departedAt` y `headliners`
+provienen de registros reales. La guía completa de esta funcionalidad y sus
+límites de asistencia/salida está en `INSIGNIAS.md` en ambos repositorios.
+
+- `GET /v1/events/{id}/badge/flyer`: imagen oficial JPEG/PNG/WebP, hasta 8 MB.
+- `GET /v1/events/{id}/badge/artists/{artistID}/image`: foto oficial de artista
+  perteneciente al evento, no imágenes privadas.
+- `POST /v1/events/{id}/attendance/checkout`: JWT, cuerpo vacío, salida explícita
+  de una asistencia geofence propia a un evento iniciado; 204 o 404.
+- `POST /v1/users/me/review-reminder/open`: JWT, `{openingId:UUID}`, respuesta
+  `{badge:EventBadge|null}`. Una invitación por apertura y una por evento, solo
+  cuando salió en una apertura anterior y todavía no guardó reseña.
+- Las puntuaciones opcionales `artist_ratings` del endpoint de surveys se
+  actualizan por artista sin borrar otras valoraciones. Deben pertenecer al
+  lineup real y reutilizan la escala entera 0–5, incluido cero.
+
+`GET /v1/users/{username}/badges?limit=12&offset=0` devuelve `{ data, meta }`,
+con total real y orden por fecha de confirmación/asignación descendente.
+`EventBadge.source` distingue `geofence` de `manual`; una asignación manual
+no acredita ubicación. `steps` y `review` son nullable; las reseñas solamente
+se incluyen para el propietario autenticado. La asignación manual es un comando
+administrativo con motivo obligatorio, no un endpoint abierto.
+
+`GET /v1/events/{id}/badge` requiere JWT y devuelve la insignia propia con
+lineup. `POST /v1/events/{id}/surveys` reutiliza el guardado existente, admite
+0–5 y confirma la valoración/reseña una sola vez. No acepta userId.
+Una reseña existente es definitiva: repetir o modificar el guardado devuelve
+409, sin alterar la nota del evento, el texto ni las puntuaciones de artistas.
+Detalles de migración, autorización, pasos y compatibilidad: `INSIGNIAS.md`
+y `root-backend-service/INSIGNIAS.md`.

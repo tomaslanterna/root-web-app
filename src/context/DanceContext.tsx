@@ -1,14 +1,14 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Geolocation } from '@capacitor/geolocation';
-import { api } from '@/lib/api';
+import { useEventPresence } from '@/hooks/useEventPresence';
+import type { LiveEvent } from '@/services/presence';
 import { useAuth } from '@/context/AuthContext';
 import { useDanceSync } from '@/hooks/useDanceSync';
-import type { Event } from '@/types/events';
 
 interface DanceContextProps {
-  liveEvent: any | null;
+  liveEvent: LiveEvent | null;
+  attendanceConfirmed: boolean;
   steps: number;
   totalSessionSteps: number;
   isTracking: boolean;
@@ -18,6 +18,7 @@ interface DanceContextProps {
 
 const DanceContext = createContext<DanceContextProps>({
   liveEvent: null,
+  attendanceConfirmed: false,
   steps: 0,
   totalSessionSteps: 0,
   isTracking: false,
@@ -25,7 +26,9 @@ const DanceContext = createContext<DanceContextProps>({
 
 export function DanceProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-  const [liveEvent, setLiveEvent] = useState<any | null>(null);
+  const [liveEvent, setLiveEvent] = useState<LiveEvent | null>(null);
+  const [attendanceConfirmed, setAttendanceConfirmed] = useState(false);
+  const { mutate: checkPresence } = useEventPresence();
   
   const { startDanceSession, stopDanceSession, isTracking, steps, totalSessionSteps, forceStartNative, simulateSteps } = useDanceSync();
 
@@ -33,36 +36,17 @@ export function DanceProvider({ children }: { children: React.ReactNode }) {
     let mounted = true;
 
     const checkLiveStatus = async () => {
-      console.log("DANCE_CONTEXT: checkLiveStatus llamado. user.id=", user?.id);
+      setLiveEvent(null);
+      setAttendanceConfirmed(false);
       if (!user) return;
 
       try {
-        console.log("DANCE_CONTEXT: Pidiendo permisos / getCurrentPosition...");
-        const position = await Geolocation.getCurrentPosition({
-          enableHighAccuracy: true,
-          maximumAge: 300000, 
-          timeout: 10000
-        });
-        console.log("DANCE_CONTEXT: Ubicación obtenida:", position.coords.latitude, position.coords.longitude);
-
-        const res = await api.get('/v1/events/live-status', {
-          params: {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          }
-        });
-        console.log("DANCE_CONTEXT: Respuesta live-status:", res.data);
-
-        if (mounted && res.data?.isLive && res.data?.event) {
-          console.log("DANCE_CONTEXT: ¡Fiesta detectada! Activando startDanceSession...");
-          setLiveEvent(res.data.event);
-          startDanceSession(res.data.event);
-        } else {
-          console.log("DANCE_CONTEXT: No hay fiesta en esta ubicación.");
-        }
-      } catch (error) {
-        console.error("DANCE_CONTEXT: Error crítico chequeando estado:", error);
-      }
+        const result = await checkPresence(undefined);
+        if (!mounted) return;
+        setLiveEvent(result.isLive ? result.event : null);
+        setAttendanceConfirmed(result.attendanceConfirmed === true);
+        if (result.isLive && result.event) await startDanceSession(result.event);
+      } catch { /* Location permission denial must not show a developer overlay. */ }
     };
 
     checkLiveStatus();
@@ -71,10 +55,10 @@ export function DanceProvider({ children }: { children: React.ReactNode }) {
       mounted = false;
       stopDanceSession();
     };
-  }, [user, startDanceSession, stopDanceSession]);
+  }, [user, checkPresence, startDanceSession, stopDanceSession]);
 
   return (
-    <DanceContext.Provider value={{ liveEvent, steps, totalSessionSteps, isTracking, forceStartNative, simulateSteps }}>
+    <DanceContext.Provider value={{ liveEvent, attendanceConfirmed, steps, totalSessionSteps, isTracking, forceStartNative, simulateSteps }}>
       {children}
     </DanceContext.Provider>
   );

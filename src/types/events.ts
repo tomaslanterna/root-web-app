@@ -4,9 +4,10 @@ export interface Artist {
   id: string;
   name: string;
   artistType: string;
+  isExample?: boolean;
   genres: string[];
   avatarUrl?: string;
-  socialLinks?: any;
+  socialLinks?: Record<string, unknown>;
 }
 
 export interface EventArtist {
@@ -23,6 +24,8 @@ export interface Event {
   producerId?: string;
   date: string;
   location: string;
+  department?: string | null;
+  country?: string | null;
   cinematicBannerUrl: string;
   description: string;
   lineup: string[];
