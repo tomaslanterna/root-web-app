@@ -80,7 +80,7 @@ export default function RegisterPage() {
     {
       onSuccess: (data) => {
         login(data.token, data.user);
-        router.push('/feed');
+        router.push('/events');
       },
       onError: (err) => {
         console.error('Error in Google Auth:', err);

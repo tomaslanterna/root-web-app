@@ -14,6 +14,7 @@ function runtime() {
 }
 test("Android Back confirms exit only at home, regardless of browser history", () => {
   const { nativeBackDestination: back } = runtime();
+  assert.equal(back("/events", true), "confirm-exit");
   assert.equal(back("/feed", true), "confirm-exit");
   assert.equal(back("/", false), "confirm-exit");
   assert.equal(back("/communities", true), "history-back");
@@ -24,8 +25,8 @@ test("cold-start deep links go to their parent, not out of the app", () => {
   for (const parent of ["/chat", "/communities", "/events", "/match", "/profile"]) {
     assert.equal(back(`${parent}/detail`, false), parent);
   }
-  assert.equal(back("/communities", false), "/feed");
-  assert.equal(back("/settings", false), "/feed");
+  assert.equal(back("/communities", false), "/events");
+  assert.equal(back("/settings", false), "/events");
 });
 test("Back closes the topmost overlay first and cleans up its handler", () => {
   const { registerNativeBackHandler: add, consumeNativeBack: back } = runtime();

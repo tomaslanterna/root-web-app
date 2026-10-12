@@ -47,6 +47,7 @@ export function EventCard({ event, variant = "swimlane", className }: EventCardP
   const [isVisible, setIsVisible] = React.useState(true);
 
   React.useEffect(() => {
+    if (isSwimlane) return;
     const observer = new IntersectionObserver(
       ([entry]) => {
         setIsVisible(entry.isIntersecting);
@@ -57,7 +58,7 @@ export function EventCard({ event, variant = "swimlane", className }: EventCardP
       observer.observe(linkRef.current);
     }
     return () => observer.disconnect();
-  }, []);
+  }, [isSwimlane]);
 
   if (isList) {
     return (
@@ -153,11 +154,15 @@ export function EventCard({ event, variant = "swimlane", className }: EventCardP
       ref={linkRef}
       href={`/events/${event.id}?origin=${pathname}`}
       className={cn(
-        "block select-none transition-all duration-300 active:scale-[0.98] group ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.98]",
-        isVisible 
-          ? "scale-100 opacity-100 translate-y-0 blur-none" 
-          : "scale-[0.70] md:scale-[0.92] opacity-0 md:opacity-60 translate-y-16 md:translate-y-0 blur-sm md:blur-none",
-        isSwimlane ? "w-[260px] sm:w-[280px] shrink-0 snap-start" : "w-full",
+        "block select-none transition-all duration-300 active:scale-[0.98] group ease-[cubic-bezier(0.23,1,0.32,1)]",
+        isSwimlane
+          ? "w-[260px] sm:w-[280px] shrink-0 snap-start"
+          : cn(
+              "w-full",
+              isVisible
+                ? "scale-100 opacity-100 translate-y-0 blur-none"
+                : "scale-[0.70] md:scale-[0.92] opacity-0 md:opacity-60 translate-y-16 md:translate-y-0 blur-sm md:blur-none"
+            ),
         className,
       )}
     >

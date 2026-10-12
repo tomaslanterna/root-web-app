@@ -25,7 +25,7 @@ export function ChatInbox({ overlay = false, presentation }: { overlay?: boolean
   const backButton = useRef<HTMLButtonElement>(null);
   const close = () => {
     if (closing) return;
-    if (!overlay) { router.push("/feed"); return; }
+    if (!overlay) { router.push("/events"); return; }
     presentation?.onClose();
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { router.back(); return; }
     setClosing(true);
