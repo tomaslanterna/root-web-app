@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button";
 import {
@@ -11,7 +12,6 @@ import {
   Loader2,
   ChevronLeft,
   BadgeCheck,
-  Flame,
 } from "lucide-react";
 import { MOCK_POSTS } from "@/lib/mocks";
 import { PostCard } from "@/components/ui/PostCard";
@@ -21,6 +21,12 @@ import { DanceStatsWidget } from "@/components/profile/DanceStatsWidget";
 import { cn } from "@/lib/utils";
 import { usersApi } from "@/services/users";
 import { useMutation } from "@/hooks/useMutation";
+import { BadgeCollection } from "@/components/profile/BadgeCollection";
+import type { AuthUser } from "@/types/auth";
+import type { Community } from "@/types/communities";
+import type { Event } from "@/types/events";
+
+interface ProfileUser extends AuthUser { followers?: string[]; following?: string[] }
 
 export default function UserProfilePage() {
   const router = useRouter();
@@ -30,16 +36,16 @@ export default function UserProfilePage() {
   const username = params.username as string;
   const { user: currentUser, isLoading: authLoading } = useAuth();
 
-  const [profileUser, setProfileUser] = useState<any>(null);
+  const [profileUser, setProfileUser] = useState<ProfileUser | null>(null);
   const [isFollowing, setIsFollowing] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("Comunidades");
 
-  const [communities, setCommunities] = useState<any[]>([]);
-  const [userEvents, setUserEvents] = useState<any[]>([]);
+  const [communities, setCommunities] = useState<Community[]>([]);
+  const [userEvents, setUserEvents] = useState<Event[]>([]);
 
-  const isMyProfile = currentUser?.username === username;
+  const isMyProfile = Boolean(currentUser?.id && profileUser?.id === currentUser.id);
 
   useEffect(() => {
     if (!username) return;
@@ -77,10 +83,10 @@ export default function UserProfilePage() {
     {
       onSuccess: () => {
         setIsFollowing(true);
-        setProfileUser((prev: any) => ({
+        setProfileUser((prev) => prev ? ({
           ...prev,
-          followers: [...(prev.followers || []), currentUser?.id],
-        }));
+          followers: [...(prev.followers || []), ...(currentUser ? [currentUser.id] : [])],
+        }) : prev);
       },
     },
   );
@@ -93,12 +99,12 @@ export default function UserProfilePage() {
       {
         onSuccess: () => {
           setIsFollowing(false);
-          setProfileUser((prev: any) => ({
+          setProfileUser((prev) => prev ? ({
             ...prev,
             followers: (prev.followers || []).filter(
               (id: string) => id !== currentUser?.id,
             ),
-          }));
+          }) : prev);
         },
       },
     );
@@ -133,8 +139,8 @@ export default function UserProfilePage() {
 
   const isRRPP = profileUser.role === "RRPP";
   const tabs = isRRPP
-    ? ["Posts", "Comunidades", "Eventos"]
-    : ["Comunidades", "Eventos"];
+    ? ["Posts", "Comunidades", "Eventos", "Insignias"]
+    : ["Comunidades", "Eventos", "Insignias"];
 
   const userPosts = MOCK_POSTS.filter((p) => p.authorId === profileUser.id);
 
@@ -142,11 +148,15 @@ export default function UserProfilePage() {
     "https://images.unsplash.com/photo-1574169208507-84376144848b?q=80&w=2079&auto=format&fit=crop";
 
   return (
-    <div className="flex flex-col min-h-[100dvh] bg-[#0B0D10] text-white pb-20">
+    <div className="profile-modern flex min-h-[100dvh] flex-col bg-[#0B0D10] pb-20 text-white">
       <div className="relative h-48 sm:h-64 w-full bg-neutral-900 border-b border-white/10">
-        <img
+        <Image
           src={coverUrl}
           alt="Cover"
+          fill
+          unoptimized
+          loading="eager"
+          sizes="100vw"
           className="w-full h-full object-cover opacity-60"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-[#0B0D10] to-transparent" />
@@ -184,9 +194,12 @@ export default function UserProfilePage() {
           <div className="relative shrink-0">
             <div className="w-28 h-28 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-full overflow-hidden ring-4 ring-[#0B0D10] shadow-2xl relative bg-neutral-800">
               {profileUser.avatarUrl ? (
-                <img
+                <Image
                   src={profileUser.avatarUrl}
                   alt={profileUser.name}
+                  fill
+                  unoptimized
+                  sizes="(min-width: 768px) 160px, 128px"
                   className="w-full h-full object-cover"
                 />
               ) : (
@@ -207,10 +220,10 @@ export default function UserProfilePage() {
           </div>
 
           <div className="text-center md:text-left mb-2 md:mb-4 space-y-0.5">
-            <h1 className="text-2xl md:text-4xl font-black uppercase tracking-tight text-white flex items-center justify-center md:justify-start gap-2">
+            <h1 className="flex items-center justify-center gap-2 text-2xl font-semibold tracking-[-.045em] text-white md:justify-start md:text-4xl">
               {profileUser.name}
             </h1>
-            <p className="text-sm md:text-base text-neutral-400 font-semibold tracking-widest uppercase">
+            <p className="text-[11px] font-medium uppercase tracking-[.16em] text-neutral-500 md:text-xs">
               @{profileUser.username} •{" "}
               {profileUser.role === "USER" ? "RAVER" : profileUser.role}
             </p>
@@ -220,18 +233,18 @@ export default function UserProfilePage() {
         <div className="flex flex-col md:flex-row items-center md:items-end gap-6 mt-6 md:mt-0 mb-2 md:mb-4">
           <div className="flex items-center gap-6 sm:gap-10">
             <div className="text-center md:text-left">
-              <p className="text-xl sm:text-2xl md:text-3xl font-black text-white">
+              <p className="text-xl font-semibold tabular-nums tracking-[-.04em] text-white sm:text-2xl md:text-3xl">
                 {profileUser.followers?.length || 0}
               </p>
-              <p className="text-[10px] md:text-xs uppercase font-bold text-neutral-500 tracking-wider">
+              <p className="text-[9px] font-medium uppercase tracking-[.16em] text-neutral-600 md:text-[10px]">
                 Seguidores
               </p>
             </div>
             <div className="text-center md:text-left">
-              <p className="text-xl sm:text-2xl md:text-3xl font-black text-white">
+              <p className="text-xl font-semibold tabular-nums tracking-[-.04em] text-white sm:text-2xl md:text-3xl">
                 {profileUser.following?.length || 0}
               </p>
-              <p className="text-[10px] md:text-xs uppercase font-bold text-neutral-500 tracking-wider">
+              <p className="text-[9px] font-medium uppercase tracking-[.16em] text-neutral-600 md:text-[10px]">
                 Seguidos
               </p>
             </div>
@@ -243,7 +256,7 @@ export default function UserProfilePage() {
                 onClick={toggleFollow}
                 disabled={isFollowingLoading || isUnfollowingLoading}
                 variant={isFollowing ? "outline" : "primary"}
-                className="flex-1 md:flex-none rounded-full px-6 font-bold uppercase tracking-wider text-xs md:py-3"
+                className="flex-1 rounded-full px-6 text-xs font-semibold tracking-wide md:flex-none md:py-3"
               >
                 {isFollowing ? "Siguiendo" : "Seguir"}
               </Button>
@@ -259,7 +272,7 @@ export default function UserProfilePage() {
                   }
                 }}
                 variant="outline"
-                className="flex-1 md:flex-none rounded-full px-6 font-bold uppercase tracking-wider text-xs border-white/20 md:py-3"
+                className="flex-1 rounded-full border-white/20 px-6 text-xs font-semibold tracking-wide md:flex-none md:py-3"
               >
                 Mensaje
               </Button>
@@ -267,7 +280,7 @@ export default function UserProfilePage() {
           ) : (
             <Button
               variant="outline"
-              className="w-full md:w-auto rounded-full px-8 font-bold uppercase tracking-wider text-xs border-white/20 md:py-3"
+              className="w-full rounded-full border-white/20 px-8 text-xs font-semibold tracking-wide md:w-auto md:py-3"
             >
               Editar
             </Button>
@@ -279,7 +292,7 @@ export default function UserProfilePage() {
         <div className="px-4 pb-4 md:pt-6 w-full max-w-5xl mx-auto">
           <Button
             onClick={() => router.push("/kyc")}
-            className="w-full flex items-center justify-center gap-2 border border-amber-500/50 text-amber-500 bg-amber-500/5 hover:bg-amber-500/10 hover:border-amber-500 transition-colors uppercase text-xs font-bold tracking-wider rounded-xl py-6"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-amber-500/40 bg-amber-500/5 py-6 text-xs font-semibold tracking-wide text-amber-400 transition-colors hover:border-amber-500 hover:bg-amber-500/10"
           >
             <ShieldAlert className="w-4 h-4" />
             Comenzar Validación KYC
@@ -295,13 +308,16 @@ export default function UserProfilePage() {
       )}
 
       <div className="px-4 mt-6 border-b border-white/10 w-full max-w-5xl mx-auto">
-        <div className="flex space-x-1 md:space-x-4 p-1">
+        <div className="flex gap-1 overflow-x-auto p-1 md:gap-4" role="tablist" aria-label="Secciones del perfil">
           {tabs.map((tab) => (
             <button
               key={tab}
+              role="tab"
+              aria-selected={activeTab === tab}
+              aria-controls={`profile-tab-${tab}`}
               onClick={() => setActiveTab(tab)}
               className={cn(
-                "flex-1 md:flex-none md:px-8 py-3 text-xs md:text-sm font-black uppercase tracking-wider transition-all border-b-2 rounded-t-lg hover:bg-white/5",
+                "flex-1 shrink-0 rounded-t-lg border-b-2 px-2 py-3 text-[12px] font-semibold tracking-[-.02em] transition-all hover:bg-white/[.03] sm:text-[13px] md:flex-none md:px-8",
                 activeTab === tab
                   ? "border-[#D4FF00] text-[#D4FF00]"
                   : "border-transparent text-neutral-500 hover:text-neutral-300",
@@ -313,7 +329,8 @@ export default function UserProfilePage() {
         </div>
       </div>
 
-      <div className="p-4 md:py-8 space-y-4 w-full max-w-5xl mx-auto">
+      <div id={`profile-tab-${activeTab}`} role="tabpanel" aria-label={activeTab} className="p-4 md:py-8 space-y-4 w-full max-w-5xl mx-auto">
+        {activeTab === "Insignias" && <BadgeCollection key={`${username}:${currentUser?.id || "guest"}`} username={username} isOwner={isMyProfile} />}
         {activeTab === "Posts" && (
           <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-6">
             {userPosts.length > 0 ? (
@@ -321,7 +338,7 @@ export default function UserProfilePage() {
                 <PostCard key={post.id} post={post} variant="electronic" />
               ))
             ) : (
-              <p className="text-center text-neutral-500 text-sm mt-8 uppercase font-bold md:col-span-3">
+              <p className="mt-8 text-center text-sm font-medium text-neutral-500 md:col-span-3">
                 No hay posts creados
               </p>
             )}

@@ -1,27 +1,39 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { api } from "@/lib/api";
-import { surveysApi, SubmitSurveyPayload } from "@/services/surveys";
+import Image from "next/image";
+import { type SubmitSurveyPayload } from "@/services/surveys";
+import { useEventReview, useSurveyDetail } from "@/hooks/useBadges";
+import { useAuth } from "@/context/AuthContext";
+import { LoginRequired } from "@/components/ui/LoginRequired";
+import { attendanceDate } from "@/lib/badgeAppearance";
 import type { Event } from "@/types/events";
+import type { EventBadge } from "@/types/badges";
 import { StarRating } from "@/components/ui/StarRating";
-import { ChevronLeft, Loader2, Music, CheckCircle } from "lucide-react";
+import { ChevronLeft, Loader2, CheckCircle } from "lucide-react";
+import { ArtistRatings } from "@/components/profile/ArtistRatings";
+import { badgeFlyerUrl } from "@/services/badges";
+import { badgeLocation } from "@/lib/badgeLocation";
+import { ConfirmModal } from "@/components/ui/Modal";
 
 import { DetailHeader } from "@/components/ui/DetailHeader";
 
 export default function SurveyPage() {
   const { id } = useParams() as { id: string };
   const router = useRouter();
+  const { user, isLoading: authLoading } = useAuth();
+  const { mutate: loadDetail, data: detail, error: detailError } = useSurveyDetail(id);
+  const { save, saveError } = useEventReview(id);
 
   const [event, setEvent] = useState<Event | null>(null);
   const [isLoadingEvent, setIsLoadingEvent] = useState(true);
   
-  const [generalRating, setGeneralRating] = useState<number>(0);
-  const [organizationRating, setOrganizationRating] = useState<number>(0);
-  const [vibeRating, setVibeRating] = useState<number>(0);
-  const [soundVisualRating, setSoundVisualRating] = useState<number>(0);
-  const [pricingRating, setPricingRating] = useState<number>(0);
+  const [generalRating, setGeneralRating] = useState<number | null>(null);
+  const [organizationRating, setOrganizationRating] = useState<number | null>(null);
+  const [vibeRating, setVibeRating] = useState<number | null>(null);
+  const [soundVisualRating, setSoundVisualRating] = useState<number | null>(null);
+  const [pricingRating, setPricingRating] = useState<number | null>(null);
   const [spaceRating, setSpaceRating] = useState<string | null>(null);
   const [wouldReturn, setWouldReturn] = useState<boolean | null>(null);
   const [comment, setComment] = useState("");
@@ -29,20 +41,47 @@ export default function SurveyPage() {
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const submitting = useRef(false);
+  const locked = detail?.badge.review != null;
+
+  const hydrateDetail = useCallback((result: { event: Event; badge: EventBadge }) => {
+    setEvent(result.event);
+    const review = result.badge.review;
+    setGeneralRating(review?.generalRating ?? 1);
+    setComment(review?.comment ?? "");
+    setOrganizationRating(review?.organizationRating ?? (review ? null : 1));
+    setVibeRating(review?.vibeRating ?? (review ? null : 1));
+    setSoundVisualRating(review?.soundVisualRating ?? (review ? null : 1));
+    setPricingRating(review?.pricingRating ?? (review ? null : 1));
+    setSpaceRating(review?.spaceRating ?? null);
+    setWouldReturn(review?.wouldReturn ?? null);
+    setArtistRatings(Object.fromEntries((review?.artistRatings ?? []).map(ar => [ar.artistId, ar.rating])));
+  }, []);
 
   useEffect(() => {
+    if (!user) return;
+    let mounted = true;
     const fetchEvent = async () => {
       try {
-        const res = await api.get(`/v1/events/${id}`);
-        setEvent(res.data);
-      } catch (err) {
-        console.error("Error fetching event for survey:", err);
+        const result = await loadDetail();
+        if (!mounted) return;
+        hydrateDetail(result);
+      } catch {
+        // The hook exposes errors and does not treat unconfirmed presence as an empty review.
       } finally {
-        setIsLoadingEvent(false);
+        if (mounted) setIsLoadingEvent(false);
       }
     };
     void fetchEvent();
-  }, [id]);
+    return () => { mounted = false; };
+  }, [id, user, loadDetail, hydrateDetail]);
+
+  useEffect(() => {
+    if (!isSuccess) return;
+    const timer = setTimeout(() => router.push("/feed"), 2000);
+    return () => clearTimeout(timer);
+  }, [isSuccess, router]);
 
   const handleArtistRating = (artistId: string, rating: number) => {
     setArtistRatings((prev) => ({
@@ -52,41 +91,45 @@ export default function SurveyPage() {
   };
 
   const handleSubmit = async () => {
-    if (generalRating === 0) return; // General rating is required
+    if (!confirmOpen || locked || generalRating === null || isSubmitting || submitting.current) return;
 
+    submitting.current = true;
     setIsSubmitting(true);
     try {
       const payload: SubmitSurveyPayload = {
         general_rating: generalRating,
-        organization_rating: organizationRating || null,
-        vibe_rating: vibeRating || null,
-        sound_visual_rating: soundVisualRating || null,
-        pricing_rating: pricingRating || null,
+        organization_rating: organizationRating,
+        vibe_rating: vibeRating,
+        sound_visual_rating: soundVisualRating,
+        pricing_rating: pricingRating,
         space_rating: spaceRating,
         would_return: wouldReturn,
         comment: comment || null,
-        artist_ratings: Object.entries(artistRatings).map(([artist_id, rating]) => ({
-          artist_id,
-          rating,
+        artist_ratings: (detail?.badge.lineup || []).filter(entry => entry.artist).map(entry => ({
+          artist_id: entry.artistId,
+          rating: artistRatings[entry.artistId] ?? 1,
         })),
       };
 
-      await surveysApi.submitSurvey(id, payload);
+      await save(payload);
       setIsSuccess(true);
       
       // Redirect after showing success briefly
       setTimeout(() => {
         router.push("/events");
       }, 2000);
-    } catch (error) {
-      console.error("Error submitting survey:", error);
-      // Could show a toast here
+      
+    } catch {
+      await loadDetail().then(result => { if (result.badge.review) hydrateDetail(result); }).catch(() => undefined);
     } finally {
+      submitting.current = false;
+      setConfirmOpen(false);
       setIsSubmitting(false);
     }
   };
 
-  if (isLoadingEvent) {
+  if (!authLoading && !user) return <LoginRequired />;
+  if (authLoading || (isLoadingEvent && !detailError)) {
     return (
       <div className="min-h-screen bg-[#0B0D10] flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-[#D4FF00] animate-spin" />
@@ -97,7 +140,8 @@ export default function SurveyPage() {
   if (!event) {
     return (
       <div className="min-h-screen bg-[#0B0D10] flex flex-col items-center justify-center text-white">
-        <p>Evento no encontrado</p>
+        <p className="px-4 text-center">{detailError?.response?.status === 404 ? "Necesitás asistencia confirmada para valorar esta fiesta." : "No pudimos cargar tu valoración."}</p>
+        <button onClick={() => void loadDetail().then(hydrateDetail).catch(() => undefined)} className="mt-4 text-[#D4FF00]">Reintentar</button>
         <button onClick={() => router.back()} className="mt-4 text-[#D4FF00]">Volver</button>
       </div>
     );
@@ -125,9 +169,12 @@ export default function SurveyPage() {
 
       {/* Background Image Blurred */}
       <div className="fixed inset-0 z-0 w-full h-[60vh]">
-        <img 
-          src={event.cinematicBannerUrl || "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7"} 
+        <Image
+          src={event.cinematicBannerUrl ? badgeFlyerUrl(id) : "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7"}
           alt={event.title} 
+          fill
+          unoptimized
+          sizes="100vw"
           className="w-full h-full object-cover opacity-20 blur-xl"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-[#0B0D10]/50 via-[#0B0D10]/80 to-[#0B0D10]" />
@@ -138,13 +185,17 @@ export default function SurveyPage() {
           ¿Cómo te fue en <span className="text-[#D4FF00]">{event.title}</span>?
         </h1>
         <p className="text-neutral-400 font-medium">Dejanos tu opinión sincera. Toma 30 segundos.</p>
+        {detail && <p className="mt-2 text-xs text-neutral-500">{badgeLocation(detail.badge)} · {attendanceDate(detail.badge.eventDate)}</p>}
+        {detail && <p className="mt-3 text-sm text-[#D4FF00]">Insignia obtenida · Asistencia: {attendanceDate(detail.badge.confirmedAt)}</p>}
 
-        <div className="mt-8 space-y-8">
+        {locked && <p role="status" className="mt-4 text-sm text-neutral-400">Reseña confirmada. Las puntuaciones y el texto no se pueden cambiar.</p>}
+        <fieldset disabled={locked || isSubmitting || confirmOpen} className="mt-8 space-y-8">
+          <legend className="sr-only">Puntuaciones y reseña del evento</legend>
           {/* General Rating (Required) */}
           <div className="bg-[#14171F]/80 backdrop-blur-md rounded-3xl p-6 border border-white/10">
             <h3 className="text-lg font-bold mb-1">Experiencia General <span className="text-red-500">*</span></h3>
             <p className="text-sm text-neutral-400 mb-4">¿Qué tal estuvo el evento en general?</p>
-            <StarRating value={generalRating} onChange={setGeneralRating} size={36} />
+            <StarRating value={generalRating} onChange={setGeneralRating} readonly={locked} size={32} appearance="slider" label="Puntuación del evento" />
           </div>
 
           {/* Org & Vibe (Optional) */}
@@ -152,12 +203,12 @@ export default function SurveyPage() {
             <div>
               <h3 className="text-base font-bold mb-1">Organización y Venue</h3>
               <p className="text-xs text-neutral-400 mb-3">Accesos, barras, baños.</p>
-              <StarRating value={organizationRating} onChange={setOrganizationRating} size={28} />
+              <StarRating value={organizationRating} onChange={setOrganizationRating} readonly={locked} size={28} appearance="slider" label="Organización y venue" />
             </div>
             <div>
               <h3 className="text-base font-bold mb-1">Vibe y Ambiente</h3>
               <p className="text-xs text-neutral-400 mb-3">La gente, la energía.</p>
-              <StarRating value={vibeRating} onChange={setVibeRating} size={28} />
+              <StarRating value={vibeRating} onChange={setVibeRating} readonly={locked} size={28} appearance="slider" label="Vibe y ambiente" />
             </div>
           </div>
 
@@ -166,12 +217,12 @@ export default function SurveyPage() {
             <div>
               <h3 className="text-base font-bold mb-1">Sonido y Visuales</h3>
               <p className="text-xs text-neutral-400 mb-3">Calidad del sistema de sonido y show.</p>
-              <StarRating value={soundVisualRating} onChange={setSoundVisualRating} size={28} />
+              <StarRating value={soundVisualRating} onChange={setSoundVisualRating} readonly={locked} size={28} appearance="slider" label="Sonido y visuales" />
             </div>
             <div>
               <h3 className="text-base font-bold mb-1">Relación Calidad-Precio</h3>
               <p className="text-xs text-neutral-400 mb-3">Tickets, tragos y servicios.</p>
-              <StarRating value={pricingRating} onChange={setPricingRating} size={28} />
+              <StarRating value={pricingRating} onChange={setPricingRating} readonly={locked} size={28} appearance="slider" label="Relación calidad-precio" />
             </div>
           </div>
 
@@ -215,64 +266,28 @@ export default function SurveyPage() {
           </div>
 
           {/* Lineup Ratings */}
-          {event.artists && event.artists.length > 0 && (
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-xl font-bold mb-1 flex items-center gap-2">
-                  <Music className="w-5 h-5 text-[#D4FF00]" /> El Lineup
-                </h3>
-                <p className="text-sm text-neutral-400">Puntuá a los artistas que llegaste a ver. (Opcional)</p>
-              </div>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {event.artists.map((ea) => (
-                  <div key={ea.artistId} className="bg-[#14171F]/80 backdrop-blur-md rounded-2xl p-4 border border-white/5 flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full overflow-hidden bg-neutral-800 shrink-0">
-                        {ea.artist?.avatarUrl ? (
-                          <img src={ea.artist.avatarUrl} alt={ea.artist.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-xl font-black text-neutral-600">
-                            {ea.artist?.name?.[0]}
-                          </div>
-                        )}
-                      </div>
-                      <div>
-                        <p className="font-bold text-sm line-clamp-1">{ea.artist?.name || 'Artista'}</p>
-                        <p className="text-[10px] uppercase font-bold text-neutral-500 tracking-wider">
-                          {ea.isHeadliner ? 'Headliner' : ea.artist?.artistType || 'DJ'}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="shrink-0">
-                      <StarRating 
-                        value={artistRatings[ea.artistId] || 0} 
-                        onChange={(val) => handleArtistRating(ea.artistId, val)} 
-                        size={20} 
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <ArtistRatings eventId={id} lineup={{ artists: detail?.badge.lineup || [], names: detail?.badge.lineupNames || [] }} ratings={artistRatings} readonly={locked} onChange={handleArtistRating} />
 
           {/* Comment */}
           <div className="space-y-3">
             <h3 className="text-base font-bold">Comentarios adicionales</h3>
             <textarea 
+              aria-label="Reseña de la fiesta"
+              maxLength={1000}
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               placeholder="¿Qué fue lo mejor de la noche? ¿Qué se puede mejorar?"
               className="w-full bg-[#14171F]/80 backdrop-blur-md rounded-2xl p-4 border border-white/10 text-sm min-h-[120px] focus:outline-none focus:border-[#D4FF00]/50 transition-colors placeholder:text-neutral-600 resize-none"
             />
           </div>
+          <p className="text-right text-xs text-neutral-500">{comment.length}/1000</p>
+          {saveError && !locked && <p role="alert" className="text-sm text-red-400">{saveError.response?.status === 409 ? "La reseña ya fue confirmada y no se puede modificar." : "No pudimos guardar tu valoración. Intentá nuevamente."}</p>}
 
           {/* Submit Action */}
-          <div className="pt-4">
+          {!locked && <div className="pt-4">
             <button 
-              onClick={handleSubmit}
-              disabled={generalRating === 0 || isSubmitting}
+              onClick={() => setConfirmOpen(true)}
+              disabled={generalRating === null || isSubmitting}
               className="w-full py-4 rounded-full bg-[#D4FF00] text-black font-black uppercase tracking-widest text-sm hover:bg-[#bce400] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
             >
               {isSubmitting ? (
@@ -281,9 +296,10 @@ export default function SurveyPage() {
                 "Enviar Reseña"
               )}
             </button>
-          </div>
+          </div>}
 
-        </div>
+        </fieldset>
+        <ConfirmModal isOpen={confirmOpen} title="¿Confirmar tu reseña?" message="Tu puntuación del evento, las notas de los DJs y tu reseña quedarán guardadas y no se podrán cambiar. ¿Deseás confirmar?" confirmText="Confirmar y guardar" cancelText="Cancelar" isLoading={isSubmitting} onClose={() => { if (!submitting.current) setConfirmOpen(false); }} onConfirm={handleSubmit} />
       </div>
     </div>
   );

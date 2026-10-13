@@ -2,10 +2,10 @@
 
 import * as React from "react";
 import { Card } from "@/components/ui/Card";
-import { ArrowRight, Users, CheckCircle2, MapPin, Radio } from "lucide-react";
+import { ArrowRight, Users, CheckCircle2, MapPin } from "lucide-react";
 import type { Community } from "@/types/communities";
 import Link from "next/link";
-import Image from "next/image";
+import { CommunityCover } from "./CommunityCover";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
@@ -48,20 +48,12 @@ export function CommunityCard({ community }: CommunityCardProps) {
         className="relative w-full rounded-3xl overflow-hidden group h-48 sm:h-56 transition-all duration-300 border-white/10 hover:border-white/20 shadow-lg text-white"
       >
         {/* Background Image */}
-        {community.coverImageUrl ? (
-          <Image
-            src={community.coverImageUrl}
-            alt={community.name}
-            fill
-            unoptimized
-            sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
-          />
-        ) : (
-          <div className="absolute inset-0 w-full h-full bg-[radial-gradient(circle_at_20%_20%,rgba(212,255,0,0.22),transparent_35%),linear-gradient(135deg,#171b22,#08090b)]">
-            <Radio className="absolute right-7 top-12 h-20 w-20 text-[#D4FF00]/10" />
-          </div>
-        )}
+        <CommunityCover
+          coverImageUrl={community.coverImageUrl}
+          category={community.category}
+          sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+          className="transition-transform duration-500 group-hover:scale-105"
+        />
 
         {/* Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none" />

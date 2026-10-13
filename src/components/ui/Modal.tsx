@@ -10,9 +10,11 @@ interface ModalProps {
   title: string;
   children: ReactNode;
   footer?: ReactNode;
+  presentation?: "dialog" | "screen";
+  header?: ReactNode;
 }
 
-export function Modal({ isOpen, onClose, title, children, footer }: ModalProps) {
+export function Modal({ isOpen, onClose, title, children, footer, presentation = "dialog", header }: ModalProps) {
   useNativeBackHandler(isOpen, onClose);
   const ref = useRef<HTMLDivElement>(null);
   const close = useRef(onClose);
@@ -22,7 +24,7 @@ export function Modal({ isOpen, onClose, title, children, footer }: ModalProps) 
     const focused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    ref.current?.focus();
+    ref.current?.focus({ preventScroll: true });
     const keydown = (event: KeyboardEvent) => {
       if (event.key === "Escape") { event.stopPropagation(); close.current(); }
       if (event.key !== "Tab") return;
@@ -38,11 +40,11 @@ export function Modal({ isOpen, onClose, title, children, footer }: ModalProps) 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div ref={ref} tabIndex={-1} role="dialog" aria-modal="true" aria-label={title} className="bg-[#14171F] rounded-3xl border border-white/10 w-full max-w-sm max-h-[85dvh] overflow-hidden flex flex-col shadow-2xl motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 duration-200">
+    <div className={`fixed inset-0 z-[80] flex items-center justify-center bg-black/80 ${presentation === "screen" ? "" : "p-4 backdrop-blur-sm"}`}>
+      <div ref={ref} tabIndex={-1} role="dialog" aria-modal="true" aria-label={title} className={presentation === "screen" ? "mx-auto flex h-[100dvh] w-full max-w-md flex-col overflow-hidden bg-[#0B0D10] pt-[var(--root-safe-top)] pb-[var(--root-safe-bottom)] md:h-[min(900px,100dvh)] md:rounded-3xl md:border md:border-white/10" : "bg-[#14171F] rounded-3xl border border-white/10 w-full max-w-sm max-h-[85dvh] overflow-hidden flex flex-col shadow-2xl motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 duration-200"}>
         
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-white/5">
+        {header || <div className="flex items-center justify-between p-4 border-b border-white/5">
           <h3 className="text-sm font-black uppercase tracking-wider text-white">{title}</h3>
           <button 
             onClick={onClose} 
@@ -51,10 +53,10 @@ export function Modal({ isOpen, onClose, title, children, footer }: ModalProps) 
           >
             <X className="w-5 h-5 text-neutral-400 hover:text-white" />
           </button>
-        </div>
+        </div>}
         
         {/* Body */}
-        <div className="p-4 flex-1 overflow-y-auto">
+        <div className="min-h-0 p-4 flex-1 overflow-y-auto overscroll-contain">
           {children}
         </div>
 

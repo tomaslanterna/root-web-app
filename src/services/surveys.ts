@@ -15,7 +15,7 @@ export interface SubmitSurveyPayload {
   space_rating?: string | null;
   would_return?: boolean | null;
   comment?: string | null;
-  artist_ratings: SurveyArtistRatingPayload[];
+  artist_ratings?: SurveyArtistRatingPayload[];
 }
 
 export const surveysApi = {
@@ -24,7 +24,7 @@ export const surveysApi = {
     return data || [];
   },
 
-  submitSurvey: async (eventId: string, payload: SubmitSurveyPayload): Promise<any> => {
+  submitSurvey: async (eventId: string, payload: SubmitSurveyPayload): Promise<{ status: string; message: string }> => {
     const { data } = await api.post(`/v1/events/${eventId}/surveys`, payload);
     return data;
   }
