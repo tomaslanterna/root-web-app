@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Flame, Loader2, Activity } from "lucide-react";
 import { BarChart, Bar, ResponsiveContainer, Cell, XAxis, LabelList } from "recharts";
 import { api } from "@/lib/api";
-import { cn } from "@/lib/utils";
 
 interface DanceSession {
   id: string;
@@ -67,8 +66,8 @@ export function DanceStatsWidget() {
             <Activity className="w-5 h-5 text-neutral-500" />
           </div>
           <div className="text-left">
-            <h3 className="text-sm font-black uppercase tracking-widest text-neutral-300">Estadísticas de Baile</h3>
-            <p className="text-[10px] uppercase font-bold text-neutral-500 tracking-wider">Aún no hay registros</p>
+            <h3 className="text-sm font-semibold tracking-[-.02em] text-neutral-300">Estadísticas de baile</h3>
+            <p className="text-[10px] font-medium tracking-wide text-neutral-500">Aún no hay registros</p>
           </div>
         </div>
       </div>
@@ -93,10 +92,10 @@ export function DanceStatsWidget() {
         <div className="space-y-0.5">
           <div className="flex items-center gap-1.5">
             <Flame className="w-4 h-4 text-black fill-black/20" />
-            <h3 className="text-xs font-black uppercase tracking-widest text-black">Actividad</h3>
+            <h3 className="text-xs font-semibold uppercase tracking-[.14em] text-black">Actividad</h3>
           </div>
-          <p className="text-2xl font-black italic tracking-tighter text-black pl-5.5">
-            {totalSteps.toLocaleString()} <span className="text-[10px] text-black/60 font-bold not-italic uppercase tracking-widest">pasos</span>
+          <p className="pl-5.5 text-2xl text-black">
+            <span className="data-display">{totalSteps.toLocaleString()}</span> <span className="text-[10px] font-medium uppercase tracking-[.14em] text-black/55">pasos</span>
           </p>
         </div>
       </div>
@@ -113,11 +112,11 @@ export function DanceStatsWidget() {
                 fontSize={9} 
                 offset={6}
                 style={{ fontWeight: 900, fontStyle: 'italic', letterSpacing: '-0.05em' }}
-                formatter={(val: any) => {
+                formatter={(val: unknown): string => {
                   if (typeof val === "number") {
                     return val >= 1000 ? (val / 1000).toFixed(1) + 'k' : val.toString();
                   }
-                  return val;
+                  return typeof val === "string" ? val : "";
                 }}
               />
               {chartData.map((entry, index) => (

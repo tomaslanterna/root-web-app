@@ -4,9 +4,10 @@ export interface Artist {
   id: string;
   name: string;
   artistType: string;
+  isExample?: boolean;
   genres: string[];
   avatarUrl?: string;
-  socialLinks?: any;
+  socialLinks?: Record<string, unknown>;
 }
 
 export interface EventArtist {
@@ -32,6 +33,8 @@ export interface Event {
   date: string;
   endDate?: string;
   location: string;
+  department?: string | null;
+  country?: string | null;
   latitude?: number;
   longitude?: number;
   cinematicBannerUrl: string;

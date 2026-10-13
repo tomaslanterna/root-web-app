@@ -39,6 +39,8 @@ import { api } from "@/lib/api";
 import { eventsApi } from "@/services/events";
 import { surveysApi } from "@/services/surveys";
 import { cn } from "@/lib/utils";
+import { useEventsInbox } from "@/context/FeedInboxContext";
+import { useHorizontalSwipe } from "@/hooks/useHorizontalSwipe";
 import type { Event, EventFilters, EventListResponse } from "@/types/events";
 
 const pageSize = 10;
@@ -224,6 +226,7 @@ function groupEventsChronologically(eventsList: Event[]): ChronologicalGroup[] {
 export default function EventsPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const inbox = useEventsInbox();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [events, setEvents] = useState<Event[]>([]);
   const [pendingSurveys, setPendingSurveys] = useState<Event[]>([]);
@@ -244,6 +247,14 @@ export default function EventsPage() {
   const whenDropdownRef = useRef<HTMLDivElement>(null);
   const genreDropdownRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
+
+  const openInbox = inbox?.open ?? (() => router.push("/chat?from=events"));
+  const { ref: swipeRef } = useHorizontalSwipe(
+    -1,
+    !!user && !isMenuOpen && !showFilters && !isWhenOpen && !isGenreOpen,
+    openInbox,
+    inbox ? { onProgress: inbox.move, onCancel: inbox.cancel } : undefined,
+  );
 
   const { mutate: fetchPendingSurveys } = useMutation<Event[], void>(
     surveysApi.getPendingSurveys,
@@ -521,7 +532,10 @@ export default function EventsPage() {
     !!debouncedQuery;
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#0B0D10] text-white">
+    <div
+      ref={swipeRef}
+      className="feed-swipe events-swipe flex min-h-screen flex-col bg-[#0B0D10] text-white"
+    >
       {/* Root Sticky Header (Móvil) */}
       <header
         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
@@ -545,7 +559,7 @@ export default function EventsPage() {
                   router.push("/login");
                   return;
                 }
-                router.push("/chat?from=events");
+                openInbox();
               }}
               className="rounded-full border border-white/10 bg-white/5 p-2.5 text-[#D4FF00] hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-[#D4FF00]"
             >

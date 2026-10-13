@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useMutation } from "@/hooks/useMutation";
 import { authApi } from "@/services/auth";
 import type { AuthResponse } from "@/types/auth";
+import { loginDestination } from "@/lib/loginDestination";
 
 export function useLogin() {
   const { login } = useAuth();
@@ -13,7 +14,7 @@ export function useLogin() {
   const [error, setError] = useState("");
   const onSuccess = (data: AuthResponse) => {
     login(data.token, data.user);
-    router.push(!data.user.dob || !data.user.documentId || !data.user.country ? "/complete-profile" : "/feed");
+    router.push(!data.user.dob || !data.user.documentId || !data.user.country ? "/complete-profile" : loginDestination(window.location.search));
   };
   const password = useMutation(authApi.login, {
     onSuccess,
