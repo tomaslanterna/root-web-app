@@ -307,8 +307,9 @@ export default function UserProfilePage() {
         </div>
       )}
 
-      <div className="px-4 mt-6 border-b border-white/10 w-full max-w-5xl mx-auto">
-        <div className="flex gap-1 overflow-x-auto p-1 md:gap-4" role="tablist" aria-label="Secciones del perfil">
+      <div className="px-4 mt-6 w-full max-w-5xl mx-auto">
+        <div className="liquid-glass-dock rounded-full p-1.5 flex gap-1.5 max-w-md mx-auto md:mx-0">
+          <div className="liquid-glass-specular" />
           {tabs.map((tab) => (
             <button
               key={tab}
@@ -317,10 +318,10 @@ export default function UserProfilePage() {
               aria-controls={`profile-tab-${tab}`}
               onClick={() => setActiveTab(tab)}
               className={cn(
-                "flex-1 shrink-0 rounded-t-lg border-b-2 px-2 py-3 text-[12px] font-semibold tracking-[-.02em] transition-all hover:bg-white/[.03] sm:text-[13px] md:flex-none md:px-8",
+                "relative z-10 flex-1 py-2 text-xs md:text-sm font-black uppercase tracking-wider transition-all rounded-full select-none active:scale-95",
                 activeTab === tab
-                  ? "border-[#D4FF00] text-[#D4FF00]"
-                  : "border-transparent text-neutral-500 hover:text-neutral-300",
+                  ? "bg-[#D4FF00] text-neutral-950 shadow-[0_0_15px_rgba(212,255,0,0.35),inset_0_1px_1px_0_rgba(255,255,255,0.4)]"
+                  : "text-neutral-400 hover:text-white hover:bg-white/5",
               )}
             >
               {tab}

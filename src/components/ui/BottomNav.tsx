@@ -260,7 +260,12 @@ export function BottomNav() {
           hideOnMobile ? "translate-y-32 opacity-0 pointer-events-none" : "",
         )}
       >
-        <div className="glass-obsidian h-[var(--root-mobile-nav-height)] w-full rounded-full p-1.5 flex items-center justify-around shadow-2xl backdrop-blur-2xl border border-white/10">
+        <div className="liquid-glass-dock h-[var(--root-mobile-nav-height)] w-full rounded-full p-1.5 flex items-center justify-around">
+          {/* Liquid Glass: Specular top edge highlight */}
+          <div className="liquid-glass-specular" />
+          {/* Liquid Glass: Ambient soft refraction */}
+          <div className="liquid-glass-refraction -top-8 left-1/2 -translate-x-1/2 w-64 h-16" />
+
           {visibleMobileItems.map((item) => {
             const isActive =
               pathname === item.href ||
@@ -276,14 +281,14 @@ export function BottomNav() {
                 aria-label={item.label}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "relative min-w-0 flex flex-1 flex-col items-center justify-center py-1.5 px-1 rounded-full select-none transition-all duration-200 group",
+                  "relative min-w-0 flex flex-1 flex-col items-center justify-center py-1.5 px-1 rounded-full select-none transition-all duration-200 group z-10",
                   isActive
                     ? "text-neutral-950 font-black"
                     : "text-neutral-400 hover:text-white",
                 )}
               >
                 {isActive && (
-                  <span className="absolute inset-0 bg-[#D4FF00] rounded-full shadow-md shadow-[#D4FF00]/20 animate-fade-in -z-10" />
+                  <span className="absolute inset-0 bg-[#D4FF00] rounded-full shadow-[0_0_15px_rgba(212,255,0,0.35),inset_0_1px_1px_0_rgba(255,255,255,0.4)] animate-fade-in -z-10" />
                 )}
 
                 <Icon

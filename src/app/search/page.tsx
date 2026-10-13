@@ -90,17 +90,19 @@ export default function SearchPage() {
       />
 
       {/* Tabs */}
-      <div className="sticky top-[68px] z-30 bg-[#0B0D10]/95 backdrop-blur-xl border-b border-white/10 px-4">
-        <div className="flex space-x-1 p-1">
+      <div className="sticky top-[68px] z-30 liquid-glass-bar px-4 py-2 overflow-hidden">
+        <div className="liquid-glass-specular" />
+        <div className="liquid-glass-dock rounded-full p-1 flex gap-1 max-w-md mx-auto relative z-10">
+          <div className="liquid-glass-specular" />
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "flex-1 py-3 text-xs font-black uppercase tracking-wider transition-all border-b-2 rounded-t-lg hover:bg-white/5",
+                "relative z-10 flex-1 py-2 text-xs font-black uppercase tracking-wider transition-all rounded-full select-none active:scale-95 text-center",
                 activeTab === tab.id
-                  ? "border-[#D4FF00] text-[#D4FF00]"
-                  : "border-transparent text-neutral-500 hover:text-neutral-300",
+                  ? "bg-[#D4FF00] text-neutral-950 shadow-[0_0_15px_rgba(212,255,0,0.35),inset_0_1px_1px_0_rgba(255,255,255,0.4)]"
+                  : "text-neutral-400 hover:text-white hover:bg-white/5",
               )}
             >
               {tab.label}

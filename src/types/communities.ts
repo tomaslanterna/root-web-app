@@ -17,6 +17,8 @@ export interface Community {
   isActive: boolean;
   unreadCount: number;
   muted: boolean;
+  chatMode?: CommunityChatMode;
+  promotedEventIds?: string[];
   contact?: { id: string; name: string; username: string; avatarUrl: string };
 }
 
@@ -75,3 +77,51 @@ export interface CreateCommunityAnnouncementInput {
   headerImageUrl?: string;
   eventId?: string;
 }
+
+export type CommunityChatMode = "broadcast_only" | "open_chat";
+
+export interface CommunityChatReaction {
+  emoji: string;
+  count: number;
+  users: string[];
+}
+
+export interface CommunityChatMessage {
+  id: string;
+  communityId: string;
+  senderId: string;
+  senderName: string;
+  senderUsername?: string;
+  senderAvatar?: string;
+  senderRole: "RRPP" | "ADMIN" | "MEMBER";
+  content: string;
+  timestamp: string;
+  reactions?: CommunityChatReaction[];
+}
+
+export interface CommunityChatSettings {
+  mode: CommunityChatMode;
+  updatedAt?: string;
+  updatedBy?: string;
+}
+
+export interface CommunityMember {
+  id: string;
+  name: string;
+  username: string;
+  avatarUrl?: string;
+  role: "RRPP" | "ADMIN" | "MEMBER";
+  joinedAt: string;
+  isKycVerified?: boolean;
+}
+
+export type CommunityRole = "RRPP" | "MEMBER" | "GUEST";
+
+export interface CommunityRoleState {
+  role: CommunityRole;
+  isRRPP: boolean;
+  isMember: boolean;
+  isGuest: boolean;
+}
+
+export type CommunityTab = "channel" | "wall" | "events" | "members";
