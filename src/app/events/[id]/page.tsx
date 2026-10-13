@@ -457,16 +457,18 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           {/* Segmented Control Liquid Glass con Scroll Horizontal Suave */}
           <div
             ref={tabsListRef}
-            className="flex items-center gap-2 border-b border-white/10 pb-4 overflow-x-auto scrollbar-none scroll-smooth"
+            className="liquid-glass-dock rounded-full p-1.5 flex items-center gap-1.5 overflow-x-auto scrollbar-none scroll-smooth"
           >
+            <div className="liquid-glass-specular" />
+
             <button
               type="button"
               onClick={(e) => handleTabChange("info", e)}
               className={cn(
-                "flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold tracking-wide transition-all duration-200 shrink-0 cursor-pointer",
+                "relative z-10 flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold tracking-wide transition-all duration-200 shrink-0 cursor-pointer select-none active:scale-95",
                 activeTab === "info"
-                  ? "bg-gradient-to-b from-white to-neutral-200 text-neutral-950 font-black shadow-[0_4px_15px_rgba(255,255,255,0.25)]"
-                  : "text-neutral-400 hover:text-white hover:bg-white/[0.06] backdrop-blur-md"
+                  ? "bg-[#D4FF00] text-neutral-950 font-black shadow-[0_0_15px_rgba(212,255,0,0.35),inset_0_1px_1px_0_rgba(255,255,255,0.4)]"
+                  : "text-neutral-400 hover:text-white hover:bg-white/[0.06]"
               )}
             >
               <Sparkles className="w-3.5 h-3.5" />
@@ -482,10 +484,10 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
               type="button"
               onClick={(e) => handleTabChange("venue", e)}
               className={cn(
-                "flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold tracking-wide transition-all duration-200 shrink-0 cursor-pointer",
+                "relative z-10 flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold tracking-wide transition-all duration-200 shrink-0 cursor-pointer select-none active:scale-95",
                 activeTab === "venue"
-                  ? "bg-gradient-to-b from-white to-neutral-200 text-neutral-950 font-black shadow-[0_4px_15px_rgba(255,255,255,0.25)]"
-                  : "text-neutral-400 hover:text-white hover:bg-white/[0.06] backdrop-blur-md"
+                  ? "bg-[#D4FF00] text-neutral-950 font-black shadow-[0_0_15px_rgba(212,255,0,0.35),inset_0_1px_1px_0_rgba(255,255,255,0.4)]"
+                  : "text-neutral-400 hover:text-white hover:bg-white/[0.06]"
               )}
             >
               <MapPin className="w-3.5 h-3.5" />
@@ -496,10 +498,10 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
               type="button"
               onClick={(e) => handleTabChange("rules", e)}
               className={cn(
-                "flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold tracking-wide transition-all duration-200 shrink-0 cursor-pointer",
+                "relative z-10 flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold tracking-wide transition-all duration-200 shrink-0 cursor-pointer select-none active:scale-95",
                 activeTab === "rules"
-                  ? "bg-gradient-to-b from-white to-neutral-200 text-neutral-950 font-black shadow-[0_4px_15px_rgba(255,255,255,0.25)]"
-                  : "text-neutral-400 hover:text-white hover:bg-white/[0.06] backdrop-blur-md"
+                  ? "bg-[#D4FF00] text-neutral-950 font-black shadow-[0_0_15px_rgba(212,255,0,0.35),inset_0_1px_1px_0_rgba(255,255,255,0.4)]"
+                  : "text-neutral-400 hover:text-white hover:bg-white/[0.06]"
               )}
             >
               <ShieldCheck className="w-3.5 h-3.5" />
@@ -835,8 +837,9 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       </div>
 
       {/* Mobile Sticky Checkout Bar en Liquid Glass (Pase Rápido Nativo) */}
-      <div className="md:hidden fixed bottom-0 inset-x-0 z-40 mx-auto w-full max-w-md bg-gradient-to-b from-white/[0.09] via-neutral-950/85 to-[#0B0D10]/95 backdrop-blur-2xl border-t border-white/[0.14] px-4 py-3 shadow-[0_-15px_40px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.2)] flex items-center justify-between gap-3">
-        <div className="min-w-0">
+      <div className="md:hidden fixed bottom-0 inset-x-0 z-40 mx-auto w-full max-w-md liquid-glass-bar px-4 pt-3 pb-[calc(0.75rem+var(--root-safe-bottom,env(safe-area-inset-bottom,0px)))] shadow-[0_-15px_40px_rgba(0,0,0,0.8)] flex items-center justify-between gap-3 overflow-hidden">
+        <div className="liquid-glass-specular" />
+        <div className="min-w-0 relative z-10">
           <span className="block text-[11px] font-bold text-neutral-300 truncate">
             {currentTierObj?.name || "General Access"}
           </span>
@@ -847,7 +850,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         <button
           type="button"
           onClick={() => handleBuyTicket()}
-          className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-gradient-to-b from-[#D4FF00] to-lime-400 text-neutral-950 font-black text-xs uppercase tracking-wider shadow-[0_5px_20px_rgba(212,255,0,0.35)] active:scale-95 transition-all cursor-pointer shrink-0"
+          className="relative z-10 flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-gradient-to-b from-[#D4FF00] to-lime-400 text-neutral-950 font-black text-xs uppercase tracking-wider shadow-[0_5px_20px_rgba(212,255,0,0.35)] active:scale-95 transition-all cursor-pointer shrink-0"
         >
           <span>Conseguir Ticket ↗</span>
         </button>

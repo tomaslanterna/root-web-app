@@ -8,8 +8,14 @@ import type {
   CreateCommunityAnnouncementInput,
   CommunityReportInput,
   CommunityReportsResponse,
+  CommunityChatMode,
+  CommunityChatMessage,
+  CommunityChatReaction,
+  CommunityChatSettings,
+  CommunityMember,
 } from "@/types/communities";
 import type { Post } from "@/types/posts";
+import type { Event } from "@/types/events";
 
 export async function getCommunities(
   filters: CommunityFilters,
@@ -106,4 +112,130 @@ export async function getCommunityReports(id: string, offset = 0): Promise<Commu
 }
 export async function reviewCommunityReport(id: string, reportId: string, status: "reviewed" | "dismissed"): Promise<void> {
   await api.patch(`${communityPath(id)}/reports/${encodeURIComponent(reportId)}`, { status });
+}
+
+// ==========================================
+// CANAL DE DIFUSIÓN (CHAT)
+// ==========================================
+
+export async function getCommunityChatSettings(
+  communityId: string,
+): Promise<CommunityChatSettings> {
+  const { data } = await api.get<CommunityChatSettings>(
+    `${communityPath(communityId)}/chat-settings`,
+  );
+  return data;
+}
+
+export async function updateCommunityChatMode(
+  communityId: string,
+  mode: CommunityChatMode,
+): Promise<CommunityChatSettings> {
+  const { data } = await api.put<CommunityChatSettings>(
+    `${communityPath(communityId)}/chat-settings`,
+    { mode },
+  );
+  return data;
+}
+
+export async function getCommunityMessages(
+  communityId: string,
+  limit = 50,
+  before?: string,
+): Promise<CommunityChatMessage[]> {
+  const params: Record<string, unknown> = { limit };
+  if (before) params.before = before;
+  const { data } = await api.get<
+    CommunityChatMessage[] | { data: CommunityChatMessage[] }
+  >(`${communityPath(communityId)}/messages`, { params });
+  return Array.isArray(data) ? data : data?.data ?? [];
+}
+
+export async function sendCommunityMessage(
+  communityId: string,
+  content: string,
+  _sender?: {
+    id: string;
+    name: string;
+    username?: string;
+    avatarUrl?: string;
+    role: "RRPP" | "ADMIN" | "MEMBER";
+  },
+): Promise<CommunityChatMessage> {
+  const { data } = await api.post<CommunityChatMessage>(
+    `${communityPath(communityId)}/messages`,
+    { content },
+  );
+  return data;
+}
+
+export async function toggleMessageReaction(
+  communityId: string,
+  messageId: string,
+  emoji: string,
+  _userId?: string,
+): Promise<{ messageId: string; reactions: CommunityChatReaction[] }> {
+  const { data } = await api.post<{ messageId: string; reactions: CommunityChatReaction[] }>(
+    `${communityPath(communityId)}/messages/${encodeURIComponent(messageId)}/reactions`,
+    { emoji },
+  );
+  return data;
+}
+
+// ==========================================
+// MIEMBROS DE LA COMUNIDAD (DIRECTORIO)
+// ==========================================
+
+export async function getCommunityMembers(
+  communityId: string,
+  _currentCommunity?: Community | null,
+  limit = 50,
+  offset = 0,
+  query?: string,
+): Promise<CommunityMember[]> {
+  const params: Record<string, unknown> = { limit, offset };
+  if (query) params.query = query;
+  const { data } = await api.get<
+    CommunityMember[] | { data: CommunityMember[]; meta?: unknown }
+  >(`${communityPath(communityId)}/members`, { params });
+  return Array.isArray(data) ? data : data?.data ?? [];
+}
+
+export async function removeCommunityMember(
+  communityId: string,
+  memberId: string,
+): Promise<{ success: boolean }> {
+  const { data } = await api.delete<{ success: boolean }>(
+    `${communityPath(communityId)}/members/${encodeURIComponent(memberId)}`,
+  );
+  return data ?? { success: true };
+}
+
+// ==========================================
+// EVENTOS PROMOCIONADOS
+// ==========================================
+
+export async function getCommunityPromotedEvents(
+  communityId: string,
+): Promise<Event[]> {
+  const { data } = await api.get<{ data: Event[] } | Event[]>(
+    `${communityPath(communityId)}/promoted-events`,
+  );
+  return Array.isArray(data) ? data : data?.data ?? [];
+}
+
+export async function updateCommunityPromotedEvents(
+  communityId: string,
+  eventIds: string[],
+): Promise<Event[]> {
+  const { data } = await api.put<{ data: Event[] } | Event[]>(
+    `${communityPath(communityId)}/promoted-events`,
+    { eventIds },
+  );
+  return Array.isArray(data) ? data : data?.data ?? [];
+}
+
+export async function getPlatformEventsCatalog(): Promise<Event[]> {
+  const { data } = await api.get<{ data: Event[] } | Event[]>("/v1/events");
+  return Array.isArray(data) ? data : data?.data ?? [];
 }
