@@ -57,7 +57,7 @@
 @media (prefers-reduced-motion: reduce) {
   .chat-inbox-screen { animation: none; transform: none !important; transition: none !important; }
   .chat-inbox-preview { visibility: hidden; }
-  .feed-swipe, .feed-inbox-content { transform: none !important; transition: none !important; }
+  .feed-swipe, .feed-inbox-content, .events-swipe, .events-inbox-content { transform: none !important; transition: none !important; }
   .badge-detail-content, .badge-detail-header { animation: none; transform: none; }
   .badge-detail-closing { transition: none; }
   .badge-accolade :is(.badge-accolade__laurel, .badge-accolade__crown, .badge-accolade__shine, .badge-accolade__laurel-glint) { animation: none !important; transform: none; }

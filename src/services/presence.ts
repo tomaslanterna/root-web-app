@@ -1,8 +1,8 @@
 import { api } from "@/lib/api";
 import type { Event } from "@/types/events";
 
-export interface LiveEvent extends Pick<Event, "id" | "title" | "date"> { bannerUrl?: string; }
-export interface LiveStatus { isLive: boolean; event: LiveEvent | null; attendanceConfirmed?: boolean; }
+export interface LiveEvent extends Pick<Event, "id" | "title" | "date" | "endDate"> { bannerUrl?: string; }
+export interface LiveStatus { isLive: boolean; event: LiveEvent | null; attendanceConfirmed?: boolean; userSteps?: number; }
 export async function getLiveStatus(lat: number, lng: number): Promise<LiveStatus> {
   const { data } = await api.get<LiveStatus>("/v1/events/live-status", { params: { lat, lng } });
   return data;

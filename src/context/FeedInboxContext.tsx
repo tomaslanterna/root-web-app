@@ -9,9 +9,15 @@ export interface FeedInboxControls {
 }
 
 export const FeedInboxContext = createContext<FeedInboxControls | null>(null);
+export const EventsInboxContext = FeedInboxContext;
 
 export function useFeedInbox() {
   const context = useContext(FeedInboxContext);
   if (!context) throw new Error("Feed inbox controls require FeedLayout.");
   return context;
 }
+
+export function useEventsInbox() {
+  return useContext(EventsInboxContext);
+}
+
