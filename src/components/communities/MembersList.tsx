@@ -64,11 +64,12 @@ export function MembersList({
       <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between px-1">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-xs font-black uppercase tracking-[0.18em] text-neutral-300">
+            <h2 className="tech-label text-xs text-neutral-300">
               Directorio de Miembros
             </h2>
-            <span className="rounded-full bg-[#D4FF00]/10 px-2 py-0.5 text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-[#D4FF00]">
-              {totalCount} {totalCount === 1 ? "miembro" : "miembros"}
+            <span className="flex items-center gap-1.5 rounded-full bg-[#D4FF00]/10 px-2.5 py-0.5">
+              <span className="num-display text-xs text-white">{totalCount}</span>
+              <span className="tech-label text-[9px] text-[#D4FF00]">{totalCount === 1 ? "miembro" : "miembros"}</span>
             </span>
           </div>
           <p className="mt-0.5 text-[10px] sm:text-[11px] text-neutral-500">
@@ -86,7 +87,7 @@ export function MembersList({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Buscar miembros..."
-            className="h-10 w-full rounded-xl sm:rounded-full border border-white/10 bg-[#14171F] pl-9 pr-4 text-xs font-medium text-white placeholder:text-neutral-500 outline-none focus:border-[#D4FF00]/50"
+            className="h-10 w-full rounded-full border-0 bg-[#111114] pl-9 pr-4 text-xs font-medium text-white placeholder:text-neutral-500 outline-none focus:ring-1 focus:ring-[#D4FF00]/40 shadow-sm"
           />
         </div>
       </div>
@@ -103,7 +104,7 @@ export function MembersList({
           <Loader2 className="h-7 w-7 animate-spin text-[#D4FF00]" />
         </div>
       ) : members.length === 0 ? (
-        <div className="rounded-2xl sm:rounded-3xl border border-white/10 bg-[#14171F] p-8 text-center shadow-xl">
+        <div className="rounded-3xl border-0 bg-[#111114] p-8 text-center shadow-xl">
           <Users className="mx-auto mb-2 h-7 w-7 text-neutral-600" />
           <p className="text-xs font-bold uppercase tracking-wider text-neutral-400">
             {searchQuery
@@ -128,10 +129,10 @@ export function MembersList({
               <div
                 key={member.id}
                 className={cn(
-                  "relative flex items-center justify-between gap-3 rounded-2xl border p-3.5 transition-all shadow-md",
+                  "relative flex items-center justify-between gap-3 rounded-2xl border-0 p-3.5 transition-all shadow-sm",
                   isMemberRRPP
-                    ? "border-[#D4FF00]/30 bg-[#191D26]"
-                    : "border-white/5 bg-[#14171F] hover:border-white/15",
+                    ? "bg-[#151922] shadow-[0_0_15px_rgba(212,255,0,0.06)]"
+                    : "bg-[#111114] hover:bg-[#16171D]",
                 )}
               >
                 {/* Member Identity */}
@@ -180,7 +181,7 @@ export function MembersList({
                     onClick={() => setMemberToKick(member)}
                     title="Expulsar de la comunidad"
                     aria-label={`Expulsar a ${member.name}`}
-                    className="rounded-xl border border-white/10 p-2 text-neutral-400 transition-colors hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-400"
+                    className="rounded-xl border-0 bg-white/5 p-2 text-neutral-400 shadow-sm transition-colors hover:bg-red-500/15 hover:text-red-400"
                   >
                     {isRemoving === member.id ? (
                       <Loader2 className="h-4 w-4 animate-spin text-red-400" />

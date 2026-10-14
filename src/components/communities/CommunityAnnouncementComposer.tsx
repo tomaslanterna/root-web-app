@@ -56,7 +56,7 @@ export function CommunityAnnouncementComposer({
   };
 
   return (
-    <section className="rounded-3xl border border-[#D4FF00]/20 bg-[#14171F] p-5 shadow-xl">
+    <section className="rounded-3xl border-0 bg-[#111114] p-5 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.6)]">
       <div className="mb-4">
         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#D4FF00]">
           Canal de difusión
@@ -72,18 +72,18 @@ export function CommunityAnnouncementComposer({
           maxLength={120}
           onChange={(event) => setTitle(event.target.value)}
           placeholder="Título (opcional)"
-          className="h-11 w-full rounded-2xl border border-white/10 bg-[#0B0D10] px-4 text-sm font-bold text-white outline-none placeholder:text-neutral-600 focus:border-[#D4FF00]/50"
+          className="h-11 w-full rounded-2xl border-0 bg-[#0B0D10] px-4 text-sm font-bold text-white outline-none placeholder:text-neutral-600 focus:ring-1 focus:ring-[#D4FF00]/50 shadow-sm"
         />
         <textarea
           value={content}
           maxLength={2000}
           onChange={(event) => setContent(event.target.value)}
           placeholder="Escribí el anuncio para la comunidad..."
-          className="min-h-32 w-full resize-none rounded-2xl border border-white/10 bg-[#0B0D10] p-4 text-sm leading-relaxed text-white outline-none placeholder:text-neutral-600 focus:border-[#D4FF00]/50"
+          className="min-h-32 w-full resize-none rounded-2xl border-0 bg-[#0B0D10] p-4 text-sm leading-relaxed text-white outline-none placeholder:text-neutral-600 focus:ring-1 focus:ring-[#D4FF00]/50 shadow-sm"
         />
 
         {preview && (
-          <div className="relative h-36 overflow-hidden rounded-2xl border border-white/10">
+          <div className="relative h-36 overflow-hidden rounded-2xl border-0 shadow-md">
             <Image
               src={preview}
               alt="Vista previa"
@@ -104,7 +104,7 @@ export function CommunityAnnouncementComposer({
         )}
 
         <div className="grid gap-2 sm:grid-cols-2">
-          <label className="flex h-11 cursor-pointer items-center justify-center gap-2 rounded-full border border-white/15 text-xs font-black uppercase tracking-wider text-neutral-300 hover:bg-white/5">
+          <label className="flex h-11 cursor-pointer items-center justify-center gap-2 rounded-full border-0 bg-white/5 text-xs font-black uppercase tracking-wider text-neutral-300 hover:bg-white/10 transition-colors">
             <ImagePlus className="h-4 w-4 text-[#D4FF00]" />
             {image ? "Cambiar imagen" : "Agregar imagen"}
             <input
@@ -120,7 +120,7 @@ export function CommunityAnnouncementComposer({
               value={eventId}
               onChange={(event) => setEventId(event.target.value)}
               placeholder="ID de evento (opcional)"
-              className="h-11 w-full rounded-full border border-white/15 bg-transparent pl-11 pr-4 text-xs font-bold text-white outline-none placeholder:text-neutral-600 focus:border-[#D4FF00]/50"
+              className="h-11 w-full rounded-full border-0 bg-[#0B0D10] pl-11 pr-4 text-xs font-bold text-white outline-none placeholder:text-neutral-600 focus:ring-1 focus:ring-[#D4FF00]/50 shadow-sm"
             />
           </label>
         </div>

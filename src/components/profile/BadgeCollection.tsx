@@ -41,8 +41,11 @@ export function BadgeCollection({ username, isOwner }: { username: string; isOwn
   return (
     <section className="mx-auto max-w-xl space-y-9" aria-label="Colección de insignias">
       <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0"><p className="text-[10px] font-medium uppercase tracking-[.22em] text-[#D4FF00]">Archivo personal</p><h2 className="mt-2 text-[1.7rem] font-semibold tracking-[-.045em]">Tus noches</h2><p className="mt-1.5 text-sm font-normal leading-relaxed text-neutral-500">Cada insignia guarda un lugar, una fecha y una historia.</p></div>
-        <span className="shrink-0 rounded-full border border-white/10 px-3 py-1.5 text-[10px] font-medium tabular-nums tracking-wide text-neutral-400">{collection.page?.meta.total ?? "…"} insignias</span>
+        <div className="min-w-0"><p className="tech-label text-[10px] text-[#D4FF00]">Archivo personal</p><h2 className="mt-2 text-[1.7rem] font-semibold tracking-[-.045em]">Tus noches</h2><p className="mt-1.5 text-sm font-normal leading-relaxed text-neutral-500">Cada insignia guarda un lugar, una fecha y una historia.</p></div>
+        <span className="shrink-0 rounded-full border border-white/10 px-3 py-1.5 flex items-center gap-1.5 text-neutral-400">
+          <span className="num-display text-xs text-white">{collection.page?.meta.total ?? "…"}</span>
+          <span className="tech-label text-[9px] text-neutral-400">insignias</span>
+        </span>
       </div>
       {visibleBadges.some(badge => badge.stepsPreview) && <p className="text-xs leading-relaxed text-neutral-500">Vista de prueba: los pasos de estas siete insignias son ficticios. No se guardan como actividad real.</p>}
       {collection.error && <div role="alert" className="rounded-2xl border border-white/10 p-5 text-center text-sm text-neutral-400"><p>No pudimos cargar las insignias.</p><Button variant="outline" className="mt-3" onClick={() => void collection.load().catch(() => undefined)}>Reintentar</Button></div>}

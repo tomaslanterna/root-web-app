@@ -32,7 +32,7 @@ export function SquadMatchModal() {
 
         {/* Header Title */}
         <div className="space-y-1.5 pt-2">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#D4FF00] text-neutral-950 text-[10px] font-black uppercase tracking-widest shadow-md">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#D4FF00] text-neutral-950 tech-label text-[10px] shadow-md">
             <Sparkles className="w-3.5 h-3.5 fill-neutral-950" /> ¡Crew Formado!
           </span>
           <h2 className="text-xl font-black uppercase tracking-tight text-white leading-tight">
@@ -59,17 +59,22 @@ export function SquadMatchModal() {
               <p className="text-[10px] text-neutral-400 font-bold flex items-center gap-1 truncate">
                 <MapPin className="w-3 h-3 text-[#D4FF00]" /> {event.location}
               </p>
-              {activeMatchedSquad.matchScore != null && <span className="text-[9px] font-black uppercase text-[#D4FF00] tracking-wider">
-                {activeMatchedSquad.matchScore}% Compatibilidad
-              </span>}
+              {activeMatchedSquad.matchScore != null && (
+                <div className="flex items-center gap-1">
+                  <span className="num-display text-xs text-[#D4FF00]">{activeMatchedSquad.matchScore}%</span>
+                  <span className="tech-label text-[9px] text-[#D4FF00]">Compatibilidad</span>
+                </div>
+              )}
             </div>
           </div>
         )}
 
         {/* Squad Members Avatars Row */}
         <div className="space-y-2 py-1">
-          <p className="text-[11px] font-extrabold uppercase tracking-widest text-neutral-400 flex items-center justify-center gap-1.5">
-            <Users className="w-3.5 h-3.5 text-[#D4FF00]" /> {activeMatchedSquad.members.length} Integrantes
+          <p className="flex items-center justify-center gap-1.5">
+            <Users className="w-3.5 h-3.5 text-[#D4FF00]" />
+            <span className="num-display text-sm text-white">{activeMatchedSquad.members.length}</span>
+            <span className="tech-label text-[10px] text-neutral-400">Integrantes</span>
           </p>
 
           <div className="flex items-center justify-center -space-x-3">
@@ -82,7 +87,7 @@ export function SquadMatchModal() {
                   className="ring-3 ring-[#14171F] shadow-lg"
                 />
                 {user.role === "host" && (
-                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[8px] font-black uppercase bg-[#D4FF00] text-neutral-950 px-1.5 py-0.2 rounded-full shadow-xs">
+                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 tech-label text-[8px] bg-[#D4FF00] text-neutral-950 px-1.5 py-0.2 rounded-full shadow-xs">
                     Host
                   </span>
                 )}
@@ -97,7 +102,7 @@ export function SquadMatchModal() {
           <Link
             href={`/chat/squad/${activeMatchedSquad.id}`}
             onClick={closeMatchModal}
-            className="w-full py-3.5 px-4 rounded-full bg-[#D4FF00] text-neutral-950 font-black uppercase tracking-wider text-xs shadow-lg shadow-[#D4FF00]/20 flex items-center justify-center gap-2 hover:bg-[#bce400] active:scale-95 transition-all"
+            className="w-full py-3.5 px-4 rounded-full bg-[#D4FF00] text-neutral-950 tech-label text-xs shadow-lg shadow-[#D4FF00]/20 flex items-center justify-center gap-2 hover:bg-[#bce400] active:scale-95 transition-all"
           >
             <MessageSquare className="w-4 h-4 fill-neutral-950" />
             <span>Entrar al Chat del Crew</span>

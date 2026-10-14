@@ -86,11 +86,12 @@ export function CommentSection({
     <section className={`max-w-2xl mx-auto w-full ${className}`}>
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
-        <h2 className="text-sm font-black uppercase tracking-widest flex items-center gap-2 text-white">
+        <h2 className="tech-label text-sm flex items-center gap-2 text-white">
           <MessageCircle className="w-4 h-4 text-[#D4FF00]" /> {title}
         </h2>
-        <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#D4FF00] bg-[#D4FF00]/10 px-2 py-1 rounded-full border border-[#D4FF00]/20">
-          {total} Respuestas
+        <span className="flex items-center gap-1 bg-[#D4FF00]/10 px-2.5 py-1 rounded-full border border-[#D4FF00]/20">
+          <span className="num-display text-xs text-white">{total}</span>
+          <span className="tech-label text-[9px] text-[#D4FF00]">Respuestas</span>
         </span>
       </div>
 
@@ -189,7 +190,7 @@ export function CommentSection({
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline justify-between mb-1">
                     <span className="text-sm font-bold text-neutral-200">{comment.authorName || "Usuario"}</span>
-                    <span className="text-[10px] text-neutral-500 font-bold tracking-wider uppercase">
+                    <span className="tech-mono text-[10px] text-neutral-500">
                       {formattedTime}
                     </span>
                   </div>

@@ -64,20 +64,20 @@ export function EventAttendanceVote({
 
   return (
     <div className={cn("space-y-3.5", className)}>
-      {/* Botones Simples y Directos: VOY / NO VOY (Liquid Glass) */}
+      {/* Botones Simples y Directos: VOY / NO VOY */}
       <div className="grid grid-cols-2 gap-3">
         <button
           type="button"
           onClick={() => selectStatus("going")}
           disabled={rsvp.isLoading}
           className={cn(
-            "relative flex items-center justify-center gap-2 rounded-2xl border py-3 px-4 text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-pointer active:scale-95 shadow-md",
+            "relative flex items-center justify-center gap-2 rounded-2xl border-0 py-3 px-4 text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-pointer active:scale-95",
             status === "going"
-              ? "border-[#D4FF00] bg-[#D4FF00] text-neutral-950 shadow-[0_0_25px_rgba(212,255,0,0.35),inset_0_1px_1px_rgba(255,255,255,0.4)]"
-              : "border-white/[0.12] bg-white/[0.04] backdrop-blur-xl text-neutral-200 hover:border-[#D4FF00]/50 hover:bg-white/[0.08] hover:text-white"
+              ? "bg-[#D4FF00] text-neutral-950 shadow-[0_8px_30px_rgba(212,255,0,0.16)]"
+              : "bg-[#14171F] text-neutral-200 hover:bg-[#1B202B] hover:text-white shadow-sm"
           )}
         >
-          <CheckCircle2 className={cn("h-4 w-4 shrink-0", status === "going" ? "text-neutral-950" : "text-[#D4FF00]")} />
+          <CheckCircle2 className={cn("h-4 w-4 shrink-0 stroke-[2]", status === "going" ? "text-neutral-950" : "text-[#D4FF00]")} />
           <span>Voy</span>
         </button>
 
@@ -86,27 +86,33 @@ export function EventAttendanceVote({
           onClick={() => selectStatus("not_going")}
           disabled={rsvp.isLoading}
           className={cn(
-            "relative flex items-center justify-center gap-2 rounded-2xl border py-3 px-4 text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-pointer active:scale-95 shadow-md",
+            "relative flex items-center justify-center gap-2 rounded-2xl border-0 py-3 px-4 text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-pointer active:scale-95",
             status === "not_going"
-              ? "border-rose-500 bg-rose-500 text-white shadow-[0_0_25px_rgba(244,63,94,0.35),inset_0_1px_1px_rgba(255,255,255,0.4)]"
-              : "border-white/[0.12] bg-white/[0.04] backdrop-blur-xl text-neutral-300 hover:border-rose-500/50 hover:bg-white/[0.08] hover:text-white"
+              ? "bg-rose-500 text-white shadow-[0_8px_30px_rgba(244,63,94,0.2)]"
+              : "bg-[#14171F] text-neutral-300 hover:bg-[#1B202B] hover:text-white shadow-sm"
           )}
         >
-          <XCircle className={cn("h-4 w-4 shrink-0", status === "not_going" ? "text-white" : "text-rose-400")} />
+          <XCircle className={cn("h-4 w-4 shrink-0 stroke-[2]", status === "not_going" ? "text-white" : "text-rose-400")} />
           <span>No voy</span>
         </button>
       </div>
 
       {/* Pulso en Vivo y Porcentaje Comunitario */}
       {showMetrics && totalVotes > 0 && (
-        <div className="space-y-1.5 rounded-2xl bg-white/[0.03] border border-white/5 p-3 backdrop-blur-md">
-          <div className="flex items-center justify-between text-[11px] font-bold">
-            <span className="text-[#D4FF00]">{goingPercentage}% confirmaron presencia</span>
-            <span className="text-neutral-400 font-medium">{goingCount} en pista</span>
+        <div className="space-y-1.5 rounded-2xl bg-[#111114] border-0 p-3 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="num-display text-xs text-[#D4FF00]">{goingPercentage}%</span>{" "}
+              <span className="tech-label text-[9px] text-[#D4FF00]/80">confirmaron</span>
+            </div>
+            <div>
+              <span className="num-display text-xs text-white">{goingCount}</span>{" "}
+              <span className="tech-label text-[9px] text-neutral-400">en pista</span>
+            </div>
           </div>
-          <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+          <div className="h-1.5 w-full bg-neutral-800 rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-[#D4FF00] to-lime-300 transition-all duration-500 rounded-full shadow-[0_0_8px_#D4FF00]"
+              className="h-full bg-[#D4FF00] transition-all duration-500 rounded-full shadow-[0_0_12px_rgba(212,255,0,0.2)]"
               style={{ width: `${goingPercentage}%` }}
             />
           </div>

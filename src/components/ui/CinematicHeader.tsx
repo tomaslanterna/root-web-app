@@ -35,7 +35,7 @@ export function CinematicHeader({
           {title}
         </h1>
         {subtitle && (
-          <div className="inline-block px-3 py-1 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white text-xs font-semibold uppercase tracking-wider shadow-sm">
+          <div className="inline-block px-3 py-1 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white tech-label text-xs shadow-sm">
             {subtitle}
           </div>
         )}

@@ -21,20 +21,20 @@ export function CommunityLockedContent({
   isLoggedIn,
 }: CommunityLockedContentProps) {
   return (
-    <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-white/10 bg-[#14171F] p-5 sm:p-8 md:p-12 text-center shadow-2xl backdrop-blur-md">
+    <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border-0 bg-[#111114] p-5 sm:p-8 md:p-12 text-center shadow-[0_20px_50px_rgba(0,0,0,0.7)] backdrop-blur-md">
       {/* Background glow effects */}
       <div className="pointer-events-none absolute -top-24 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-[#D4FF00]/10 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-24 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-cyan-500/10 blur-3xl" />
 
       <div className="relative mx-auto max-w-lg space-y-4 sm:space-y-6">
         {/* Lock Icon */}
-        <div className="mx-auto flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-2xl border border-[#D4FF00]/30 bg-[#D4FF00]/10 shadow-[0_0_30px_rgba(212,255,0,0.2)]">
+        <div className="mx-auto flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-2xl border-0 bg-[#D4FF00]/15 shadow-[0_0_30px_rgba(212,255,0,0.18)]">
           <Lock className="h-6 w-6 sm:h-8 sm:w-8 text-[#D4FF00]" />
         </div>
 
         {/* Badge & Title */}
         <div className="space-y-1.5 sm:space-y-2">
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-[#D4FF00]/30 bg-[#D4FF00]/15 px-2.5 py-0.5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-[#D4FF00]">
+          <div className="inline-flex items-center gap-1.5 rounded-full border-0 bg-[#D4FF00]/15 px-2.5 py-0.5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-[#D4FF00] shadow-sm">
             <Sparkles className="h-3 w-3" /> Privacidad de la Comunidad
           </div>
           <h2 className="text-lg sm:text-2xl md:text-3xl font-black uppercase tracking-tight text-white">
@@ -51,7 +51,7 @@ export function CommunityLockedContent({
         <button
           type="button"
           onClick={onViewMembers}
-          className="mx-auto flex items-center gap-3 rounded-full border border-white/10 bg-black/40 px-4 py-2 text-xs font-bold text-neutral-300 transition-all hover:border-[#D4FF00]/40 hover:bg-black/60 hover:text-white"
+          className="mx-auto flex items-center gap-3 rounded-full border-0 bg-white/5 px-4 py-2 text-xs font-bold text-neutral-300 shadow-sm transition-all hover:bg-white/10 hover:text-white"
         >
           <div className="flex -space-x-2">
             <span className="flex h-6 w-6 items-center justify-center rounded-full border border-black bg-neutral-700 text-[9px] font-black text-white">

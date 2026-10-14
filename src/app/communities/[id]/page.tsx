@@ -44,7 +44,7 @@ interface CommunityDetailPageProps {
   params: Promise<{ id: string }>;
 }
 
-const TABS: { id: CommunityTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+const TABS: { id: CommunityTab; label: string; icon: React.ComponentType<{ className?: string; strokeWidth?: number }> }[] = [
   { id: "channel", label: "Canal", icon: Radio },
   { id: "wall", label: "Muro", icon: Megaphone },
   { id: "events", label: "Eventos", icon: CalendarDays },
@@ -176,18 +176,18 @@ export default function CommunityDetailPage({ params }: CommunityDetailPageProps
         {/* Floating details inside cover */}
         <div className="absolute inset-x-3.5 bottom-3.5 mx-auto max-w-4xl space-y-1.5 sm:inset-x-6 sm:bottom-4">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="rounded-full border border-[#D4FF00]/30 bg-[#D4FF00]/15 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-[#D4FF00] backdrop-blur-md">
+            <span className="rounded-full border-0 bg-[#D4FF00]/20 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-[#D4FF00] backdrop-blur-md shadow-sm">
               {community.category}
             </span>
 
             {community.zone && (
-              <span className="flex items-center gap-1 rounded-full border border-white/15 bg-black/50 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-neutral-200 backdrop-blur-md">
+              <span className="flex items-center gap-1 rounded-full border-0 bg-black/60 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-neutral-200 backdrop-blur-md shadow-sm">
                 <MapPin className="h-2.5 w-2.5 text-[#D4FF00]" /> {community.zone}
               </span>
             )}
 
             {isRRPP && (
-              <span className="flex items-center gap-1 rounded-full border border-[#D4FF00]/40 bg-[#D4FF00]/20 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-[#D4FF00] backdrop-blur-md">
+              <span className="flex items-center gap-1 rounded-full border-0 bg-[#D4FF00]/25 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-[#D4FF00] backdrop-blur-md shadow-sm">
                 <Crown className="h-2.5 w-2.5" /> RRPP
               </span>
             )}
@@ -201,26 +201,29 @@ export default function CommunityDetailPage({ params }: CommunityDetailPageProps
 
       {/* Mobile-First Header Info Bar (Bio, Members & Quick Actions) */}
       <section className="mx-auto w-full max-w-4xl px-3.5 pt-3 sm:px-6">
-        <div className="rounded-2xl border border-white/10 bg-[#14171F] p-3.5 shadow-lg sm:p-5">
+        <div className="rounded-3xl border-0 bg-[#111114] p-4 sm:p-6 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.6)]">
           {/* Top row: Member count + status badge */}
           <div className="flex items-center justify-between gap-3">
             {/* Clickable members pill -> navigates to members tab */}
             <button
               type="button"
               onClick={() => setActiveTab("members")}
-              className="group flex items-center gap-2 rounded-full border border-[#D4FF00]/30 bg-[#D4FF00]/10 px-3 py-1 text-xs font-black uppercase tracking-wider text-[#D4FF00] transition-transform active:scale-95 hover:bg-[#D4FF00]/20"
+              className="group flex items-center gap-2 rounded-full border-0 bg-[#D4FF00]/15 px-3 py-1 transition-transform active:scale-95 hover:bg-[#D4FF00]/25 shadow-sm"
               title="Ver directorio de miembros"
             >
-              <Users className="h-3.5 w-3.5" />
-              <span>{community.membersCount} miembros</span>
+              <Users className="h-3.5 w-3.5 text-[#D4FF00]" />
+              <span className="flex items-center gap-1.5">
+                <span className="num-display text-xs text-white">{community.membersCount}</span>
+                <span className="tech-label text-[9px] text-[#D4FF00]">miembros</span>
+              </span>
             </button>
 
             {isRRPP ? (
-              <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase text-[#D4FF00]">
+              <span className="inline-flex items-center gap-1 tech-label text-[9px] text-[#D4FF00]">
                 <Crown className="h-3 w-3" /> Eres Administrador
               </span>
             ) : isMember ? (
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400">
+              <span className="inline-flex items-center gap-1 tech-label text-[9px] text-emerald-400">
                 <CheckCircle2 className="h-3.5 w-3.5" /> Eres Miembro
               </span>
             ) : null}
@@ -258,7 +261,7 @@ export default function CommunityDetailPage({ params }: CommunityDetailPageProps
           )}
 
           {/* Action buttons row */}
-          <div className="mt-3.5 flex flex-wrap items-center gap-2 pt-2 border-t border-white/5">
+          <div className="mt-3.5 flex flex-wrap items-center gap-2 pt-3 border-t border-white/[0.06]">
             {/* Main Join / Leave Button */}
             {!isRRPP && (
               <Button
@@ -345,25 +348,20 @@ export default function CommunityDetailPage({ params }: CommunityDetailPageProps
 
           {/* RRPP Moderation expandable drawer/box */}
           {isRRPP && showModerationModal && (
-            <div className="mt-3.5 pt-3 border-t border-white/10">
+            <div className="mt-3.5 pt-3 border-t border-white/[0.06]">
               <CommunityModeration communityId={community.id} />
             </div>
           )}
         </div>
       </section>
 
-      {/* Sticky Tabs Navigation (Píldora flotante con extremos redondeados) */}
-      <div className="sticky top-[calc(3.5rem+var(--root-safe-top,env(safe-area-inset-top,0px)))] md:top-14 z-20 mt-3.5 w-full px-3.5 sm:px-6">
+      {/* Sticky Tabs Navigation estilo Instagram: solo iconos, sin contenedor visible, con línea horizontal inferior */}
+      <div className="sticky top-[calc(3.5rem+var(--root-safe-top,env(safe-area-inset-top,0px)))] md:top-14 z-20 mt-3.5 w-full bg-[#0B0D10]/95 backdrop-blur-md">
         <nav
           aria-label="Navegación de la comunidad"
-          className="relative liquid-glass-dock mx-auto w-full max-w-4xl rounded-2xl sm:rounded-full p-1.5 shadow-2xl overflow-hidden"
+          className="mx-auto w-full max-w-4xl"
         >
-          {/* Liquid Glass: Specular top edge highlight */}
-          <div className="liquid-glass-specular" />
-          {/* Liquid Glass: Ambient soft refraction */}
-          <div className="liquid-glass-refraction -top-6 left-1/2 -translate-x-1/2 w-80 h-16" />
-
-          <div className="grid w-full grid-cols-4 gap-1 sm:gap-1.5 relative z-10">
+          <div className="flex w-full items-center justify-around" role="tablist">
             {TABS.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -371,24 +369,27 @@ export default function CommunityDetailPage({ params }: CommunityDetailPageProps
               return (
                 <button
                   key={tab.id}
+                  role="tab"
                   type="button"
+                  aria-selected={isActive}
+                  aria-controls={`community-tab-${tab.id}`}
+                  aria-label={tab.label}
+                  title={tab.label}
                   onClick={() => setActiveTab(tab.id)}
-                  className={cn(
-                    "flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 rounded-xl sm:rounded-full py-2 px-1 text-center transition-all duration-200 select-none active:scale-95",
-                    isActive
-                      ? "bg-[#D4FF00] text-neutral-950 shadow-[0_0_15px_rgba(212,255,0,0.35),inset_0_1px_1px_0_rgba(255,255,255,0.4)] font-black scale-[1.01]"
-                      : "text-neutral-400 hover:bg-white/5 hover:text-white font-bold",
-                  )}
+                  className="relative flex-1 flex flex-col items-center justify-center py-3.5 sm:py-4 transition-colors group select-none cursor-pointer"
                 >
                   <Icon
                     className={cn(
-                      "h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 transition-transform",
-                      isActive ? "text-neutral-950 stroke-[2.5]" : "text-neutral-400 stroke-[2]",
+                      "w-6 h-6 sm:w-7 sm:h-7 transition-all duration-200",
+                      isActive
+                        ? "text-[#D4FF00] scale-105"
+                        : "text-neutral-500 group-hover:text-neutral-300",
                     )}
+                    strokeWidth={isActive ? 2.25 : 1.75}
                   />
-                  <span className="text-[10px] uppercase tracking-wider leading-none sm:text-xs">
-                    {tab.label}
-                  </span>
+                  {isActive && (
+                    <span className="absolute bottom-0 inset-x-0 h-[2.5px] bg-[#D4FF00]" />
+                  )}
                 </button>
               );
             })}

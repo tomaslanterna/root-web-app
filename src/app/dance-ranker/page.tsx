@@ -171,61 +171,61 @@ export default function DanceRankerPage() {
         {/* Hero: steps comparison */}
         <div className="grid grid-cols-2 gap-3 pt-2 pb-2">
           {/* Última fiesta */}
-          <div className="flex flex-col items-center justify-center bg-gradient-to-b from-[#14171F] to-black border border-[#D4FF00]/30 rounded-3xl p-4 shadow-lg shadow-[#D4FF00]/5">
-            <p className="text-[10px] font-black tracking-widest text-[#D4FF00] uppercase mb-1">Última fiesta</p>
-            <h2 className="text-3xl sm:text-4xl font-black italic tracking-tighter text-white">
+          <div className="relative overflow-hidden flex flex-col items-center justify-center bg-[#111114] border-0 rounded-3xl p-4 shadow-[0_8px_30px_rgba(0,0,0,0.5)]">
+            <p className="tech-label text-[#D4FF00] mb-1">Última fiesta</p>
+            <h2 className="num-display text-3xl sm:text-4xl text-white">
               {lastPartySteps.toLocaleString()}
             </h2>
-            <p className="text-[9px] font-bold tracking-widest text-neutral-500 uppercase mt-1">Pasos</p>
+            <p className="tech-label text-neutral-400 mt-1">Pasos</p>
           </div>
 
           {/* Pasos Totales */}
-          <div className="flex flex-col items-center justify-center bg-gradient-to-b from-[#14171F] to-black border border-white/10 rounded-3xl p-4 shadow-lg shadow-black/50">
-            <p className="text-[10px] font-black tracking-widest text-neutral-400 uppercase mb-1">Total histórico</p>
-            <h2 className="text-3xl sm:text-4xl font-black italic tracking-tighter text-white">
+          <div className="relative overflow-hidden flex flex-col items-center justify-center bg-[#111114] border-0 rounded-3xl p-4 shadow-[0_8px_30px_rgba(0,0,0,0.5)]">
+            <p className="tech-label text-neutral-400 mb-1">Total histórico</p>
+            <h2 className="num-display text-3xl sm:text-4xl text-white">
               {totalSteps.toLocaleString()}
             </h2>
-            <p className="text-[9px] font-bold tracking-widest text-neutral-500 uppercase mt-1">Pasos</p>
+            <p className="tech-label text-neutral-400 mt-1">Pasos</p>
           </div>
         </div>
 
         {/* Metrics grid */}
         <div className="grid grid-cols-3 gap-3">
           {/* Kcal */}
-          <div className="flex flex-col items-center justify-center bg-[#14171F] border border-[#D4FF00]/20 rounded-2xl p-3 gap-1">
-            <Flame className="w-5 h-5 text-[#D4FF00] fill-[#D4FF00]/30" />
-            <span className="text-lg font-black text-white">{totalKcal.toFixed(0)}</span>
-            <span className="text-[9px] font-bold uppercase tracking-widest text-neutral-500">kcal</span>
+          <div className="flex flex-col items-center justify-center bg-[#111114] border-0 rounded-2xl p-3 gap-1 shadow-sm">
+            <Flame className="w-5 h-5 text-[#D4FF00] stroke-[1.8] fill-none" />
+            <span className="num-display text-lg text-white">{totalKcal.toFixed(0)}</span>
+            <span className="tech-label text-[9px] text-neutral-400">kcal</span>
           </div>
           {/* km */}
-          <div className="flex flex-col items-center justify-center bg-[#14171F] border border-white/10 rounded-2xl p-3 gap-1">
-            <Activity className="w-5 h-5 text-neutral-400" />
-            <span className="text-lg font-black text-white">{totalKm.toFixed(1)}</span>
-            <span className="text-[9px] font-bold uppercase tracking-widest text-neutral-500">km</span>
+          <div className="flex flex-col items-center justify-center bg-[#111114] border-0 rounded-2xl p-3 gap-1 shadow-sm">
+            <Activity className="w-5 h-5 text-neutral-400 stroke-[1.8]" />
+            <span className="num-display text-lg text-white">{totalKm.toFixed(1)}</span>
+            <span className="tech-label text-[9px] text-neutral-400">km</span>
           </div>
           {/* Minutos activos */}
-          <div className="flex flex-col items-center justify-center bg-[#14171F] border border-white/10 rounded-2xl p-3 gap-1">
-            <Zap className="w-5 h-5 text-neutral-400" />
-            <span className="text-lg font-black text-white">{activeMins}</span>
-            <span className="text-[9px] font-bold uppercase tracking-widest text-neutral-500">min activos</span>
+          <div className="flex flex-col items-center justify-center bg-[#111114] border-0 rounded-2xl p-3 gap-1 shadow-sm">
+            <Zap className="w-5 h-5 text-neutral-400 stroke-[1.8]" />
+            <span className="num-display text-lg text-white">{activeMins}</span>
+            <span className="tech-label text-[9px] text-neutral-400">min activos</span>
           </div>
         </div>
 
         {/* Formula note */}
-        <p className="text-center text-[10px] text-neutral-600 font-medium px-4">
+        <p className="text-center text-[10px] text-neutral-500 font-medium px-4">
           kcal calculadas con MET 6.5 (baile electrónico intenso) × 70 kg estimados
         </p>
 
         {/* Chart */}
-        <div className="bg-[#D4FF00] border-none rounded-3xl p-5 shadow-xl">
+        <div className="bg-[#D4FF00] border-0 rounded-3xl p-5 shadow-[0_12px_40px_rgba(212,255,0,0.16)]">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-sm font-black uppercase tracking-widest text-black">Actividad</h3>
-            <div className="flex items-center gap-2 bg-black/10 p-1 rounded-full border border-black/5">
+            <div className="flex items-center gap-1.5 bg-black/10 p-1 rounded-full border-0">
               {(["fiestas", "week", "month"] as const).map(tab => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab as any)}
-                  className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full transition-all ${activeTab === tab ? "bg-black text-[#D4FF00]" : "text-black/50 hover:text-black"}`}
+                  className={`px-3 py-1 text-[10px] font-black uppercase tracking-wider rounded-full transition-all ${activeTab === tab ? "bg-black text-[#D4FF00] shadow-sm" : "text-black/60 hover:text-black font-bold"}`}
                 >
                   {tab === "fiestas" ? "Fiestas" : tab === "week" ? "Sem" : "Mes"}
                 </button>
@@ -236,8 +236,8 @@ export default function DanceRankerPage() {
           <div className="h-48 w-full relative">
             {chartData.length === 0 ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                <Activity className="w-8 h-8 text-black/20 mb-2" />
-                <p className="text-xs font-bold text-black/60 uppercase tracking-widest">Sin registros</p>
+                <Activity className="w-8 h-8 text-black/20 mb-2 stroke-[1.8]" />
+                <p className="text-xs font-black text-black/60 uppercase tracking-widest">Sin registros</p>
                 <p className="text-[10px] text-black/50 font-medium max-w-[200px] mt-1">No hay fiestas registradas en este período de tiempo.</p>
               </div>
             ) : (
@@ -246,9 +246,9 @@ export default function DanceRankerPage() {
                   <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fill: "#000", fontSize: 10, fontWeight: 700 }} dy={10} minTickGap={10} interval="preserveStartEnd" />
                   <Tooltip 
                     cursor={{ fill: "rgba(0,0,0,0.05)" }}
-                    contentStyle={{ backgroundColor: "#000", border: "1px solid rgba(0,0,0,0.1)", borderRadius: "12px" }}
+                    contentStyle={{ backgroundColor: "#000", border: "none", borderRadius: "12px", boxShadow: "0 8px 30px rgba(0,0,0,0.5)" }}
                     itemStyle={{ color: "#D4FF00", fontWeight: "bold" }}
-                    labelStyle={{ color: "#666", marginBottom: "4px" }}
+                    labelStyle={{ color: "#888", marginBottom: "4px" }}
                   />
                   <Bar dataKey="steps" radius={[8, 8, 8, 8]} maxBarSize={64}>
                     {activeTab === "fiestas" && (
@@ -283,12 +283,12 @@ export default function DanceRankerPage() {
           {crews.length === 0 ? (
             <div 
               onClick={() => router.push('/match')}
-              className="bg-gradient-to-r from-neutral-900 to-black border border-white/5 rounded-3xl p-5 cursor-pointer hover:border-white/20 transition-all group"
+              className="bg-[#111114] border-0 rounded-3xl p-5 cursor-pointer hover:bg-[#16171D] transition-all group shadow-[0_8px_30px_rgba(0,0,0,0.5)]"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center">
-                    <Trophy className="w-6 h-6 text-neutral-500" />
+                  <div className="w-12 h-12 rounded-2xl bg-black/40 flex items-center justify-center shrink-0">
+                    <Trophy className="w-6 h-6 text-neutral-400 stroke-[1.8]" />
                   </div>
                   <div>
                     <h4 className="text-sm font-black uppercase tracking-widest text-white">Unirte a una Crew</h4>
@@ -303,19 +303,19 @@ export default function DanceRankerPage() {
               <div 
                 key={crew.id}
                 onClick={() => router.push(`/crews/${crew.id}`)}
-                className="bg-gradient-to-r from-neutral-900 to-black border border-[#D4FF00]/20 rounded-3xl p-5 cursor-pointer hover:border-[#D4FF00]/40 transition-all group shadow-lg"
+                className="bg-[#111114] border-0 rounded-3xl p-5 cursor-pointer hover:bg-[#16171D] transition-all group shadow-[0_8px_30px_rgba(0,0,0,0.5)]"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-[#D4FF00]/10 border border-[#D4FF00]/20 flex items-center justify-center relative">
-                      <Trophy className="w-5 h-5 text-[#D4FF00]" />
-                      <div className="absolute -bottom-2 -right-2 bg-[#D4FF00] text-black w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shadow-md border-2 border-black">
+                    <div className="w-12 h-12 aspect-square rounded-2xl bg-[#D4FF00]/10 flex items-center justify-center relative shrink-0">
+                      <Trophy className="w-5 h-5 text-[#D4FF00] stroke-[1.8] fill-none" />
+                      <div className="absolute -bottom-1.5 -right-1.5 bg-[#D4FF00] text-black w-6 h-6 rounded-full flex items-center justify-center num-display text-[10px] shadow-[0_2px_8px_rgba(212,255,0,0.2)]">
                         {crew.userRank}°
                       </div>
                     </div>
                     <div>
-                      <h4 className="text-sm font-black uppercase tracking-widest text-white group-hover:text-[#D4FF00] transition-colors">{crew.name}</h4>
-                      <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">{crew.memberCount} miembros</p>
+                      <h4 className="text-sm font-black uppercase tracking-wider text-white group-hover:text-[#D4FF00] transition-colors">{crew.name}</h4>
+                      <p className="tech-label text-neutral-400">{crew.memberCount} miembros</p>
                     </div>
                   </div>
                   <ChevronLeft className="w-5 h-5 text-neutral-500 rotate-180 group-hover:text-[#D4FF00] group-hover:translate-x-1 transition-all" />

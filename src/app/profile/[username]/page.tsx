@@ -12,6 +12,10 @@ import {
   Loader2,
   ChevronLeft,
   BadgeCheck,
+  Grid3X3,
+  Users,
+  Calendar,
+  Award,
 } from "lucide-react";
 import { MOCK_POSTS } from "@/lib/mocks";
 import { PostCard } from "@/components/ui/PostCard";
@@ -19,12 +23,15 @@ import { EventCard } from "@/components/ui/EventCard";
 import { CommunityList } from "@/components/communities/CommunityList";
 import { DanceStatsWidget } from "@/components/profile/DanceStatsWidget";
 import { cn } from "@/lib/utils";
+import { api } from "@/lib/api";
 import { usersApi } from "@/services/users";
 import { useMutation } from "@/hooks/useMutation";
 import { BadgeCollection } from "@/components/profile/BadgeCollection";
+import { ProfilePostsGrid } from "@/components/profile/ProfilePostsGrid";
 import type { AuthUser } from "@/types/auth";
 import type { Community } from "@/types/communities";
 import type { Event } from "@/types/events";
+import type { Post } from "@/types/posts";
 
 interface ProfileUser extends AuthUser { followers?: string[]; following?: string[] }
 
@@ -40,12 +47,27 @@ export default function UserProfilePage() {
   const [isFollowing, setIsFollowing] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<string>("Comunidades");
+  const [activeTab, setActiveTab] = useState<string>("Posts");
 
   const [communities, setCommunities] = useState<Community[]>([]);
   const [userEvents, setUserEvents] = useState<Event[]>([]);
+  const [userPosts, setUserPosts] = useState<Post[]>([]);
 
   const isMyProfile = Boolean(currentUser?.id && profileUser?.id === currentUser.id);
+
+  const handlePostCreated = (newPost: Post) => {
+    setUserPosts((prev) => {
+      const updated = [newPost, ...prev];
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(`root_user_posts_${username}`, JSON.stringify(updated));
+        } catch (e) {
+          console.error("Error storing post in localStorage", e);
+        }
+      }
+      return updated;
+    });
+  };
 
   useEffect(() => {
     if (!username) return;
@@ -56,15 +78,64 @@ export default function UserProfilePage() {
         const data = await usersApi.getUserProfile(username);
         setProfileUser(data.user);
         setIsFollowing(data.isFollowing);
-        if (data.user.role === "RRPP") {
-          setActiveTab("Posts");
-        }
 
         // Fetch communities and events
         const comms = await usersApi.getUserCommunities(username);
         const evts = await usersApi.getUserEvents(username);
         setCommunities(comms || []);
         setUserEvents(evts || []);
+
+        // 1. Obtener posts del backend (con UUID real y URL firmada de S3)
+        let backendUserPosts: Post[] = [];
+        try {
+          const { data: feedData } = await api.get("/v1/posts?include_feeds=global");
+          const globalPosts: Post[] = feedData?.global?.data || [];
+          backendUserPosts = globalPosts.filter(
+            (p) =>
+              p.authorId === data.user.id ||
+              p.authorName?.toLowerCase() === username.toLowerCase(),
+          );
+        } catch (feedErr) {
+          console.warn("No se pudieron cargar posts del backend:", feedErr);
+        }
+
+        // 2. Cargar posts locales descartando posts con key cruda ya sincronizados
+        let storedPosts: Post[] = [];
+        if (typeof window !== "undefined") {
+          try {
+            const raw = localStorage.getItem(`root_user_posts_${username}`);
+            if (raw) {
+              const parsed: Post[] = JSON.parse(raw);
+              storedPosts = parsed.filter((s) => {
+                // Si ya existe en backend o tiene key cruda y coincide en contenido, usar la versión del backend
+                if (backendUserPosts.some((b) => b.id === s.id || (b.content && b.content === s.content))) {
+                  return false;
+                }
+                return true;
+              });
+            }
+          } catch (e) {
+            console.error("Error loading stored posts", e);
+          }
+        }
+
+        const initialMockPosts = MOCK_POSTS.filter(
+          (p) =>
+            p.authorId === data.user.id ||
+            p.authorName?.toLowerCase() === username.toLowerCase(),
+        );
+
+        const combinedPosts = [
+          ...backendUserPosts,
+          ...storedPosts,
+          ...initialMockPosts.filter(
+            (m) =>
+              !backendUserPosts.some((b) => b.id === m.id) &&
+              !storedPosts.some((s) => s.id === m.id),
+          ),
+        ];
+
+        setUserPosts(combinedPosts);
       } catch (err) {
         console.error("Error fetching profile", err);
         setError("Usuario no encontrado");
@@ -137,19 +208,19 @@ export default function UserProfilePage() {
     );
   }
 
-  const isRRPP = profileUser.role === "RRPP";
-  const tabs = isRRPP
-    ? ["Posts", "Comunidades", "Eventos", "Insignias"]
-    : ["Comunidades", "Eventos", "Insignias"];
-
-  const userPosts = MOCK_POSTS.filter((p) => p.authorId === profileUser.id);
+  const tabs = [
+    { id: "Posts", icon: Grid3X3, label: "Publicaciones" },
+    { id: "Comunidades", icon: Users, label: "Comunidades" },
+    { id: "Eventos", icon: Calendar, label: "Eventos" },
+    { id: "Insignias", icon: Award, label: "Insignias" },
+  ];
 
   const coverUrl =
     "https://images.unsplash.com/photo-1574169208507-84376144848b?q=80&w=2079&auto=format&fit=crop";
 
   return (
     <div className="profile-modern flex min-h-[100dvh] flex-col bg-[#0B0D10] pb-20 text-white">
-      <div className="relative h-48 sm:h-64 w-full bg-neutral-900 border-b border-white/10">
+      <div className="relative h-36 sm:h-48 md:h-56 w-full bg-neutral-900 border-b border-white/10">
         <Image
           src={coverUrl}
           alt="Cover"
@@ -160,8 +231,6 @@ export default function UserProfilePage() {
           className="w-full h-full object-cover opacity-60"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-[#0B0D10] to-transparent" />
-
-        {/* Espacio reservado superior ya no es necesario aquí porque el header será fixed por fuera del banner */}
       </div>
 
       {/* Header Fixed Transparente para el Perfil */}
@@ -189,74 +258,80 @@ export default function UserProfilePage() {
         </div>
       </header>
 
-      <div className="flex flex-col md:flex-row md:items-end justify-between px-4 md:px-8 -mt-16 sm:-mt-20 md:-mt-24 relative z-10 w-full max-w-5xl mx-auto">
-        <div className="flex flex-col md:flex-row items-center md:items-end gap-4 md:gap-6">
-          <div className="relative shrink-0">
-            <div className="w-28 h-28 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-full overflow-hidden ring-4 ring-[#0B0D10] shadow-2xl relative bg-neutral-800">
-              {profileUser.avatarUrl ? (
-                <Image
-                  src={profileUser.avatarUrl}
-                  alt={profileUser.name}
-                  fill
-                  unoptimized
-                  sizes="(min-width: 768px) 160px, 128px"
-                  className="w-full h-full object-cover"
-                />
+      {/* Rectángulo de información de perfil */}
+      <div className="px-4 -mt-10 sm:-mt-14 relative z-10 w-full max-w-5xl mx-auto">
+        <div className="rounded-2xl border border-white/5 bg-[#14171F]/90 backdrop-blur-md p-4 sm:p-5 shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4 sm:gap-5 min-w-0">
+            {/* Avatar a la izquierda */}
+            <div className="relative shrink-0">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full overflow-hidden ring-2 ring-[#0B0D10] shadow-xl relative bg-neutral-800">
+                {profileUser.avatarUrl ? (
+                  <Image
+                    src={profileUser.avatarUrl}
+                    alt={profileUser.name}
+                    fill
+                    unoptimized
+                    sizes="(min-width: 768px) 96px, 80px"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-neutral-700 flex items-center justify-center text-xl sm:text-2xl font-bold">
+                    {profileUser.name?.charAt(0)}
+                  </div>
+                )}
+              </div>
+              {profileUser.isKycVerified ? (
+                <div className="absolute -bottom-0.5 -right-0.5 bg-[#0B0D10] rounded-full p-0.5 shadow">
+                  <BadgeCheck className="w-4 h-4 sm:w-5 sm:h-5 text-[#0B0D10] fill-[#D4FF00]" />
+                </div>
               ) : (
-                <div className="w-full h-full bg-neutral-700 flex items-center justify-center text-3xl md:text-5xl font-bold">
-                  {profileUser.name?.charAt(0)}
+                <div className="absolute -bottom-0.5 -right-0.5 p-1 bg-amber-500 rounded-full border-2 border-[#0B0D10] shadow">
+                  <ShieldAlert className="w-3 h-3 text-black" />
                 </div>
               )}
             </div>
-            {profileUser.isKycVerified ? (
-              <div className="absolute bottom-1 right-1 md:bottom-2 md:right-2 bg-[#0B0D10] rounded-full p-0.5">
-                <BadgeCheck className="w-6 h-6 md:w-8 md:h-8 text-[#0B0D10] fill-[#D4FF00]" />
-              </div>
-            ) : (
-              <div className="absolute bottom-1 right-1 md:bottom-2 md:right-2 p-1.5 bg-amber-500 rounded-full border-4 border-[#0B0D10]">
-                <ShieldAlert className="w-4 h-4 md:w-5 md:h-5 text-black" />
-              </div>
-            )}
-          </div>
 
-          <div className="text-center md:text-left mb-2 md:mb-4 space-y-0.5">
-            <h1 className="flex items-center justify-center gap-2 text-2xl font-semibold tracking-[-.045em] text-white md:justify-start md:text-4xl">
-              {profileUser.name}
-            </h1>
-            <p className="text-[11px] font-medium uppercase tracking-[.16em] text-neutral-500 md:text-xs">
-              @{profileUser.username} •{" "}
-              {profileUser.role === "USER" ? "RAVER" : profileUser.role}
-            </p>
-          </div>
-        </div>
+            {/* A la derecha: nombre, alias y rol debajo, y seguidores/seguidos debajo de eso */}
+            <div className="flex-1 min-w-0 space-y-1">
+              <h1 className="text-base sm:text-xl md:text-2xl font-semibold tracking-[-.03em] text-white truncate">
+                {profileUser.name}
+              </h1>
+              <p className="tech-label text-neutral-400 text-xs truncate">
+                @{profileUser.username}{" "}
+                <span className="text-neutral-600">•</span>{" "}
+                {profileUser.role === "USER" ? "RAVER" : profileUser.role}
+              </p>
 
-        <div className="flex flex-col md:flex-row items-center md:items-end gap-6 mt-6 md:mt-0 mb-2 md:mb-4">
-          <div className="flex items-center gap-6 sm:gap-10">
-            <div className="text-center md:text-left">
-              <p className="text-xl font-semibold tabular-nums tracking-[-.04em] text-white sm:text-2xl md:text-3xl">
-                {profileUser.followers?.length || 0}
-              </p>
-              <p className="text-[9px] font-medium uppercase tracking-[.16em] text-neutral-600 md:text-[10px]">
-                Seguidores
-              </p>
-            </div>
-            <div className="text-center md:text-left">
-              <p className="text-xl font-semibold tabular-nums tracking-[-.04em] text-white sm:text-2xl md:text-3xl">
-                {profileUser.following?.length || 0}
-              </p>
-              <p className="text-[9px] font-medium uppercase tracking-[.16em] text-neutral-600 md:text-[10px]">
-                Seguidos
-              </p>
+              {/* Seguidores y Seguidos debajo */}
+              <div className="flex items-center gap-5 pt-1">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="num-display text-sm sm:text-base text-white">
+                    {profileUser.followers?.length || 0}
+                  </span>
+                  <span className="tech-label text-neutral-400 text-[11px] sm:text-xs">
+                    Seguidores
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="num-display text-sm sm:text-base text-white">
+                    {profileUser.following?.length || 0}
+                  </span>
+                  <span className="tech-label text-neutral-400 text-[11px] sm:text-xs">
+                    Seguidos
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
 
-          {!isMyProfile ? (
-            <div className="flex gap-2 w-full md:w-auto">
+          {/* Botones de acción si no es mi perfil */}
+          {!isMyProfile && (
+            <div className="flex sm:flex-col md:flex-row gap-2 shrink-0 w-full sm:w-auto pt-2 sm:pt-0">
               <Button
                 onClick={toggleFollow}
                 disabled={isFollowingLoading || isUnfollowingLoading}
                 variant={isFollowing ? "outline" : "primary"}
-                className="flex-1 rounded-full px-6 text-xs font-semibold tracking-wide md:flex-none md:py-3"
+                className="flex-1 sm:flex-none rounded-full px-5 py-2 text-xs font-semibold tracking-wide"
               >
                 {isFollowing ? "Siguiendo" : "Seguir"}
               </Button>
@@ -272,27 +347,20 @@ export default function UserProfilePage() {
                   }
                 }}
                 variant="outline"
-                className="flex-1 rounded-full border-white/20 px-6 text-xs font-semibold tracking-wide md:flex-none md:py-3"
+                className="flex-1 sm:flex-none rounded-full border-white/20 px-5 py-2 text-xs font-semibold tracking-wide"
               >
                 Mensaje
               </Button>
             </div>
-          ) : (
-            <Button
-              variant="outline"
-              className="w-full rounded-full border-white/20 px-8 text-xs font-semibold tracking-wide md:w-auto md:py-3"
-            >
-              Editar
-            </Button>
           )}
         </div>
       </div>
 
       {isMyProfile && !profileUser.isKycVerified && (
-        <div className="px-4 pb-4 md:pt-6 w-full max-w-5xl mx-auto">
+        <div className="px-4 pt-3 w-full max-w-5xl mx-auto">
           <Button
             onClick={() => router.push("/kyc")}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-amber-500/40 bg-amber-500/5 py-6 text-xs font-semibold tracking-wide text-amber-400 transition-colors hover:border-amber-500 hover:bg-amber-500/10"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-amber-500/40 bg-amber-500/5 py-3 text-xs font-semibold tracking-wide text-amber-400 transition-colors hover:border-amber-500 hover:bg-amber-500/10"
           >
             <ShieldAlert className="w-4 h-4" />
             Comenzar Validación KYC
@@ -302,48 +370,54 @@ export default function UserProfilePage() {
 
       {/* Dance Stats Widget */}
       {isMyProfile && (
-        <div className="px-4 pb-4 md:pt-4 w-full max-w-5xl mx-auto">
+        <div className="px-4 pt-3 w-full max-w-5xl mx-auto">
           <DanceStatsWidget />
         </div>
       )}
 
-      <div className="px-4 mt-6 w-full max-w-5xl mx-auto">
-        <div className="liquid-glass-dock rounded-full p-1.5 flex gap-1.5 max-w-md mx-auto md:mx-0">
-          <div className="liquid-glass-specular" />
-          {tabs.map((tab) => (
-            <button
-              key={tab}
-              role="tab"
-              aria-selected={activeTab === tab}
-              aria-controls={`profile-tab-${tab}`}
-              onClick={() => setActiveTab(tab)}
-              className={cn(
-                "relative z-10 flex-1 py-2 text-xs md:text-sm font-black uppercase tracking-wider transition-all rounded-full select-none active:scale-95",
-                activeTab === tab
-                  ? "bg-[#D4FF00] text-neutral-950 shadow-[0_0_15px_rgba(212,255,0,0.35),inset_0_1px_1px_0_rgba(255,255,255,0.4)]"
-                  : "text-neutral-400 hover:text-white hover:bg-white/5",
-              )}
-            >
-              {tab}
-            </button>
-          ))}
+      {/* Tab Navigation estilo Instagram: solo iconos, sin contenedor visible, con línea horizontal inferior */}
+      <div className="mt-4 w-full max-w-5xl mx-auto">
+        <div className="flex w-full items-center justify-around" role="tablist">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                role="tab"
+                aria-selected={isActive}
+                aria-controls={`profile-tab-${tab.id}`}
+                aria-label={tab.label}
+                title={tab.label}
+                onClick={() => setActiveTab(tab.id)}
+                className="relative flex-1 flex flex-col items-center justify-center py-3.5 sm:py-4 transition-colors group select-none cursor-pointer"
+              >
+                <Icon
+                  className={cn(
+                    "w-6 h-6 sm:w-7 sm:h-7 transition-all duration-200",
+                    isActive
+                      ? "text-[#D4FF00] scale-105"
+                      : "text-neutral-500 group-hover:text-neutral-300",
+                  )}
+                  strokeWidth={isActive ? 2.25 : 1.75}
+                />
+                {isActive && (
+                  <span className="absolute bottom-0 inset-x-0 h-[2.5px] bg-[#D4FF00]" />
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
       <div id={`profile-tab-${activeTab}`} role="tabpanel" aria-label={activeTab} className="p-4 md:py-8 space-y-4 w-full max-w-5xl mx-auto">
         {activeTab === "Insignias" && <BadgeCollection key={`${username}:${currentUser?.id || "guest"}`} username={username} isOwner={isMyProfile} />}
         {activeTab === "Posts" && (
-          <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-6">
-            {userPosts.length > 0 ? (
-              userPosts.map((post) => (
-                <PostCard key={post.id} post={post} variant="electronic" />
-              ))
-            ) : (
-              <p className="mt-8 text-center text-sm font-medium text-neutral-500 md:col-span-3">
-                No hay posts creados
-              </p>
-            )}
-          </div>
+          <ProfilePostsGrid
+            posts={userPosts}
+            isMyProfile={isMyProfile}
+            onPostCreated={handlePostCreated}
+          />
         )}
 
         {activeTab === "Comunidades" && (

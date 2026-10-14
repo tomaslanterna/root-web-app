@@ -92,7 +92,9 @@ export function PostCard({ post, variant = "light" }: PostCardProps) {
                 <ShieldAlert className="w-3.5 h-3.5 text-amber-500" />
               )}
               <span className="mx-1 opacity-50">•</span>
-              {new Date(post.timestamp).toLocaleDateString("es-AR", { day: "numeric", month: "short" })}
+              <span className="tech-mono text-[11px] text-neutral-400">
+                {new Date(post.timestamp).toLocaleDateString("es-AR", { day: "numeric", month: "short" })}
+              </span>
             </p>
           </div>
         </div>
