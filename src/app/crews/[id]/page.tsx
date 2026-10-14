@@ -119,11 +119,11 @@ export default function CrewDetailPage() {
         {crew.inviteCode && (
           <button
             onClick={handleCopyInvite}
-            className="w-full flex items-center justify-between bg-[#14171F] border border-[#D4FF00]/20 hover:border-[#D4FF00]/50 rounded-2xl p-4 transition-all group"
+            className="w-full flex items-center justify-between bg-[#111114] hover:bg-[#16171D] border-0 rounded-2xl p-4 transition-all group shadow-[0_4px_20px_rgba(0,0,0,0.5)] cursor-pointer"
           >
             <div className="flex items-center gap-3 text-left">
-              <div className="w-10 h-10 rounded-full bg-[#D4FF00]/10 flex items-center justify-center shrink-0">
-                <UserPlus className="w-5 h-5 text-[#D4FF00]" />
+              <div className="w-10 h-10 aspect-square rounded-xl bg-[#D4FF00]/10 flex items-center justify-center shrink-0">
+                <UserPlus className="w-5 h-5 text-[#D4FF00] stroke-[1.8]" />
               </div>
               <div>
                 <p className="text-xs font-black uppercase tracking-widest text-white">Invitar amigos</p>
@@ -132,27 +132,27 @@ export default function CrewDetailPage() {
             </div>
             {copied
               ? <Check className="w-5 h-5 text-[#D4FF00]" />
-              : <Copy className="w-4 h-4 text-neutral-500 group-hover:text-[#D4FF00] transition-colors" />
+              : <Copy className="w-4 h-4 text-neutral-400 group-hover:text-[#D4FF00] transition-colors" />
             }
           </button>
         )}
 
         {/* Tab switcher */}
-        <div className="flex gap-2 bg-[#14171F] border border-white/5 p-1 rounded-2xl">
+        <div className="flex gap-1.5 bg-black/50 border-0 p-1 rounded-2xl">
           {(["ranking", "members"] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={cn(
-                "flex-1 py-2 text-[11px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-1.5",
+                "flex-1 py-2 text-[11px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer",
                 activeTab === tab
-                  ? "bg-[#D4FF00] text-neutral-950"
-                  : "text-neutral-500 hover:text-white"
+                  ? "bg-[#D4FF00] text-neutral-950 shadow-[0_4px_16px_rgba(212,255,0,0.16)]"
+                  : "text-neutral-400 hover:text-white"
               )}
             >
               {tab === "ranking"
-                ? <><Trophy className="w-3.5 h-3.5" />Ranking</>
-                : <><Users className="w-3.5 h-3.5" />Miembros</>
+                ? <><Trophy className="w-3.5 h-3.5 stroke-[2]" />Ranking</>
+                : <><Users className="w-3.5 h-3.5 stroke-[2]" />Miembros</>
               }
             </button>
           ))}
@@ -167,10 +167,10 @@ export default function CrewDetailPage() {
                   key={type}
                   onClick={() => setRankingType(type)}
                   className={cn(
-                    "flex-1 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-full transition-all border",
+                    "flex-1 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-full transition-all cursor-pointer",
                     rankingType === type
-                      ? "bg-white/10 border-white/20 text-white"
-                      : "border-white/5 text-neutral-600 hover:text-neutral-400"
+                      ? "bg-[#D4FF00]/15 text-[#D4FF00]"
+                      : "text-neutral-400 hover:text-neutral-300"
                   )}
                 >
                   {type === "allTime" ? "All Time" : "Último Evento"}
@@ -183,29 +183,29 @@ export default function CrewDetailPage() {
               <div className="flex items-end justify-center gap-3 py-4">
                 {/* 2nd */}
                 <div className="flex flex-col items-center gap-2 flex-1">
-                  <Avatar fallback={leaderboard[1].name} size="sm" className="ring-2 ring-neutral-300/30" />
-                  <p className="text-[10px] font-black uppercase">{leaderboard[1].name.split(" ")[0]}</p>
-                  <p className="text-[9px] text-neutral-400 font-bold">{leaderboard[1].steps.toLocaleString()} 👟</p>
-                  <div className="w-full h-16 rounded-t-2xl bg-neutral-300/10 border border-neutral-300/30 flex items-end justify-center pb-2">
-                    <Medal className="w-5 h-5 text-neutral-300" />
+                  <Avatar fallback={leaderboard[1].name} size="sm" className="ring-2 ring-neutral-300/30 aspect-square" />
+                  <p className="tech-label text-white truncate max-w-[80px]">{leaderboard[1].name.split(" ")[0]}</p>
+                  <p className="text-[10px]"><span className="num-display text-neutral-300">{leaderboard[1].steps.toLocaleString()}</span> <span className="text-[9px]">👟</span></p>
+                  <div className="w-full h-16 rounded-t-2xl bg-neutral-300/10 border-0 flex items-end justify-center pb-2">
+                    <Medal className="w-5 h-5 text-neutral-300 stroke-[1.8]" />
                   </div>
                 </div>
                 {/* 1st */}
                 <div className="flex flex-col items-center gap-2 flex-1">
-                  <Avatar fallback={leaderboard[0].name} size="md" className="ring-2 ring-yellow-400/40" />
-                  <p className="text-[10px] font-black uppercase">{leaderboard[0].name.split(" ")[0]}</p>
-                  <p className="text-[9px] text-[#D4FF00] font-bold">{leaderboard[0].steps.toLocaleString()} 👟</p>
-                  <div className="w-full h-28 rounded-t-2xl bg-yellow-400/10 border border-yellow-400/30 flex items-end justify-center pb-2">
-                    <Crown className="w-5 h-5 text-yellow-400" />
+                  <Avatar fallback={leaderboard[0].name} size="md" className="ring-2 ring-yellow-400/40 aspect-square" />
+                  <p className="tech-label text-white truncate max-w-[80px]">{leaderboard[0].name.split(" ")[0]}</p>
+                  <p className="text-[10px]"><span className="num-display text-[#D4FF00]">{leaderboard[0].steps.toLocaleString()}</span> <span className="text-[9px]">👟</span></p>
+                  <div className="w-full h-28 rounded-t-2xl bg-yellow-400/10 border-0 flex items-end justify-center pb-2">
+                    <Crown className="w-5 h-5 text-yellow-400 stroke-[1.8]" />
                   </div>
                 </div>
                 {/* 3rd */}
                 <div className="flex flex-col items-center gap-2 flex-1">
-                  <Avatar fallback={leaderboard[2].name} size="sm" className="ring-2 ring-amber-600/30" />
-                  <p className="text-[10px] font-black uppercase">{leaderboard[2].name.split(" ")[0]}</p>
-                  <p className="text-[9px] text-neutral-400 font-bold">{leaderboard[2].steps.toLocaleString()} 👟</p>
-                  <div className="w-full h-14 rounded-t-2xl bg-amber-600/10 border border-amber-600/30 flex items-end justify-center pb-2">
-                    <Medal className="w-5 h-5 text-amber-600" />
+                  <Avatar fallback={leaderboard[2].name} size="sm" className="ring-2 ring-amber-600/30 aspect-square" />
+                  <p className="tech-label text-white truncate max-w-[80px]">{leaderboard[2].name.split(" ")[0]}</p>
+                  <p className="text-[10px]"><span className="num-display text-neutral-300">{leaderboard[2].steps.toLocaleString()}</span> <span className="text-[9px]">👟</span></p>
+                  <div className="w-full h-14 rounded-t-2xl bg-amber-600/10 border-0 flex items-end justify-center pb-2">
+                    <Medal className="w-5 h-5 text-amber-600 stroke-[1.8]" />
                   </div>
                 </div>
               </div>
@@ -216,27 +216,27 @@ export default function CrewDetailPage() {
               {leaderboard.map((member, idx) => (
                 <div
                   key={member.userId}
-                  className="flex items-center gap-3 p-3 rounded-2xl bg-[#14171F] border border-white/10"
+                  className="flex items-center gap-3 p-3 rounded-2xl bg-[#111114] hover:bg-[#16171D] border-0 shadow-sm transition-all"
                 >
                   <span className={cn(
-                    "text-xs font-black w-5 text-center shrink-0",
+                    "num-display text-xs w-5 text-center shrink-0",
                     idx === 0 ? "text-yellow-400" : idx === 1 ? "text-neutral-300" : idx === 2 ? "text-amber-600" : "text-neutral-600"
                   )}>
                     {idx + 1}
                   </span>
-                  <Avatar fallback={member.name} size="sm" className="shrink-0" />
+                  <Avatar fallback={member.name} size="sm" className="shrink-0 aspect-square" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-black text-white truncate">{member.name}</p>
-                    <p className="text-[10px] text-neutral-500">@{member.username}</p>
+                    <p className="text-[10px] text-neutral-400 font-medium">@{member.username}</p>
                   </div>
                   <div className="flex items-center gap-1 text-[#D4FF00] shrink-0">
-                    <Activity className="w-3.5 h-3.5" />
-                    <span className="text-xs font-black">{member.steps.toLocaleString()}</span>
+                    <Activity className="w-3.5 h-3.5 stroke-[1.8]" />
+                    <span className="num-display text-xs">{member.steps.toLocaleString()}</span>
                   </div>
                 </div>
               ))}
               {leaderboard.length === 0 && (
-                <div className="p-6 text-center text-neutral-500 text-sm">
+                <div className="p-6 text-center text-neutral-400 text-sm font-medium">
                   Aún no hay pasos registrados en esta crew
                 </div>
               )}
@@ -246,7 +246,7 @@ export default function CrewDetailPage() {
             {crewEvents.length > 0 && (
               <div className="pt-6 space-y-3">
                 <h3 className="text-sm font-black uppercase tracking-widest text-neutral-300 ml-1 flex items-center gap-2">
-                  <Flame className="w-4 h-4 text-[#D4FF00]" /> Eventos asistidos
+                  <Flame className="w-4 h-4 text-[#D4FF00] stroke-[1.8] fill-none" /> Eventos asistidos
                 </h3>
                 <div className="space-y-2">
                   {crewEvents.map((ev) => {
@@ -258,17 +258,17 @@ export default function CrewDetailPage() {
                       <div 
                         key={ev.id}
                         onClick={() => router.push(`/events/${ev.id}`)}
-                        className="flex items-center gap-3 p-3 rounded-2xl bg-[#14171F] border border-white/5 hover:border-[#D4FF00]/30 transition-colors cursor-pointer group"
+                        className="flex items-center gap-3 p-3 rounded-2xl bg-[#111114] hover:bg-[#16171D] border-0 transition-all cursor-pointer group shadow-sm"
                       >
                         <div 
-                          className="w-12 h-12 rounded-xl bg-neutral-900 border border-white/10 shrink-0 bg-cover bg-center overflow-hidden"
+                          className="w-12 h-12 aspect-square rounded-xl bg-neutral-900 shrink-0 bg-cover bg-center overflow-hidden border-0 shadow-sm"
                           style={{ backgroundImage: `url(${ev.cinematicBannerUrl || 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=80&w=1200&auto=format&fit=crop'})` }}
                         />
                         <div className="flex-1 min-w-0">
                           <h4 className="text-xs font-black uppercase tracking-wider text-white truncate group-hover:text-[#D4FF00] transition-colors">{ev.title}</h4>
-                          <p className="text-[10px] text-neutral-500 font-bold tracking-widest uppercase truncate">{shortDate} • {ev.location}</p>
+                          <p className="tech-label text-neutral-400 truncate">{shortDate} • {ev.location}</p>
                         </div>
-                        <ChevronLeft className="w-4 h-4 text-neutral-600 rotate-180 group-hover:text-[#D4FF00] transition-colors shrink-0" />
+                        <ChevronLeft className="w-4 h-4 text-neutral-500 rotate-180 group-hover:text-[#D4FF00] group-hover:translate-x-0.5 transition-all shrink-0" />
                       </div>
                     );
                   })}
@@ -281,14 +281,15 @@ export default function CrewDetailPage() {
         {activeTab === "members" && (
           <div className="space-y-2 pt-2">
             {(crew.leaderboardAllTime || []).map((member) => (
-              <div key={member.userId} className="flex items-center gap-3 p-3 rounded-2xl bg-[#14171F] border border-white/10">
-                <Avatar fallback={member.name} size="sm" className="shrink-0" />
+              <div key={member.userId} className="flex items-center gap-3 p-3 rounded-2xl bg-[#111114] border-0 shadow-sm">
+                <Avatar fallback={member.name} size="sm" className="shrink-0 aspect-square" />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-black text-white truncate">{member.name}</p>
-                  <p className="text-[10px] text-neutral-500">@{member.username}</p>
+                  <p className="text-[10px] text-neutral-400 font-medium">@{member.username}</p>
                 </div>
-                <span className="text-[10px] text-[#D4FF00] font-bold shrink-0">
-                  {member.steps.toLocaleString()} pasos
+                <span className="text-[10px] text-[#D4FF00] shrink-0">
+                  <span className="num-display text-xs">{member.steps.toLocaleString()}</span>{" "}
+                  <span className="tech-label text-[9px]">pasos</span>
                 </span>
               </div>
             ))}

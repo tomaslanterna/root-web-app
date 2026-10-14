@@ -402,11 +402,8 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
         {/* 2. Radar de Asistencia en Pista (Liquid Glass Hub) */}
         <div className="pt-2">
-          {/* Tarjeta Radar de la Pista (Liquid Glass con VOY / NO VOY directo) */}
-          <div className="relative rounded-3xl border border-white/[0.14] bg-gradient-to-b from-white/[0.08] via-neutral-950/80 to-[#0B0D10]/90 backdrop-blur-2xl p-6 sm:p-7 shadow-[0_20px_50px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.18)] space-y-5 flex flex-col justify-between overflow-hidden">
-            {/* Top specular rim light */}
-            <div className="pointer-events-none absolute inset-x-6 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/35 to-transparent" />
-
+          {/* Tarjeta Radar de la Pista */}
+          <div className="relative rounded-3xl border-0 bg-[#111114] p-6 sm:p-7 shadow-[0_16px_40px_rgba(0,0,0,0.6)] space-y-5 flex flex-col justify-between overflow-hidden">
             <div className="space-y-3.5 relative z-10">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -509,9 +506,9 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             </button>
           </div>
 
-          {/* Pestaña: Sobre la Fiesta, Lineup & Concepto en Liquid Glass */}
+          {/* Pestaña: Sobre la Fiesta, Lineup & Concepto */}
           {activeTab === "info" && (
-            <section className="space-y-6 rounded-3xl border border-white/[0.12] bg-gradient-to-b from-white/[0.06] via-neutral-950/70 to-[#0B0D10]/85 backdrop-blur-2xl p-6 sm:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.7),inset_0_1px_1px_rgba(255,255,255,0.15)] animate-in fade-in duration-200">
+            <section className="space-y-6 rounded-3xl border-0 bg-[#111114] p-6 sm:p-8 shadow-[0_16px_40px_rgba(0,0,0,0.6)] animate-in fade-in duration-200">
               {/* Bloque Lineup & Horarios integrado */}
               {hasLineup && (
                 <div className="space-y-4 border-b border-white/10 pb-6">
@@ -531,14 +528,14 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                         <div
                           key={ea.artistId}
                           className={cn(
-                            "flex items-center justify-between gap-4 p-4 rounded-2xl border transition-all",
+                            "flex items-center justify-between gap-4 p-4 rounded-2xl border-0 transition-all shadow-sm",
                             ea.isHeadliner
-                              ? "border-[#D4FF00]/40 bg-[#D4FF00]/[0.05] shadow-[inset_0_1px_1px_rgba(212,255,0,0.2)]"
-                              : "border-white/5 bg-white/[0.02]",
+                              ? "bg-[#D4FF00]/10 text-white"
+                              : "bg-[#14171F] hover:bg-[#1B202B]",
                           )}
                         >
                           <div className="flex items-center gap-4 min-w-0">
-                            <div className="relative w-12 h-12 rounded-full overflow-hidden bg-neutral-900 shrink-0 border border-white/15">
+                            <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-neutral-900 shrink-0 border-0 aspect-square">
                               {ea.artist?.avatarUrl ? (
                                 <img
                                   src={ea.artist.avatarUrl}
@@ -556,12 +553,12 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                               <div className="flex items-center gap-2">
                                 <h4 className={cn(
                                   "font-black tracking-tight truncate",
-                                  ea.isHeadliner ? "text-lg text-white" : "text-base text-neutral-200",
+                                  ea.isHeadliner ? "text-lg text-white font-black" : "text-base text-neutral-200",
                                 )}>
                                   {ea.artist?.name}
                                 </h4>
                                 {ea.isHeadliner && (
-                                  <span className="rounded-full bg-[#D4FF00] px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-neutral-950">
+                                  <span className="rounded-full bg-[#D4FF00] px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-black shadow-[0_2px_8px_rgba(212,255,0,0.2)]">
                                     Headliner
                                   </span>
                                 )}
@@ -574,7 +571,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
                           {ea.performanceTime && (
                             <div className="text-right shrink-0">
-                              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#D4FF00]">
+                              <span className="tech-mono inline-flex items-center gap-1.5 text-xs font-bold text-[#D4FF00]">
                                 <Clock className="w-3.5 h-3.5" />
                                 {ea.performanceTime}
                               </span>
@@ -584,7 +581,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                       ))}
                     </div>
                   ) : (
-                    <div className="p-6 rounded-2xl border border-white/5 bg-white/[0.01] text-center space-y-3">
+                    <div className="p-6 rounded-2xl border-0 bg-[#14171F] text-center space-y-3 shadow-sm">
                       <div className="flex flex-wrap items-center justify-center gap-3">
                         {event.lineup.map((artist, idx) => (
                           <span
@@ -625,12 +622,12 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             </section>
           )}
 
-          {/* Pestaña: Predio & Acceso en Liquid Glass */}
+          {/* Pestaña: Predio & Acceso */}
           {activeTab === "venue" && (
-            <section className="space-y-5 rounded-3xl border border-white/[0.12] bg-gradient-to-b from-white/[0.06] via-neutral-950/70 to-[#0B0D10]/85 backdrop-blur-2xl p-6 sm:p-7 shadow-[0_20px_50px_rgba(0,0,0,0.7),inset_0_1px_1px_rgba(255,255,255,0.15)] animate-in fade-in duration-200">
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-md p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <section className="space-y-5 rounded-3xl border-0 bg-[#111114] p-6 sm:p-7 shadow-[0_16px_40px_rgba(0,0,0,0.6)] animate-in fade-in duration-200">
+              <div className="rounded-2xl border-0 bg-[#14171F] p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
                 <div className="space-y-1">
-                  <span className="text-xs font-bold text-[#D4FF00]">
+                  <span className="tech-label text-[#D4FF00]">
                     Predio Confirmado
                   </span>
                   <h3 className="text-lg font-black text-white">
@@ -644,7 +641,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                   href={googleMapsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-full border border-[#D4FF00]/40 bg-[#D4FF00]/10 px-4 py-2 text-xs font-bold text-[#D4FF00] hover:bg-[#D4FF00] hover:text-neutral-950 transition-all shrink-0"
+                  className="tech-label inline-flex items-center gap-2 rounded-full border-0 bg-[#D4FF00]/10 px-4 py-2 text-[#D4FF00] hover:bg-[#D4FF00] hover:text-neutral-950 transition-all shrink-0"
                 >
                   <span>Abrir en Google Maps</span>
                   <ArrowUpRight className="h-3.5 w-3.5" />
@@ -652,20 +649,20 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-neutral-300">
-                <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 space-y-1 text-center">
+                <div className="rounded-2xl border-0 bg-[#14171F] p-4 space-y-1 text-center shadow-sm">
                   <Clock className="h-4 w-4 mx-auto text-[#D4FF00]" />
-                  <p className="text-neutral-400">Apertura de Puertas</p>
-                  <p className="font-bold text-white text-sm">23:00 hs</p>
+                  <p className="tech-label text-neutral-400">Apertura de Puertas</p>
+                  <p className="tech-mono font-black text-white text-base">23:00 hs</p>
                 </div>
-                <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 space-y-1 text-center">
+                <div className="rounded-2xl border-0 bg-[#14171F] p-4 space-y-1 text-center shadow-sm">
                   <Clock className="h-4 w-4 mx-auto text-amber-400" />
-                  <p className="text-neutral-400">Límite de Ingreso</p>
-                  <p className="font-bold text-white text-sm">02:30 hs</p>
+                  <p className="tech-label text-neutral-400">Límite de Ingreso</p>
+                  <p className="tech-mono font-black text-white text-base">02:30 hs</p>
                 </div>
-                <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 space-y-1 text-center">
+                <div className="rounded-2xl border-0 bg-[#14171F] p-4 space-y-1 text-center shadow-sm">
                   <ShieldCheck className="h-4 w-4 mx-auto text-[#D4FF00]" />
-                  <p className="text-neutral-400">Requisito Obligatorio</p>
-                  <p className="font-bold text-white text-sm">DNI Físico (+18)</p>
+                  <p className="tech-label text-neutral-400">Requisito Obligatorio</p>
+                  <p className="tech-label font-black text-white text-xs mt-1">DNI Físico (+18)</p>
                 </div>
               </div>
             </section>
@@ -673,7 +670,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
           {/* Pestaña: Reglas de convivencia */}
           {activeTab === "rules" && (
-            <section className="space-y-6 rounded-3xl border border-white/[0.12] bg-gradient-to-b from-white/[0.06] via-neutral-950/70 to-[#0B0D10]/85 backdrop-blur-2xl p-6 sm:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.7),inset_0_1px_1px_rgba(255,255,255,0.15)] animate-in fade-in duration-200">
+            <section className="space-y-6 rounded-3xl border-0 bg-[#111114] p-6 sm:p-8 shadow-[0_16px_40px_rgba(0,0,0,0.6)] animate-in fade-in duration-200">
               <div className="space-y-2 border-b border-white/10 pb-4">
                 <div className="flex items-center gap-2">
                   <ShieldCheck className="w-5 h-5 text-[#D4FF00]" />
@@ -681,13 +678,13 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                     Reglas de Convivencia
                   </h3>
                 </div>
-                <p className="text-xs text-neutral-400">
+                <p className="text-xs text-neutral-400 font-medium">
                   Valores esenciales y normas de conducta para cuidar la pista, el respeto mutuo y garantizar una experiencia segura.
                 </p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-2">
+                <div className="rounded-2xl border-0 bg-[#14171F] p-5 space-y-2 shadow-sm">
                   <h4 className="text-sm font-bold text-white flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-[#D4FF00]" />
                     Tolerancia Cero y Consentimiento
@@ -697,7 +694,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-2">
+                <div className="rounded-2xl border-0 bg-[#14171F] p-5 space-y-2 shadow-sm">
                   <h4 className="text-sm font-bold text-white flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-[#D4FF00]" />
                     Cuidado Colectivo en Pista
@@ -707,7 +704,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-2">
+                <div className="rounded-2xl border-0 bg-[#14171F] p-5 space-y-2 shadow-sm">
                   <h4 className="text-sm font-bold text-white flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-[#D4FF00]" />
                     Conexión y Teléfonos
@@ -717,7 +714,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-2">
+                <div className="rounded-2xl border-0 bg-[#14171F] p-5 space-y-2 shadow-sm">
                   <h4 className="text-sm font-bold text-white flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-[#D4FF00]" />
                     Ingreso y Cuidado Personal
@@ -731,16 +728,11 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           )}
         </div>
 
-        {/* 4. Boletería de Noche (Liquid Glass Ticket Desk) */}
+        {/* 4. Boletería de Noche */}
         <section
           id="tickets-section"
-          className="relative space-y-6 rounded-3xl border border-white/[0.14] bg-gradient-to-b from-white/[0.09] via-neutral-950/80 to-[#0B0D10]/90 backdrop-blur-2xl backdrop-saturate-150 p-6 sm:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.18),inset_0_-1px_1px_rgba(0,0,0,0.6)] overflow-hidden scroll-mt-28"
+          className="relative space-y-6 rounded-3xl border-0 bg-[#111114] p-6 sm:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden scroll-mt-28"
         >
-          {/* Specular top rim light */}
-          <div className="pointer-events-none absolute inset-x-8 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-80" />
-          {/* Ambient soft refraction */}
-          <div className="pointer-events-none absolute -top-16 left-1/2 -translate-x-1/2 w-96 h-28 bg-[#D4FF00]/[0.08] blur-3xl rounded-full" />
-
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-4 relative z-10">
             <div>
               <h2 className="text-lg font-black tracking-tight text-white flex items-center gap-2">
@@ -750,22 +742,22 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 Boletería directa y autorizada con acreditación RRPP Root
               </p>
             </div>
-            <span className="self-start sm:self-auto inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] backdrop-blur-md px-3.5 py-1 text-xs font-semibold text-neutral-200 shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)]">
+            <span className="self-start sm:self-auto inline-flex items-center gap-1.5 rounded-full border-0 bg-white/5 px-3.5 py-1 text-xs font-semibold text-neutral-200 shadow-sm">
               <ShieldCheck className="h-3.5 w-3.5 text-[#D4FF00]" /> Boletería Oficial
             </span>
           </div>
 
-          {/* Lotes de Pases Estilo Ticket Stub en Vidrio Ahumado (Liquid Glass Pass) */}
+          {/* Lotes de Pases Estilo Ticket Stub */}
           <div className="space-y-3 relative z-10">
             {event?.ticketTiers === undefined || event?.ticketTiers === null ? (
-              <div className="flex flex-col items-center justify-center p-8 rounded-2xl border border-white/5 bg-white/[0.02]">
+              <div className="flex flex-col items-center justify-center p-8 rounded-2xl border-0 bg-[#14171F] shadow-sm">
                 <p className="text-sm font-medium text-neutral-400 text-center">
                   Aun no tenemos informacion sobre entradas oficiales para este evento
                 </p>
               </div>
             ) : event.ticketTiers.length === 0 ? (
-              <div className="flex flex-col items-center justify-center p-8 rounded-2xl border border-[#D4FF00]/20 bg-[#D4FF00]/5">
-                <p className="text-sm font-medium text-[#D4FF00] text-center animate-pulse">
+              <div className="flex flex-col items-center justify-center p-8 rounded-2xl border-0 bg-[#D4FF00]/5 shadow-sm">
+                <p className="text-sm font-black text-[#D4FF00] text-center animate-pulse">
                   Estamos buscando y calculando las entradas oficiales para este evento
                 </p>
               </div>
@@ -777,10 +769,10 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                   <div
                     key={tier.id}
                     className={cn(
-                      "group relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl border transition-all duration-300 select-none overflow-hidden",
+                      "group relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl border-0 transition-all duration-300 select-none overflow-hidden",
                       isSoldOut
-                        ? "border-white/5 bg-white/[0.01] opacity-40"
-                        : "border-white/[0.10] bg-gradient-to-b from-white/[0.04] to-white/[0.01] backdrop-blur-xl hover:border-white/20 shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)]",
+                        ? "bg-white/[0.01] opacity-40"
+                        : "bg-[#14171F] hover:bg-[#1B202B] shadow-sm",
                     )}
                   >
                     <div className="space-y-1 min-w-0">
@@ -813,13 +805,13 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                     <div className="flex sm:flex-col items-baseline sm:items-end justify-between sm:justify-center shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-white/5">
                       <span
                         className={cn(
-                          "text-xl sm:text-2xl font-black tracking-tight",
+                          "num-display text-xl sm:text-2xl",
                           isSoldOut ? "text-neutral-600 line-through" : "text-[#D4FF00]",
                         )}
                       >
                         {tier.priceLabel}
                       </span>
-                      <span className="text-[10px] text-neutral-500 font-medium">
+                      <span className="tech-label text-neutral-400">
                         {isSoldOut ? "Sin cupo" : "Precio final"}
                       </span>
                     </div>
@@ -836,21 +828,21 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         </section>
       </div>
 
-      {/* Mobile Sticky Checkout Bar en Liquid Glass (Pase Rápido Nativo) */}
+      {/* Mobile Sticky Checkout Bar */}
       <div className="md:hidden fixed bottom-0 inset-x-0 z-40 mx-auto w-full max-w-md liquid-glass-bar px-4 pt-3 pb-[calc(0.75rem+var(--root-safe-bottom,env(safe-area-inset-bottom,0px)))] shadow-[0_-15px_40px_rgba(0,0,0,0.8)] flex items-center justify-between gap-3 overflow-hidden">
         <div className="liquid-glass-specular" />
         <div className="min-w-0 relative z-10">
-          <span className="block text-[11px] font-bold text-neutral-300 truncate">
+          <span className="tech-label block text-neutral-300 truncate">
             {currentTierObj?.name || "General Access"}
           </span>
-          <span className="text-lg font-black text-[#D4FF00] tracking-tight">
+          <span className="num-display text-xl text-[#D4FF00] tracking-tight">
             {currentTierObj?.priceLabel || priceLabel}
           </span>
         </div>
         <button
           type="button"
           onClick={() => handleBuyTicket()}
-          className="relative z-10 flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-gradient-to-b from-[#D4FF00] to-lime-400 text-neutral-950 font-black text-xs uppercase tracking-wider shadow-[0_5px_20px_rgba(212,255,0,0.35)] active:scale-95 transition-all cursor-pointer shrink-0"
+          className="relative z-10 flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#D4FF00] hover:brightness-105 text-neutral-950 font-black text-xs uppercase tracking-wider shadow-[0_8px_30px_rgba(212,255,0,0.16)] active:scale-95 transition-all cursor-pointer shrink-0 border-0"
         >
           <span>Conseguir Ticket ↗</span>
         </button>

@@ -115,24 +115,24 @@ export function BroadcastChannel({
 
   return (
     <>
-      <section className="flex flex-col overflow-hidden rounded-2xl sm:rounded-3xl border border-white/10 bg-[#14171F] shadow-2xl h-[calc(100dvh-12rem-var(--root-safe-top,env(safe-area-inset-top,0px))-var(--root-safe-bottom,env(safe-area-inset-bottom,0px)))] sm:h-[calc(100dvh-13.5rem)] mb-[calc(5rem+var(--root-safe-bottom,env(safe-area-inset-bottom,0px)))] sm:mb-20">
+      <section className="flex flex-col overflow-hidden rounded-2xl sm:rounded-3xl border-0 bg-[#111114] shadow-[0_16px_40px_-12px_rgba(0,0,0,0.7)] h-[calc(100dvh-12rem-var(--root-safe-top,env(safe-area-inset-top,0px))-var(--root-safe-bottom,env(safe-area-inset-bottom,0px)))] sm:h-[calc(100dvh-13.5rem)] mb-[calc(5rem+var(--root-safe-bottom,env(safe-area-inset-bottom,0px)))] sm:mb-20">
         {/* Header */}
-        <div className="shrink-0 flex flex-col gap-2.5 border-b border-white/10 bg-[#0E1118] p-3 sm:p-4 md:px-6 sm:flex-row sm:items-center sm:justify-between">
+        <div className="shrink-0 flex flex-col gap-2.5 border-b border-white/[0.06] bg-[#0E1118]/80 p-3 sm:p-4 md:px-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#D4FF00]/30 bg-[#D4FF00]/10 text-[#D4FF00]">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border-0 bg-[#D4FF00]/15 text-[#D4FF00] shadow-sm">
               <Radio className="h-4 w-4 animate-pulse" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h2 className="text-xs sm:text-sm font-black uppercase tracking-wider text-white truncate">
+                <h2 className="tech-label text-xs sm:text-sm text-white truncate">
                   Canal de Difusión
                 </h2>
                 {chatMode === "broadcast_only" ? (
-                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-yellow-500/30 bg-yellow-500/10 px-2 py-0.5 text-[8px] sm:text-[9px] font-black uppercase text-yellow-400">
+                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full border-0 bg-yellow-500/15 px-2 py-0.5 tech-label text-[8px] sm:text-[9px] text-yellow-400">
                     <Volume2 className="h-2.5 w-2.5" /> Solo Difusión
                   </span>
                 ) : (
-                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[8px] sm:text-[9px] font-black uppercase text-emerald-400">
+                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full border-0 bg-emerald-500/15 px-2 py-0.5 tech-label text-[8px] sm:text-[9px] text-emerald-400">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" />
                     Chat Abierto
                   </span>
@@ -148,7 +148,7 @@ export function BroadcastChannel({
 
           {/* RRPP Controls: Mode Switch Toggle */}
           {isRRPP && (
-            <div className="flex items-center justify-between sm:justify-end gap-2.5 rounded-xl border border-white/10 bg-[#14171F] px-2.5 py-1 sm:px-3 sm:py-1.5 shrink-0">
+            <div className="flex items-center justify-between sm:justify-end gap-2.5 rounded-xl border-0 bg-white/[0.04] px-2.5 py-1 sm:px-3 sm:py-1.5 shrink-0">
               <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-neutral-300">
                 {chatMode === "broadcast_only" ? "Abrir chat a miembros" : "Chat abierto a miembros"}
               </span>
@@ -183,7 +183,7 @@ export function BroadcastChannel({
         {/* Messages area */}
         <div
           ref={chatAreaRef}
-          className="flex flex-1 flex-col overflow-y-auto overscroll-contain p-3 sm:p-5 space-y-3 bg-radial from-[#14171F] to-[#0B0D10]"
+          className="flex flex-1 flex-col overflow-y-auto overscroll-contain p-3 sm:p-5 space-y-3 bg-gradient-to-b from-[#111114] to-[#0B0D10]"
         >
           {isLoading && messages.length === 0 ? (
             <div className="flex flex-1 items-center justify-center py-16">
@@ -219,20 +219,17 @@ export function BroadcastChannel({
                     src={message.senderAvatar}
                     fallback={message.senderName || "U"}
                     size="sm"
-                    className={cn(
-                      "mt-0.5 shrink-0 h-7 w-7 sm:h-8 sm:w-8",
-                      isMsgRRPP && "ring-2 ring-[#D4FF00]/50 ring-offset-1 ring-offset-[#0B0D10]",
-                    )}
+                    className="mt-0.5 shrink-0 h-7 w-7 sm:h-8 sm:w-8 ring-1 ring-white/10"
                   />
 
                   <div
                     className={cn(
                       "group relative rounded-2xl p-2.5 sm:p-3.5 shadow-md transition-all min-w-0 break-words",
                       isMsgRRPP
-                        ? "border border-[#D4FF00]/30 bg-[#1A1F2B] text-white"
+                        ? "border-0 bg-[#1A1F2B] text-white shadow-sm"
                         : isMine
-                          ? "border border-white/10 bg-[#1D2230] text-white"
-                          : "border border-white/5 bg-[#14171F] text-neutral-200",
+                          ? "border-0 bg-[#1D2230] text-white shadow-sm"
+                          : "border-0 bg-[#16171D] text-neutral-200 shadow-sm",
                     )}
                   >
                     {/* Sender Header */}
@@ -247,7 +244,7 @@ export function BroadcastChannel({
                           </span>
                         )}
                       </div>
-                      <span className="shrink-0 text-[8px] sm:text-[9px] font-bold text-neutral-500">
+                      <span className="shrink-0 tech-mono text-[8px] sm:text-[9px] text-neutral-500">
                         {new Date(message.timestamp).toLocaleTimeString("es-AR", {
                           hour: "2-digit",
                           minute: "2-digit",
@@ -262,7 +259,7 @@ export function BroadcastChannel({
 
                     {/* Emoji Reactions for RRPP messages */}
                     {isMsgRRPP && (
-                      <div className="mt-2.5 flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-white/5 relative">
+                      <div className="mt-2.5 flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-white/[0.06] relative">
                         {message.reactions &&
                           message.reactions.map((reaction) => {
                             const hasReacted = Boolean(
@@ -279,8 +276,8 @@ export function BroadcastChannel({
                                 className={cn(
                                   "group/reaction inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold transition-all select-none active:scale-95 cursor-pointer",
                                   hasReacted
-                                    ? "border border-[#D4FF00]/50 bg-[#D4FF00]/15 text-[#D4FF00] shadow-[0_0_8px_rgba(212,255,0,0.15)]"
-                                    : "border border-white/10 bg-white/5 text-neutral-300 hover:border-white/25 hover:bg-white/10",
+                                    ? "border-0 bg-[#D4FF00]/20 text-[#D4FF00] shadow-[0_0_12px_rgba(212,255,0,0.2)]"
+                                    : "border-0 bg-white/5 text-neutral-300 hover:bg-white/10 shadow-sm",
                                 )}
                                 title={
                                   hasReacted
@@ -291,7 +288,7 @@ export function BroadcastChannel({
                                 <span className="text-xs transition-transform group-hover/reaction:scale-110">
                                   {reaction.emoji}
                                 </span>
-                                <span className="text-[10px] tabular-nums font-black">
+                                <span className="num-display text-[11px]">
                                   {reaction.count}
                                 </span>
                               </button>
@@ -308,10 +305,10 @@ export function BroadcastChannel({
                               )
                             }
                             className={cn(
-                              "inline-flex items-center justify-center gap-0.5 rounded-full border px-2 py-0.5 text-[10px] font-bold transition-all active:scale-95 cursor-pointer",
+                              "inline-flex items-center justify-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-bold transition-all active:scale-95 cursor-pointer",
                               pickerOpenMsgId === message.id
-                                ? "border-[#D4FF00]/50 bg-[#D4FF00]/20 text-[#D4FF00]"
-                                : "border-white/10 bg-white/5 text-neutral-400 hover:border-white/25 hover:text-white",
+                                ? "border-0 bg-[#D4FF00]/20 text-[#D4FF00] shadow-sm"
+                                : "border-0 bg-white/5 text-neutral-400 hover:bg-white/10 hover:text-white shadow-sm",
                             )}
                             title="Reaccionar al comunicado del RRPP"
                             aria-label="Reaccionar"
@@ -328,7 +325,7 @@ export function BroadcastChannel({
                                 className="fixed inset-0 z-30"
                                 onClick={() => setPickerOpenMsgId(null)}
                               />
-                              <div className="absolute bottom-full left-0 mb-1.5 z-40 flex items-center gap-1 rounded-full border border-white/15 bg-[#0E1118]/95 p-1 shadow-2xl backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-150">
+                              <div className="absolute bottom-full left-0 mb-1.5 z-40 flex items-center gap-1 rounded-full border-0 bg-[#16171D] p-1 shadow-2xl backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-150">
                                 {QUICK_REACTION_EMOJIS.map((emoji) => {
                                   const hasReacted = Boolean(
                                     user &&
@@ -392,10 +389,10 @@ export function BroadcastChannel({
                 disabled={isInputDisabled || isSending}
                 maxLength={1000}
                 className={cn(
-                  "h-11 sm:h-12 w-full rounded-xl sm:rounded-2xl border px-3 sm:px-4 pr-9 text-xs sm:text-sm font-medium text-white outline-none transition-colors",
+                  "h-11 sm:h-12 w-full rounded-xl sm:rounded-2xl border-0 px-3 sm:px-4 pr-9 text-xs sm:text-sm font-medium text-white outline-none transition-colors shadow-sm",
                   isInputDisabled
-                    ? "cursor-not-allowed border-white/5 bg-black/40 text-neutral-500 placeholder:text-neutral-600"
-                    : "border-white/10 bg-black/30 placeholder:text-neutral-500 focus:border-[#D4FF00]/50 backdrop-blur-md",
+                    ? "cursor-not-allowed bg-black/40 text-neutral-500 placeholder:text-neutral-600"
+                    : "bg-black/40 placeholder:text-neutral-500 focus:ring-1 focus:ring-[#D4FF00]/50 backdrop-blur-md",
                 )}
               />
               {isInputDisabled && (

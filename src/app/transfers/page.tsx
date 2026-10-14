@@ -172,7 +172,7 @@ export default function TransfersPage() {
           <button
             onClick={() => setActiveTab("explorar")}
             className={cn(
-              "flex-1 py-1.5 text-[11px] font-black uppercase tracking-wider transition-all rounded-full",
+              "flex-1 py-1.5 tech-label text-[11px] transition-all rounded-full",
               activeTab === "explorar" 
                 ? "bg-white/10 text-white shadow-sm" 
                 : "text-neutral-500 hover:text-neutral-300"
@@ -183,7 +183,7 @@ export default function TransfersPage() {
           <button
             onClick={() => setActiveTab("mis-ofertas")}
             className={cn(
-              "flex-1 py-1.5 text-[11px] font-black uppercase tracking-wider transition-all rounded-full",
+              "flex-1 py-1.5 tech-label text-[11px] transition-all rounded-full",
               activeTab === "mis-ofertas" 
                 ? "bg-white/10 text-white shadow-sm" 
                 : "text-neutral-500 hover:text-neutral-300"
@@ -226,7 +226,7 @@ export default function TransfersPage() {
               {/* Si está pendiente, overlay de opacidad */}
               {transfer.status === 'NEGOTIATING' && (
                 <div className="absolute inset-0 bg-black/60 z-10 flex flex-col items-center justify-center backdrop-blur-[1px]">
-                  <span className="bg-amber-500/20 text-amber-400 border border-amber-500/30 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
+                  <span className="bg-amber-500/20 text-amber-400 border border-amber-500/30 px-3 py-1 rounded-full tech-label text-[10px]">
                     En Trato
                   </span>
                 </div>
@@ -244,12 +244,12 @@ export default function TransfersPage() {
                   <div className="flex justify-between items-start">
                     <div>
                       <h3 className="font-bold text-sm leading-tight text-white line-clamp-1">{transfer.event_name || "Evento Privado"}</h3>
-                      <p className="text-[10px] text-neutral-400 font-semibold uppercase tracking-wider mt-0.5">
+                      <p className="tech-mono text-[10px] text-neutral-400 mt-0.5">
                         {transfer.event_date ? new Intl.DateTimeFormat('es-AR', { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(transfer.event_date)) : "Fecha a confirmar"}
                       </p>
                     </div>
                     <div className="text-right shrink-0 ml-2">
-                      <p className="font-black text-[#D4FF00] text-sm">${transfer.price_agreed ? transfer.price_agreed.toLocaleString('es-AR') : transfer.price?.toLocaleString('es-AR')}</p>
+                      <p className="num-display text-sm text-[#D4FF00]">${transfer.price_agreed ? transfer.price_agreed.toLocaleString('es-AR') : transfer.price?.toLocaleString('es-AR')}</p>
                     </div>
                   </div>
 

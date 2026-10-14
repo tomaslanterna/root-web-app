@@ -94,13 +94,13 @@ export default function MatchPage() {
 
       {/* Mode Switcher (Mis Crews vs Crews) */}
       <div className="p-4 pb-2 w-full max-w-lg mx-auto">
-        <div className="w-full bg-[#14171F]/90 p-1 rounded-full border border-white/10 shadow-lg flex items-center gap-1">
+        <div className="w-full bg-black/60 p-1 rounded-full border-0 shadow-md flex items-center gap-1">
           <button
             onClick={() => setActiveTab("squads")}
             className={cn(
-              "flex-1 py-2 px-3 rounded-full text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all duration-200 cursor-pointer select-none",
+              "flex-1 py-2 px-3 rounded-full tech-label text-xs flex items-center justify-center gap-1.5 transition-all duration-200 cursor-pointer select-none",
               activeTab === "squads"
-                ? "bg-[#D4FF00] text-neutral-950 shadow-md shadow-[#D4FF00]/15 scale-[1.01]"
+                ? "bg-[#D4FF00] text-neutral-950 shadow-[0_4px_16px_rgba(212,255,0,0.16)] scale-[1.01]"
                 : "text-neutral-400 hover:text-white",
             )}
           >
@@ -109,7 +109,7 @@ export default function MatchPage() {
             {totalMyCrews > 0 && (
               <span
                 className={cn(
-                  "text-[10px] px-1.5 py-0.2 rounded-full font-extrabold",
+                  "num-display text-[11px] px-1.5 py-0.2 rounded-full",
                   activeTab === "squads"
                     ? "bg-neutral-950/20 text-neutral-950"
                     : "bg-[#D4FF00]/20 text-[#D4FF00]",
@@ -123,9 +123,9 @@ export default function MatchPage() {
           <button
             onClick={() => setActiveTab("crews")}
             className={cn(
-              "flex-1 py-2 px-3 rounded-full text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all duration-200 cursor-pointer select-none",
+              "flex-1 py-2 px-3 rounded-full tech-label text-xs flex items-center justify-center gap-1.5 transition-all duration-200 cursor-pointer select-none",
               activeTab === "crews"
-                ? "bg-[#D4FF00] text-neutral-950 shadow-md shadow-[#D4FF00]/15 scale-[1.01]"
+                ? "bg-[#D4FF00] text-neutral-950 shadow-[0_4px_16px_rgba(212,255,0,0.16)] scale-[1.01]"
                 : "text-neutral-400 hover:text-white",
             )}
           >
@@ -134,7 +134,7 @@ export default function MatchPage() {
             {allCrews.length > 0 && (
               <span
                 className={cn(
-                  "text-[10px] px-1.5 py-0.2 rounded-full font-extrabold",
+                  "num-display text-[11px] px-1.5 py-0.2 rounded-full",
                   activeTab === "crews"
                     ? "bg-neutral-950/20 text-neutral-950"
                     : "bg-white/10 text-neutral-300",
@@ -159,7 +159,7 @@ export default function MatchPage() {
                 <h2 className="text-xs md:text-sm font-black uppercase tracking-widest text-white">
                   Mis Crews
                 </h2>
-                <span className="text-[10px] md:text-xs font-extrabold uppercase text-[#D4FF00] bg-[#D4FF00]/10 px-2 py-0.5 rounded-full border border-[#D4FF00]/20">
+                <span className="text-[10px] md:text-xs font-extrabold uppercase text-[#D4FF00] bg-[#D4FF00]/10 px-2.5 py-0.5 rounded-full">
                   {totalMyCrews} ACTIVOS
                 </span>
               </div>
@@ -167,7 +167,7 @@ export default function MatchPage() {
               <button
                 type="button"
                 onClick={() => setIsCreateModalOpen(true)}
-                className="flex items-center gap-1.5 text-xs font-black uppercase text-neutral-950 bg-[#D4FF00] hover:bg-[#c2eb00] active:scale-95 px-3.5 py-2 rounded-full shadow-md shadow-[#D4FF00]/15 transition-all cursor-pointer"
+                className="flex items-center gap-1.5 text-xs font-black uppercase text-neutral-950 bg-[#D4FF00] hover:bg-[#c2eb00] active:scale-95 px-3.5 py-2 rounded-full shadow-[0_4px_20px_rgba(212,255,0,0.16)] transition-all cursor-pointer"
               >
                 <Plus className="w-4 h-4 stroke-[3]" /> Crear Crew
               </button>
@@ -187,7 +187,7 @@ export default function MatchPage() {
                 <Loader2 className="h-6 w-6 animate-spin text-[#D4FF00]" />
               </div>
             ) : totalMyCrews === 0 ? (
-              <div className="p-8 text-center rounded-3xl bg-[#14171F] border border-white/10 space-y-4 mt-2">
+              <div className="p-8 text-center rounded-3xl bg-[#111114] border-0 space-y-4 mt-2 shadow-xl">
                 <div className="w-14 h-14 rounded-full bg-white/5 mx-auto flex items-center justify-center">
                   <Users className="w-7 h-7 text-neutral-400" />
                 </div>
@@ -202,7 +202,7 @@ export default function MatchPage() {
                 <button
                   type="button"
                   onClick={() => setIsCreateModalOpen(true)}
-                  className="mt-2 py-2.5 px-5 rounded-full bg-[#D4FF00] text-neutral-950 text-xs font-black uppercase tracking-wider inline-flex items-center gap-1.5 shadow-md shadow-[#D4FF00]/15 hover:bg-[#c2eb00] transition-all cursor-pointer"
+                  className="mt-2 py-2.5 px-5 rounded-full bg-[#D4FF00] text-neutral-950 text-xs font-black uppercase tracking-wider inline-flex items-center gap-1.5 shadow-[0_4px_20px_rgba(212,255,0,0.16)] hover:bg-[#c2eb00] transition-all cursor-pointer"
                 >
                   <Plus className="w-4 h-4 stroke-[3]" /> Crear una Crew
                 </button>
@@ -214,17 +214,17 @@ export default function MatchPage() {
                   <Link
                     key={crew.id}
                     href={`/crews/${crew.id}`}
-                    className="flex items-center gap-4 p-4 rounded-3xl bg-[#14171F] border border-white/10 hover:border-[#D4FF00]/40 transition-all group shadow-lg"
+                    className="flex items-center gap-4 p-4 rounded-3xl bg-[#111114] hover:bg-[#16171D] border-0 transition-all group shadow-[0_8px_30px_rgba(0,0,0,0.5)]"
                   >
-                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#D4FF00]/20 to-[#D4FF00]/5 border border-[#D4FF00]/20 flex items-center justify-center shrink-0">
-                      <Flame className="w-7 h-7 text-[#D4FF00]" />
+                    <div className="w-14 h-14 aspect-square rounded-2xl bg-[#D4FF00]/10 flex items-center justify-center shrink-0">
+                      <Flame className="w-7 h-7 text-[#D4FF00] stroke-[1.8] fill-none" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
                         <h3 className="text-sm font-black uppercase tracking-tight text-white group-hover:text-[#D4FF00] transition-colors truncate">
                           {crew.name}
                         </h3>
-                        <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-[#D4FF00]/15 text-[#D4FF00] border border-[#D4FF00]/20 shrink-0">
+                        <span className="text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full bg-[#D4FF00]/15 text-[#D4FF00] shrink-0">
                           Tu Crew
                         </span>
                       </div>
@@ -250,7 +250,7 @@ export default function MatchPage() {
                     <Link
                       key={sq.id}
                       href={`/chat/squad/${sq.id}`}
-                      className="block p-4 rounded-3xl bg-[#14171F] border border-white/10 hover:border-[#D4FF00]/40 transition-all duration-300 shadow-lg group"
+                      className="block p-4 rounded-3xl bg-[#111114] hover:bg-[#16171D] border-0 transition-all duration-300 shadow-[0_8px_30px_rgba(0,0,0,0.5)] group"
                     >
                       <div className="flex items-center gap-4">
                         {(sq.eventImage || event?.cinematicBannerUrl) && (
@@ -260,7 +260,7 @@ export default function MatchPage() {
                             unoptimized
                             src={sq.eventImage || event?.cinematicBannerUrl || ""}
                             alt={sq.eventTitle || event?.title || "Evento"}
-                            className="w-14 h-14 md:w-16 md:h-16 rounded-2xl object-cover border border-white/10 shrink-0"
+                            className="w-14 h-14 md:w-16 md:h-16 aspect-square rounded-2xl object-cover shrink-0 shadow-md"
                           />
                         )}
 
@@ -270,8 +270,8 @@ export default function MatchPage() {
                               {sq.name}
                             </h3>
                             {sq.matchScore != null && (
-                              <span className="text-[9px] md:text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-[#D4FF00]/15 text-[#D4FF00] border border-[#D4FF00]/20 shrink-0">
-                                {sq.matchScore}% Match
+                              <span className="num-display text-[11px] px-2.5 py-0.5 rounded-full bg-[#D4FF00]/15 text-[#D4FF00] shrink-0">
+                                {sq.matchScore}% <span className="tech-label text-[8px] text-[#D4FF00]/80">Match</span>
                               </span>
                             )}
                           </div>
@@ -288,15 +288,15 @@ export default function MatchPage() {
                                   src={u.avatarUrl || undefined}
                                   fallback={u.name || "Integrante"}
                                   size="sm"
-                                  className="ring-2 ring-[#14171F] w-6 h-6 md:w-7 md:h-7"
+                                  className="ring-2 ring-[#111114] w-6 h-6 md:w-7 md:h-7 aspect-square"
                                 />
                               ))}
-                              <span className="text-[10px] md:text-[11px] text-neutral-400 font-bold pl-3">
-                                {sq.members.length} miembros
+                              <span className="tech-label text-neutral-400 pl-3">
+                                <span className="num-display text-xs text-white">{sq.members.length}</span> miembros
                               </span>
                             </div>
 
-                            <span className="text-neutral-400 group-hover:text-white flex items-center gap-1 text-[11px] font-extrabold uppercase transition-colors">
+                            <span className="tech-label text-neutral-400 group-hover:text-white flex items-center gap-1 transition-colors">
                               <MessageSquare className="w-3.5 h-3.5 text-[#D4FF00]" />{" "}
                               <span className="hidden sm:inline">Chat</span> →
                             </span>
@@ -322,8 +322,8 @@ export default function MatchPage() {
                   Crews en el País
                 </h2>
               </div>
-              <span className="text-[10px] font-black uppercase text-neutral-400 bg-white/5 px-2.5 py-1 rounded-full border border-white/10">
-                {allCrews.length} Crews registradas
+              <span className="tech-label text-neutral-400 bg-white/[0.05] px-2.5 py-1 rounded-full">
+                <span className="num-display text-xs text-white">{allCrews.length}</span> Crews registradas
               </span>
             </div>
 
@@ -335,7 +335,7 @@ export default function MatchPage() {
                 value={searchCrewsQuery}
                 onChange={(e) => setSearchCrewsQuery(e.target.value)}
                 placeholder="Buscar crew por nombre o ciudad..."
-                className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-[#14171F] border border-white/10 text-white placeholder-neutral-500 text-xs font-bold focus:outline-none focus:border-[#D4FF00] transition-colors"
+                className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-[#111114] border-0 text-white placeholder-neutral-500 text-xs font-bold focus:outline-none focus:ring-1 focus:ring-[#D4FF00]/60 transition-colors shadow-sm"
               />
             </div>
 
@@ -344,7 +344,7 @@ export default function MatchPage() {
                 <Loader2 className="w-6 h-6 animate-spin text-[#D4FF00]" />
               </div>
             ) : filteredCountryCrews.length === 0 ? (
-              <div className="p-8 text-center rounded-3xl bg-[#14171F] border border-white/10 space-y-3">
+              <div className="p-8 text-center rounded-3xl bg-[#111114] border-0 space-y-3 shadow-xl">
                 <Trophy className="w-8 h-8 text-neutral-500 mx-auto" />
                 <p className="text-sm font-bold text-neutral-300">
                   No se encontraron crews
@@ -364,10 +364,10 @@ export default function MatchPage() {
                     <Link
                       key={crew.id}
                       href={`/crews/${crew.id}`}
-                      className="flex items-center gap-4 p-4 rounded-3xl bg-[#14171F] border border-white/10 hover:border-[#D4FF00]/40 transition-all group shadow-lg"
+                      className="flex items-center gap-4 p-4 rounded-3xl bg-[#111114] hover:bg-[#16171D] border-0 transition-all group shadow-[0_8px_30px_rgba(0,0,0,0.5)]"
                     >
-                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#D4FF00]/20 to-[#D4FF00]/5 border border-[#D4FF00]/20 flex items-center justify-center shrink-0">
-                        <Flame className="w-7 h-7 text-[#D4FF00]" />
+                      <div className="w-14 h-14 aspect-square rounded-2xl bg-[#D4FF00]/10 flex items-center justify-center shrink-0">
+                        <Flame className="w-7 h-7 text-[#D4FF00] stroke-[1.8] fill-none" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
@@ -375,20 +375,20 @@ export default function MatchPage() {
                             {crew.name}
                           </h3>
                           {isMyCrew && (
-                            <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-[#D4FF00]/15 text-[#D4FF00] border border-[#D4FF00]/20 shrink-0">
+                            <span className="tech-label text-[9px] px-2.5 py-0.5 rounded-full bg-[#D4FF00]/15 text-[#D4FF00] shrink-0">
                               Miembro
                             </span>
                           )}
                         </div>
                         <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-                          <span className="text-[10px] text-neutral-400 font-bold flex items-center gap-1">
-                            <Users className="w-3 h-3 text-neutral-500" /> {crew.memberCount} miembros
+                          <span className="tech-label text-neutral-400 flex items-center gap-1">
+                            <Users className="w-3 h-3 text-neutral-500" /> <span className="num-display text-xs text-white">{crew.memberCount}</span> miembros
                           </span>
                           <span className="text-[10px] text-[#D4FF00] font-bold flex items-center gap-1">
-                            <Crown className="w-3 h-3" /> {crew.topSteps.toLocaleString()} pasos top
+                            <Crown className="w-3 h-3" /> <span className="num-display text-xs">{crew.topSteps.toLocaleString()}</span> <span className="tech-label text-[9px] text-[#D4FF00]/80">pasos top</span>
                           </span>
                           {crew.location && (
-                            <span className="text-[10px] text-neutral-400 font-medium flex items-center gap-1">
+                            <span className="tech-label text-neutral-400 flex items-center gap-1">
                               <MapPin className="w-3 h-3 text-neutral-500" /> {crew.location}
                             </span>
                           )}

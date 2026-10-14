@@ -647,7 +647,7 @@ export default function EventsPage() {
                       onChange={(event) =>
                         setDraftFilters((current) => ({ ...current, genre: event.target.value }))
                       }
-                      className="w-full rounded-2xl border border-white/10 bg-[#14171F] px-3 py-2 text-xs font-semibold text-white focus:border-[#D4FF00] focus:outline-none"
+                      className="w-full rounded-2xl border border-white/[0.08] border-t-white/[0.14] bg-[#14171F] px-3 py-2 text-xs font-semibold text-white focus:border-[#D4FF00] focus:outline-none transition-colors"
                     >
                       {genreOptions.map((option) => (
                         <option key={option.id} value={option.id}>
@@ -667,7 +667,7 @@ export default function EventsPage() {
                         setDraftFilters((current) => ({ ...current, location: event.target.value }))
                       }
                       placeholder="Ej. Montevideo, Palermo..."
-                      className="w-full rounded-2xl border border-white/10 bg-[#14171F] px-3 py-2 text-xs font-semibold text-white placeholder-neutral-500 focus:border-[#D4FF00] focus:outline-none"
+                      className="w-full rounded-2xl border border-white/[0.08] border-t-white/[0.14] bg-[#14171F] px-3 py-2 text-xs font-semibold text-white placeholder-neutral-500 focus:border-[#D4FF00] focus:outline-none transition-colors"
                     />
                   </div>
 
@@ -675,7 +675,7 @@ export default function EventsPage() {
                     <legend className="flex items-center gap-1 text-[11px] font-extrabold uppercase tracking-wider text-neutral-400">
                       <Tag className="h-3 w-3 text-[#D4FF00]" /> Tipo de precio
                     </legend>
-                    <div className="flex rounded-2xl border border-white/10 bg-[#14171F] p-1">
+                    <div className="flex rounded-2xl border border-white/[0.06] bg-black/40 p-1">
                       {[
                         { id: "all", label: "Todos" },
                         { id: "free", label: "Gratis" },
@@ -693,7 +693,7 @@ export default function EventsPage() {
                           className={cn(
                             "flex-1 rounded-xl py-1.5 text-xs font-extrabold transition-all cursor-pointer",
                             draftFilters.priceType === option.id
-                              ? "bg-[#D4FF00] text-neutral-950"
+                              ? "bg-[#D4FF00] text-neutral-950 shadow-sm"
                               : "text-neutral-400 hover:text-white",
                           )}
                         >
@@ -714,7 +714,7 @@ export default function EventsPage() {
                         onChange={(event) =>
                           setDraftFilters((current) => ({ ...current, minPrice: event.target.value }))
                         }
-                        className="w-full rounded-2xl border border-white/10 bg-[#14171F] px-3 py-2 text-xs text-white focus:border-[#D4FF00] focus:outline-none"
+                        className="w-full rounded-2xl border border-white/[0.08] border-t-white/[0.14] bg-[#14171F] px-3 py-2 text-xs text-white focus:border-[#D4FF00] focus:outline-none transition-colors"
                       />
                     </label>
                     <label className="space-y-1.5 text-[11px] font-extrabold uppercase tracking-wider text-neutral-400">
@@ -727,7 +727,7 @@ export default function EventsPage() {
                         onChange={(event) =>
                           setDraftFilters((current) => ({ ...current, maxPrice: event.target.value }))
                         }
-                        className="w-full rounded-2xl border border-white/10 bg-[#14171F] px-3 py-2 text-xs text-white focus:border-[#D4FF00] focus:outline-none"
+                        className="w-full rounded-2xl border border-white/[0.08] border-t-white/[0.14] bg-[#14171F] px-3 py-2 text-xs text-white focus:border-[#D4FF00] focus:outline-none transition-colors"
                       />
                     </label>
                   </div>
@@ -741,7 +741,7 @@ export default function EventsPage() {
                         onChange={(event) =>
                           setDraftFilters((current) => ({ ...current, startDate: event.target.value }))
                         }
-                        className="w-full rounded-2xl border border-white/10 bg-[#14171F] px-3 py-2 text-xs text-white focus:border-[#D4FF00] focus:outline-none"
+                        className="w-full rounded-2xl border border-white/[0.08] border-t-white/[0.14] bg-[#14171F] px-3 py-2 text-xs text-white focus:border-[#D4FF00] focus:outline-none transition-colors"
                       />
                     </label>
                     <label className="space-y-1.5 text-[11px] font-extrabold uppercase tracking-wider text-neutral-400">
@@ -752,7 +752,7 @@ export default function EventsPage() {
                         onChange={(event) =>
                           setDraftFilters((current) => ({ ...current, endDate: event.target.value }))
                         }
-                        className="w-full rounded-2xl border border-white/10 bg-[#14171F] px-3 py-2 text-xs text-white focus:border-[#D4FF00] focus:outline-none"
+                        className="w-full rounded-2xl border border-white/[0.08] border-t-white/[0.14] bg-[#14171F] px-3 py-2 text-xs text-white focus:border-[#D4FF00] focus:outline-none transition-colors"
                       />
                     </label>
                   </div>
@@ -790,7 +790,7 @@ export default function EventsPage() {
         <div className="w-full">
           <div
             onClick={() => router.push("/search")}
-            className="w-full bg-[#14171F] border border-white/10 rounded-full px-4 py-3 flex items-center gap-3 text-neutral-400 hover:bg-[#1A1F2B] transition-colors cursor-text shadow-lg"
+            className="w-full bg-[#111114] border-0 rounded-full px-4 py-3 flex items-center gap-3 text-neutral-400 hover:bg-[#16171D] transition-colors cursor-text shadow-md"
           >
             <Sparkles className="w-4 h-4 text-[#D4FF00]" />
             <span className="text-sm font-semibold tracking-wide">
@@ -819,7 +819,7 @@ export default function EventsPage() {
         {!hasActiveChips && !debouncedQuery && !isDateActive && !isGenreActive && featuredEvent && (
           <Link
             href={`/events/${featuredEvent.id}?origin=/events`}
-            className="group relative block w-full rounded-3xl overflow-hidden border border-white/[0.14] shadow-[0_20px_50px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.18)] bg-neutral-950 transition-all duration-300 hover:border-[#D4FF00]/50 cursor-pointer animate-in fade-in"
+            className="group relative block w-full rounded-3xl overflow-hidden border border-white/[0.08] border-t-white/[0.2] shadow-[0_20px_50px_rgba(0,0,0,0.7)] bg-neutral-950 transition-all duration-300 hover:border-white/[0.16] hover:border-t-[#D4FF00]/60 cursor-pointer animate-in fade-in"
           >
             {/* Specular top rim light */}
             <div className="pointer-events-none absolute inset-x-8 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/40 to-transparent z-20 opacity-80" />
@@ -840,14 +840,15 @@ export default function EventsPage() {
 
             {/* Badge Flotante Superior: Destacado / Asistencia */}
             <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
-              <span className="flex items-center gap-1.5 rounded-full bg-gradient-to-b from-white/[0.15] to-black/75 backdrop-blur-xl border border-white/20 px-3 py-1 text-[11px] font-black uppercase tracking-wider text-[#D4FF00] shadow-[inset_0_1px_1px_rgba(255,255,255,0.25)]">
+              <span className="flex items-center gap-1.5 rounded-full bg-black/60 backdrop-blur-xl border border-white/[0.08] border-t-white/[0.16] px-3 py-1 tech-label text-[10px] text-[#D4FF00] shadow-sm">
                 <Flame className="h-3.5 w-3.5 fill-[#D4FF00] text-[#D4FF00]" />
                 Destacado
               </span>
               {featuredEvent.goingCount > 0 && (
-                <span className="flex items-center gap-1.5 rounded-full bg-gradient-to-b from-white/[0.15] to-black/75 backdrop-blur-xl border border-white/20 px-2.5 py-1 text-[10px] font-extrabold uppercase text-neutral-200 shadow-[inset_0_1px_1px_rgba(255,255,255,0.25)]">
+                <span className="flex items-center gap-1.5 rounded-full bg-black/60 backdrop-blur-xl border border-white/[0.08] px-2.5 py-1 text-neutral-200 shadow-sm">
                   <CheckCircle2 className="h-3 w-3 text-[#D4FF00]" />
-                  {featuredEvent.goingCount} confirmados
+                  <span className="num-display text-xs text-white">{featuredEvent.goingCount}</span>
+                  <span className="tech-label text-[9px] text-neutral-300">confirmados</span>
                 </span>
               )}
             </div>
@@ -856,7 +857,7 @@ export default function EventsPage() {
             <div className="absolute inset-x-0 bottom-0 z-10 p-5 sm:p-7 md:p-8 flex flex-col justify-end max-w-3xl space-y-2.5">
               {/* 1. Categoría / Género */}
               {featuredEvent.genre && (
-                <span className="text-xs font-black uppercase tracking-widest text-[#D4FF00]">
+                <span className="tech-label text-xs text-[#D4FF00]">
                   {featuredEvent.genre}
                 </span>
               )}
@@ -891,7 +892,7 @@ export default function EventsPage() {
 
               {/* 4. Call to Action Claro: "Conseguir Entradas" con Flecha interactiva */}
               <div className="pt-2 sm:pt-3 flex items-center gap-3">
-                <div className="inline-flex items-center gap-2 rounded-full bg-gradient-to-b from-[#D4FF00] to-lime-400 px-4 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-black uppercase tracking-wider text-neutral-950 shadow-[0_4px_15px_rgba(212,255,0,0.3)] group-hover:brightness-105 transition-all">
+                <div className="inline-flex items-center gap-2 rounded-full bg-[#D4FF00] px-4 py-2 sm:px-5 sm:py-2.5 tech-label text-neutral-950 shadow-[0_10px_35px_rgba(212,255,0,0.16)] group-hover:brightness-105 transition-all">
                   <span>Conseguir Entradas</span>
                   <ArrowRight className="h-4 w-4 stroke-[2.5] transition-transform duration-300 group-hover:translate-x-1" />
                 </div>
@@ -901,7 +902,7 @@ export default function EventsPage() {
         )}
 
         {/* Barra de Filtros y Selector de Vistas (Organizado en 2 filas) */}
-        <div className="relative z-20 flex flex-col gap-2.5 py-2.5 px-3 md:px-4 rounded-2xl bg-[#14171F]/80 backdrop-blur-xl border border-white/10 shadow-lg shadow-black/30 transition-all">
+        <div className="relative z-20 flex flex-col gap-2.5 py-2.5 px-3 md:px-4 rounded-3xl bg-[#111114] border-0 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.6)] transition-all">
           {/* Fila 1: Filtros (Únicamente ¿Cuándo?, Categorías y Botón de Filtros) */}
           <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
             <div className="flex items-center gap-2 flex-wrap">
@@ -909,10 +910,10 @@ export default function EventsPage() {
               <div ref={whenDropdownRef} className="relative shrink-0">
                 <div
                   className={cn(
-                    "flex items-center rounded-full border transition-all select-none",
+                    "flex items-center rounded-full transition-all select-none",
                     isDateActive
-                      ? "border-[#D4FF00]/50 bg-[#D4FF00]/15 text-[#D4FF00] shadow-sm shadow-[#D4FF00]/10"
-                      : "border-white/10 bg-[#14171F] text-neutral-300 hover:border-white/20 hover:text-white",
+                      ? "bg-[#D4FF00]/15 text-[#D4FF00] shadow-[0_0_15px_rgba(212,255,0,0.15)] border-0"
+                      : "border border-white/[0.06] border-t-white/[0.12] bg-white/[0.04] text-neutral-300 hover:border-white/[0.14] hover:text-white hover:bg-white/[0.07]",
                   )}
                 >
                   <button
@@ -1055,7 +1056,7 @@ export default function EventsPage() {
 
                 {/* Menú Desplegable flotante de Categorías */}
                 {isGenreOpen && (
-                  <div className="absolute left-0 top-full mt-2 w-52 rounded-2xl border border-white/10 bg-[#14171F] p-1.5 shadow-2xl shadow-black/90 z-50 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-xl">
+                  <div className="absolute left-0 top-full mt-2 w-52 rounded-2xl border border-white/[0.08] border-t-white/[0.16] bg-[#14171F]/95 p-1.5 shadow-2xl shadow-black/80 z-50 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-xl">
                     <div className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-neutral-400">
                       Categoría
                     </div>
@@ -1084,7 +1085,7 @@ export default function EventsPage() {
 
                     {isGenreActive && (
                       <>
-                        <div className="my-1 border-t border-white/10" />
+                        <div className="my-1 border-t border-white/[0.06]" />
                         <button
                           type="button"
                           onClick={clearGenreFilter}
@@ -1107,10 +1108,10 @@ export default function EventsPage() {
               aria-label="Filtros avanzados"
               title="Filtros avanzados"
               className={cn(
-                "shrink-0 flex items-center justify-center gap-1.5 rounded-full border p-2 text-xs font-black transition-all cursor-pointer select-none",
+                "shrink-0 flex items-center justify-center gap-1.5 rounded-full p-2 text-xs font-black transition-all cursor-pointer select-none",
                 showFilters || activeFilters > 0
-                  ? "border-[#D4FF00] bg-[#D4FF00] text-neutral-950 shadow-sm shadow-[#D4FF00]/20"
-                  : "border-white/10 bg-white/5 text-neutral-300 hover:bg-white/10 hover:text-white",
+                  ? "bg-[#D4FF00] text-neutral-950 shadow-md shadow-[#D4FF00]/25"
+                  : "border border-white/[0.08] border-t-white/[0.14] bg-white/[0.04] text-neutral-300 hover:bg-white/[0.08] hover:text-white",
               )}
             >
               <SlidersHorizontal className="h-3.5 w-3.5" />
@@ -1124,7 +1125,7 @@ export default function EventsPage() {
 
           {/* Fila 2: Elección del Layout (Grilla / Agenda / Calendario) */}
           <div className="flex items-center justify-start sm:justify-end pt-2 border-t border-white/5">
-            <div className="flex items-center rounded-full border border-white/10 bg-[#0B0D10] p-0.5 shrink-0">
+            <div className="flex items-center rounded-full border-0 bg-black/60 p-0.5 shrink-0">
               <button
                 type="button"
                 onClick={() => setViewMode("grid")}
@@ -1133,12 +1134,12 @@ export default function EventsPage() {
                 className={cn(
                   "flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold transition-all cursor-pointer",
                   viewMode === "grid"
-                    ? "bg-[#D4FF00] text-neutral-950 shadow-sm"
+                    ? "bg-[#D4FF00] text-neutral-950 shadow-[0_4px_16px_rgba(212,255,0,0.16)]"
                     : "text-neutral-400 hover:text-white"
                 )}
               >
                 <LayoutGrid className="h-3.5 w-3.5" />
-                <span className="text-[10px] font-black uppercase">Grilla</span>
+                <span className="tech-label text-[10px]">Grilla</span>
               </button>
               <button
                 type="button"
@@ -1148,12 +1149,12 @@ export default function EventsPage() {
                 className={cn(
                   "flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold transition-all cursor-pointer",
                   viewMode === "list"
-                    ? "bg-[#D4FF00] text-neutral-950 shadow-sm"
+                    ? "bg-[#D4FF00] text-neutral-950 shadow-[0_4px_16px_rgba(212,255,0,0.16)]"
                     : "text-neutral-400 hover:text-white"
                 )}
               >
                 <List className="h-3.5 w-3.5" />
-                <span className="text-[10px] font-black uppercase">Agenda</span>
+                <span className="tech-label text-[10px]">Agenda</span>
               </button>
               <button
                 type="button"
@@ -1163,12 +1164,12 @@ export default function EventsPage() {
                 className={cn(
                   "flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold transition-all cursor-pointer",
                   viewMode === "calendar"
-                    ? "bg-[#D4FF00] text-neutral-950 shadow-sm"
+                    ? "bg-[#D4FF00] text-neutral-950 shadow-[0_4px_16px_rgba(212,255,0,0.16)]"
                     : "text-neutral-400 hover:text-white"
                 )}
               >
                 <Calendar className="h-3.5 w-3.5" />
-                <span className="text-[10px] font-black uppercase">Calendario</span>
+                <span className="tech-label text-[10px]">Calendario</span>
               </button>
             </div>
           </div>
@@ -1181,7 +1182,7 @@ export default function EventsPage() {
               Filtros:
             </span>
             {appliedFilters.location && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-[#14171F] px-2.5 py-0.5 text-[11px] font-semibold text-neutral-200">
+              <span className="inline-flex items-center gap-1 rounded-full border border-white/[0.08] border-t-white/[0.14] bg-[#14171F] px-2.5 py-0.5 text-[11px] font-semibold text-neutral-200 shadow-sm">
                 Zona: {appliedFilters.location}
                 <button
                   type="button"
@@ -1194,7 +1195,7 @@ export default function EventsPage() {
               </span>
             )}
             {appliedFilters.priceType !== "all" && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-[#14171F] px-2.5 py-0.5 text-[11px] font-semibold text-neutral-200">
+              <span className="inline-flex items-center gap-1 rounded-full border border-white/[0.08] border-t-white/[0.14] bg-[#14171F] px-2.5 py-0.5 text-[11px] font-semibold text-neutral-200 shadow-sm">
                 {appliedFilters.priceType === "free" ? "Gratis" : "De pago"}
                 <button
                   type="button"
@@ -1207,7 +1208,7 @@ export default function EventsPage() {
               </span>
             )}
             {(appliedFilters.minPrice || appliedFilters.maxPrice) && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-[#14171F] px-2.5 py-0.5 text-[11px] font-semibold text-neutral-200">
+              <span className="inline-flex items-center gap-1 rounded-full border border-white/[0.08] border-t-white/[0.14] bg-[#14171F] px-2.5 py-0.5 text-[11px] font-semibold text-neutral-200 shadow-sm">
                 ${appliedFilters.minPrice || "0"} - ${appliedFilters.maxPrice || "∞"}
                 <button
                   type="button"
@@ -1220,7 +1221,7 @@ export default function EventsPage() {
               </span>
             )}
             {sortBy === "popular" && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-[#D4FF00]/40 bg-[#D4FF00]/15 px-2.5 py-0.5 text-[11px] font-semibold text-[#D4FF00]">
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#D4FF00]/15 px-2.5 py-0.5 text-[11px] font-semibold text-[#D4FF00]">
                 <Flame className="h-3 w-3 fill-[#D4FF00]" />
                 Más votados
                 <button
@@ -1234,7 +1235,7 @@ export default function EventsPage() {
               </span>
             )}
             {debouncedQuery && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-[#D4FF00]/30 bg-[#D4FF00]/10 px-2.5 py-0.5 text-[11px] font-semibold text-[#D4FF00]">
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#D4FF00]/15 px-2.5 py-0.5 text-[11px] font-semibold text-[#D4FF00]">
                 "{debouncedQuery}"
                 <button
                   type="button"
@@ -1259,12 +1260,13 @@ export default function EventsPage() {
         {/* Subheader: Próximos eventos + total contador */}
         <div className="flex items-center justify-between gap-3 pt-1">
           <div className="flex items-center gap-2 sm:gap-3">
-            <h2 className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-neutral-300">
+            <h2 className="flex items-center gap-2 tech-label text-xs text-neutral-300">
               <Sparkles className="h-4 w-4 text-[#D4FF00]" />
               {sortBy === "popular" ? "Mayor Convocatoria" : "Próximos eventos"}
             </h2>
-            <span className="rounded-full border border-[#D4FF00]/20 bg-[#D4FF00]/10 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-[#D4FF00]">
-              {hasLoaded ? `${total} eventos` : "Cargando..."}
+            <span className="flex items-center gap-1.5 rounded-full bg-[#D4FF00]/10 px-2.5 py-1">
+              <span className="num-display text-xs text-white">{hasLoaded ? total : "…"}</span>
+              <span className="tech-label text-[9px] text-[#D4FF00]">{hasLoaded ? "eventos" : "cargando"}</span>
             </span>
           </div>
         </div>
@@ -1323,7 +1325,7 @@ export default function EventsPage() {
               {chronologicalGroups.map((group) => (
                 <div key={group.id} className="space-y-3">
                   {/* Encabezado Cronológico de Grupo */}
-                  <div className="flex items-center justify-between border-b border-white/10 pb-2 pt-1">
+                  <div className="flex items-center justify-between border-b border-white/[0.06] pb-2 pt-1">
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-[#D4FF00]" />
                       <span className="text-xs font-black uppercase tracking-widest text-neutral-200">
@@ -1335,8 +1337,9 @@ export default function EventsPage() {
                         </span>
                       )}
                     </div>
-                    <span className="rounded-full bg-white/5 border border-white/10 px-2.5 py-0.5 text-[10px] font-bold text-neutral-400">
-                      {group.events.length} {group.events.length === 1 ? "evento" : "eventos"}
+                    <span className="rounded-full bg-white/[0.04] px-2.5 py-0.5 flex items-center gap-1">
+                      <span className="num-display text-xs text-white">{group.events.length}</span>
+                      <span className="tech-label text-[9px] text-neutral-400">{group.events.length === 1 ? "evento" : "eventos"}</span>
                     </span>
                   </div>
 

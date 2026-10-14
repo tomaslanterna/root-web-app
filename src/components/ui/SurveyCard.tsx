@@ -42,7 +42,7 @@ export function SurveyCard({ surveyEvent }: SurveyCardProps) {
         <div className="space-y-1.5 flex-1">
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 mb-1 w-fit">
             <Star className="w-3.5 h-3.5 text-[#D4FF00] fill-[#D4FF00]" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-[#D4FF00]">Feedback</span>
+            <span className="tech-label text-[10px] text-[#D4FF00]">Feedback</span>
           </div>
           <h3 className="text-lg md:text-xl font-black italic tracking-tight text-white leading-tight">
             Queremos saber tu opinión
@@ -51,7 +51,7 @@ export function SurveyCard({ surveyEvent }: SurveyCardProps) {
             ¿Cómo te fue en <span className="font-bold text-white">{surveyEvent.title}</span>? Tu reseña ayuda a la comunidad.
           </p>
         </div>
-        <button className="whitespace-nowrap w-full md:w-auto px-6 py-2.5 rounded-full bg-white text-black font-black uppercase tracking-wider text-xs shadow-lg hover:bg-neutral-200 transition-colors">
+        <button className="whitespace-nowrap w-full md:w-auto px-6 py-2.5 rounded-full bg-white text-black tech-label text-xs shadow-lg hover:bg-neutral-200 transition-colors">
           Evaluar
         </button>
       </div>

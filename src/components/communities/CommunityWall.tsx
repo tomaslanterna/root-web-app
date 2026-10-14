@@ -98,11 +98,12 @@ export function CommunityWall({
 
       {/* Feed Subheader */}
       <div className="flex items-center justify-between px-1">
-        <h2 className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-neutral-300">
+        <h2 className="flex items-center gap-2 tech-label text-xs text-neutral-300">
           <Megaphone className="h-4 w-4 text-[#D4FF00]" /> Muro de Publicaciones
         </h2>
-        <span className="text-[10px] font-black uppercase tracking-wider text-[#D4FF00]">
-          {meta.total} {meta.total === 1 ? "publicación" : "publicaciones"}
+        <span className="flex items-center gap-1.5 rounded-full bg-[#D4FF00]/10 px-2.5 py-1">
+          <span className="num-display text-xs text-white">{meta.total}</span>
+          <span className="tech-label text-[9px] text-[#D4FF00]">{meta.total === 1 ? "publicación" : "publicaciones"}</span>
         </span>
       </div>
 
@@ -132,7 +133,7 @@ export function CommunityWall({
           <Loader2 className="h-7 w-7 animate-spin text-[#D4FF00]" />
         </div>
       ) : announcements.length === 0 ? (
-        <div className="rounded-3xl border border-white/10 bg-[#14171F] p-12 text-center shadow-xl">
+        <div className="rounded-3xl border-0 bg-[#111114] p-12 text-center shadow-xl">
           <Megaphone className="mx-auto mb-3 h-10 w-10 text-neutral-600" />
           <h3 className="text-sm font-black uppercase tracking-wider text-white">
             El muro está vacío
@@ -153,7 +154,7 @@ export function CommunityWall({
             return (
               <article
                 key={post.id}
-                className="overflow-hidden rounded-2xl sm:rounded-3xl border border-white/10 bg-[#14171F] shadow-xl transition-all"
+                className="overflow-hidden rounded-2xl sm:rounded-3xl border-0 bg-[#111114] shadow-[0_12px_32px_-12px_rgba(0,0,0,0.6)] hover:bg-[#16171D] transition-all"
               >
                 {/* Header Image if present */}
                 {post.headerImageUrl && (
@@ -166,13 +167,13 @@ export function CommunityWall({
                       sizes="(min-width: 768px) 768px, 100vw"
                       className="object-cover"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#14171F] via-transparent to-transparent opacity-80" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#111114] via-transparent to-transparent opacity-80" />
                   </div>
                 )}
 
                 <div className="p-3.5 sm:p-5 space-y-3">
                   {/* Post Meta & Pin/Report options */}
-                  <div className="flex items-center justify-between gap-2 border-b border-white/5 pb-2.5">
+                  <div className="flex items-center justify-between gap-2 border-b border-white/[0.06] pb-2.5">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <Avatar
                         src={post.authorAvatar}
@@ -189,7 +190,7 @@ export function CommunityWall({
                             RRPP
                           </span>
                         </div>
-                        <p className="text-[9px] font-bold uppercase tracking-wider text-neutral-500">
+                        <p className="tech-mono text-[9px] text-neutral-500">
                           {new Date(post.timestamp).toLocaleDateString("es-AR", {
                             day: "numeric",
                             month: "short",
@@ -217,7 +218,7 @@ export function CommunityWall({
                               pinned: !post.isPinned,
                             }).catch(() => undefined)
                           }
-                          className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-bold text-neutral-300 transition-colors hover:border-[#D4FF00]/40 hover:text-white"
+                          className="rounded-lg border-0 bg-white/5 px-2.5 py-1 text-[10px] font-bold text-neutral-300 transition-colors hover:bg-white/10 hover:text-white"
                         >
                           {post.isPinned ? "Desfijar" : "Fijar"}
                         </button>
@@ -255,7 +256,7 @@ export function CommunityWall({
                     <div className="pt-1">
                       <Link
                         href={`/events/${post.eventId}`}
-                        className="inline-flex items-center gap-2 rounded-2xl border border-[#D4FF00]/30 bg-[#D4FF00]/10 px-3.5 py-2 text-xs font-black uppercase tracking-wider text-[#D4FF00] transition-colors hover:bg-[#D4FF00]/20"
+                        className="inline-flex items-center gap-2 rounded-xl border-0 bg-[#D4FF00]/15 px-3.5 py-2 text-xs font-black uppercase tracking-wider text-[#D4FF00] shadow-sm transition-colors hover:bg-[#D4FF00]/25"
                       >
                         <CalendarDays className="h-4 w-4" />
                         Ver evento vinculado
@@ -264,7 +265,7 @@ export function CommunityWall({
                   )}
 
                   {/* Actions Bar (Likes & Comments toggle) */}
-                  <div className="flex items-center justify-between border-t border-white/5 pt-3">
+                  <div className="flex items-center justify-between border-t border-white/[0.06] pt-3">
                     <div className="flex items-center gap-2">
                       {/* Like button */}
                       <button
@@ -283,7 +284,7 @@ export function CommunityWall({
                             isLiked && "fill-current scale-110",
                           )}
                         />
-                        <span>{likesCount}</span>
+                        <span className="num-display text-xs">{likesCount}</span>
                       </button>
 
                       {/* Comment toggle button */}
@@ -304,7 +305,7 @@ export function CommunityWall({
 
                     <Link
                       href={`/posts/${post.id}?origin=communities`}
-                      className="text-[10px] font-black uppercase tracking-wider text-neutral-500 hover:text-[#D4FF00]"
+                      className="tech-label text-[10px] text-neutral-500 hover:text-[#D4FF00]"
                     >
                       Ver detalle
                     </Link>
@@ -312,7 +313,7 @@ export function CommunityWall({
 
                   {/* Collapsible Comments Section */}
                   {isCommentsOpen && (
-                    <div className="mt-4 rounded-2xl border border-white/10 bg-[#0E1118] p-4 sm:p-5">
+                    <div className="mt-4 rounded-2xl border-0 bg-black/40 p-4 sm:p-5 shadow-inner">
                       <CommentSection
                         targetId={post.id}
                         endpointType="posts"

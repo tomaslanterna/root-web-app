@@ -19,7 +19,7 @@ export function CommunityAnnouncementCard({
   onPin,
 }: CommunityAnnouncementCardProps) {
   return (
-    <article className="overflow-hidden rounded-3xl border border-white/10 bg-[#14171F] shadow-xl">
+    <article className="overflow-hidden rounded-3xl border-0 bg-[#111114] shadow-[0_12px_32px_-12px_rgba(0,0,0,0.6)] hover:bg-[#16171D] transition-all">
       {announcement.headerImageUrl && (
         <div className="relative h-48 w-full">
           <Image
@@ -34,8 +34,8 @@ export function CommunityAnnouncementCard({
       )}
       <div className="space-y-4 p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          {announcement.isPinned && <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase text-[#D4FF00]"><Pin className="h-3.5 w-3.5" /> Fijado</span>}
-          {canPin && <button type="button" disabled={isPinning} onClick={onPin} className="text-[10px] font-bold text-[#D4FF00] disabled:opacity-50">{announcement.isPinned ? "Desfijar" : "Fijar anuncio"}</button>}
+          {announcement.isPinned && <span className="inline-flex items-center gap-1 tech-label text-[10px] text-[#D4FF00]"><Pin className="h-3.5 w-3.5" /> Fijado</span>}
+          {canPin && <button type="button" disabled={isPinning} onClick={onPin} className="tech-label text-[10px] text-[#D4FF00] disabled:opacity-50">{announcement.isPinned ? "Desfijar" : "Fijar anuncio"}</button>}
           {announcement.communityId && <ReportContentAction communityId={announcement.communityId} targetType="post" targetId={announcement.id} />}
         </div>
         <div className="flex items-center gap-3">
@@ -48,7 +48,7 @@ export function CommunityAnnouncementCard({
             <p className="truncate text-xs font-black uppercase tracking-wider text-white">
               {announcement.authorName || "Equipo de la comunidad"}
             </p>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">
+            <p className="tech-mono text-[10px] text-neutral-500">
               {new Date(announcement.timestamp).toLocaleString("es-UY", {
                 day: "numeric",
                 month: "short",
@@ -72,11 +72,11 @@ export function CommunityAnnouncementCard({
           )}
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/5 pt-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] pt-3">
           {announcement.eventId ? (
             <Link
               href={`/events/${announcement.eventId}`}
-              className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-[#D4FF00]"
+              className="inline-flex items-center gap-1.5 tech-label text-[10px] text-[#D4FF00]"
             >
               <CalendarDays className="h-3.5 w-3.5" /> Ver evento
             </Link>
@@ -85,7 +85,7 @@ export function CommunityAnnouncementCard({
           )}
           <Link
             href={`/posts/${announcement.id}?origin=communities`}
-            className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-neutral-400 hover:text-white"
+            className="inline-flex items-center gap-1 tech-label text-[10px] text-neutral-400 hover:text-white"
           >
             Ver publicación <ChevronRight className="h-3.5 w-3.5" />
           </Link>

@@ -95,10 +95,18 @@ export function ChatConversation({ chatId }: { chatId: string }) {
         </Link>
         <Avatar src={otherUser?.avatarUrl} fallback={otherUser?.name || "U"} size="sm" className="ring-2 ring-[#D4FF00]/40" />
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-black uppercase tracking-wider text-white truncate">{chatInfo.type === "CREWS" ? chatInfo.name || `Crew · ${chatInfo.participants?.length ?? 0} integrantes` : otherUser?.name}</p>
-          <span className="text-[10px] text-[#D4FF00] font-bold uppercase">{connectionState === "connected" ? "Conectado" : "Reconectando…"}</span>
+          <p className="text-xs font-black uppercase tracking-wider text-white truncate">
+            {chatInfo.type === "CREWS" ? (
+              <span>
+                Crew · <span className="num-display text-xs text-[#D4FF00]">{chatInfo.participants?.length ?? 0}</span> <span className="tech-label text-[9px] text-neutral-400">integrantes</span>
+              </span>
+            ) : (
+              otherUser?.name
+            )}
+          </p>
+          <span className="tech-label text-[9px] text-[#D4FF00]">{connectionState === "connected" ? "Conectado" : "Reconectando…"}</span>
         </div>
-        {chatInfo.event_id && <Link href={`/events/${chatInfo.event_id}`} className="shrink-0 text-[10px] font-bold text-[#D4FF00] uppercase">Ver evento</Link>}
+        {chatInfo.event_id && <Link href={`/events/${chatInfo.event_id}`} className="shrink-0 tech-label text-[10px] text-[#D4FF00]">Ver evento</Link>}
       </header>
 
       {/* Chat Area */}
@@ -154,7 +162,7 @@ export function ChatConversation({ chatId }: { chatId: string }) {
                 </div>
                 {msg.status === "failed" && <button onClick={() => void retryMessage(msg.id).catch(() => undefined)} className="mt-1 text-[10px] text-red-300">No se envió. Reintentar</button>}
                 {!hasNextFromSameSender && (
-                  <span className="flex items-center gap-1 text-[9px] font-bold text-neutral-500 mt-1 mx-1 uppercase tracking-wider">
+                  <span className="flex items-center gap-1 tech-mono text-[9px] text-neutral-500 mt-1 mx-1">
                     {formatTime(msg.timestamp)}
                     {isMe && (
                       <span

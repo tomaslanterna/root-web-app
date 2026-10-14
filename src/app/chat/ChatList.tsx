@@ -116,13 +116,13 @@ export function ChatList({ className, embedded = false, onBack, backButtonRef }:
                   <Link
                     key={sq.id}
                     href={`/chat/squad/${sq.id}`}
-                    className="p-3.5 rounded-3xl bg-[#14171F] border border-white/10 flex items-center gap-3.5"
+                    className="p-3.5 rounded-3xl bg-[#111114] hover:bg-[#16171D] border-0 flex items-center gap-3.5 transition-all shadow-[0_4px_20px_rgba(0,0,0,0.5)]"
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-black uppercase truncate">
+                      <p className="text-xs font-black uppercase text-white tracking-wider truncate">
                         {sq.name}
                       </p>
-                      <p className="text-[10px] text-neutral-400 truncate">
+                      <p className="text-[10px] text-neutral-400 font-semibold truncate">
                         {sq.eventTitle}
                       </p>
                     </div>
@@ -168,13 +168,13 @@ export function ChatList({ className, embedded = false, onBack, backButtonRef }:
                     <Link
                       key={chat.id}
                       href={`/chat/${chat.id}`}
-                      className="p-3.5 rounded-3xl bg-[#14171F] hover:bg-[#1f2431] border border-white/10 flex items-center gap-4 transition-all"
+                      className="p-3.5 rounded-3xl bg-[#111114] hover:bg-[#16171D] border-0 flex items-center gap-4 transition-all shadow-[0_4px_20px_rgba(0,0,0,0.5)]"
                     >
-                      <div className="relative">
+                      <div className="relative shrink-0 aspect-square">
                         <Avatar
                           src={otherUser?.avatarUrl}
                           fallback={otherUser?.name || "U"}
-                          className="ring-2 ring-[#D4FF00]/40"
+                          className="ring-2 ring-[#D4FF00]/40 aspect-square"
                         />
                       </div>
                       <div className="flex-1 overflow-hidden">
@@ -187,7 +187,7 @@ export function ChatList({ className, embedded = false, onBack, backButtonRef }:
                                 } integrantes`
                               : otherUser?.name || "Usuario"}
                           </p>
-                          <span className="text-[10px] font-bold text-neutral-400">
+                          <span className="tech-mono text-[10px] text-neutral-400">
                             {new Date(chat.updated_at).toLocaleTimeString([], {
                               hour: "2-digit",
                               minute: "2-digit",
@@ -199,7 +199,7 @@ export function ChatList({ className, embedded = false, onBack, backButtonRef }:
                             "Haz clic para iniciar la conversación"}
                         </p>
                         {!!chat.unread_count && (
-                          <span className="mt-1 inline-flex rounded-full bg-[#D4FF00] px-2 text-[10px] font-bold text-black">
+                          <span className="mt-1 inline-flex rounded-full bg-[#D4FF00] px-2 py-0.5 num-display text-[10px] text-black shadow-[0_2px_8px_rgba(212,255,0,0.2)]">
                             {chat.unread_count}
                           </span>
                         )}
@@ -215,9 +215,9 @@ export function ChatList({ className, embedded = false, onBack, backButtonRef }:
       {/* New Chat Search Modal */}
       {isSearchModalOpen && (
         <div role="dialog" aria-modal="true" aria-label="Nuevo chat" className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-[#14171F] rounded-3xl border border-white/10 w-full max-w-sm p-4 space-y-4">
+          <div className="bg-[#111114] rounded-3xl border-0 shadow-[0_16px_50px_rgba(0,0,0,0.8)] w-full max-w-sm p-4 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-black uppercase tracking-wider">
+              <h3 className="text-sm font-black uppercase tracking-wider text-white">
                 Nuevo Chat
               </h3>
               <button
@@ -234,7 +234,7 @@ export function ChatList({ className, embedded = false, onBack, backButtonRef }:
                 placeholder="Buscar por nombre o @usuario..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#D4FF00]/50"
+                className="w-full bg-black/40 border-0 rounded-xl px-4 py-2.5 text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:ring-1 focus:ring-[#D4FF00]/50"
               />
               <button
                 type="submit"
@@ -260,9 +260,9 @@ export function ChatList({ className, embedded = false, onBack, backButtonRef }:
                   className="flex items-center justify-between p-2 rounded-xl hover:bg-white/5"
                 >
                   <div className="flex items-center gap-3">
-                    <Avatar src={u.avatarUrl} fallback={u.name} size="sm" />
+                    <Avatar src={u.avatarUrl} fallback={u.name} size="sm" className="aspect-square" />
                     <div>
-                      <p className="text-xs font-bold">{u.name}</p>
+                      <p className="text-xs font-bold text-white">{u.name}</p>
                       <p className="text-[10px] text-neutral-400">
                         @{u.username}
                       </p>
@@ -270,7 +270,7 @@ export function ChatList({ className, embedded = false, onBack, backButtonRef }:
                   </div>
                   <button
                     onClick={() => handleStartChat(u.id)}
-                    className="px-3 py-1.5 rounded-full bg-[#D4FF00] text-black text-[10px] font-black uppercase"
+                    className="px-3.5 py-1.5 rounded-full bg-[#D4FF00] text-black text-[10px] font-black uppercase shadow-[0_4px_16px_rgba(212,255,0,0.16)]"
                   >
                     Chatear
                   </button>

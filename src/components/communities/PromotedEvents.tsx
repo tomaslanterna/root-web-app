@@ -64,7 +64,7 @@ export function PromotedEvents({
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 px-1">
         <div>
-          <h2 className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-neutral-300">
+          <h2 className="flex items-center gap-2 tech-label text-xs text-neutral-300">
             <CalendarDays className="h-4 w-4 text-[#D4FF00]" /> Eventos Promocionados
           </h2>
           <p className="mt-0.5 text-[11px] text-neutral-500">
@@ -73,8 +73,9 @@ export function PromotedEvents({
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="rounded-full bg-[#D4FF00]/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-[#D4FF00]">
-            {promotedEvents.length} {promotedEvents.length === 1 ? "evento" : "eventos"}
+          <span className="flex items-center gap-1.5 rounded-full bg-[#D4FF00]/10 px-2.5 py-1">
+            <span className="num-display text-xs text-white">{promotedEvents.length}</span>
+            <span className="tech-label text-[9px] text-[#D4FF00]">{promotedEvents.length === 1 ? "evento" : "eventos"}</span>
           </span>
 
           {isRRPP && (
@@ -103,7 +104,7 @@ export function PromotedEvents({
           <Loader2 className="h-7 w-7 animate-spin text-[#D4FF00]" />
         </div>
       ) : promotedEvents.length === 0 ? (
-        <div className="rounded-3xl border border-white/10 bg-[#14171F] p-12 text-center shadow-xl">
+        <div className="rounded-3xl border-0 bg-[#111114] p-12 text-center shadow-xl">
           <Music className="mx-auto mb-3 h-10 w-10 text-neutral-600" />
           <h3 className="text-sm font-black uppercase tracking-wider text-white">
             Sin eventos promocionados
@@ -140,7 +141,7 @@ export function PromotedEvents({
             return (
               <div
                 key={event.id}
-                className="group relative flex flex-col overflow-hidden rounded-2xl sm:rounded-3xl border border-white/10 bg-[#14171F] shadow-xl transition-all duration-300 hover:border-white/20 hover:shadow-2xl"
+                className="group relative flex flex-col overflow-hidden rounded-2xl sm:rounded-3xl border-0 bg-[#111114] shadow-[0_12px_32px_-12px_rgba(0,0,0,0.6)] hover:bg-[#16171D] transition-all duration-300 hover:shadow-2xl"
               >
                 {/* Banner with date badge */}
                 <div className="relative h-36 w-full overflow-hidden bg-neutral-900 sm:h-48">
@@ -159,21 +160,21 @@ export function PromotedEvents({
                     </div>
                   )}
 
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#14171F] via-black/20 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#111114] via-black/20 to-transparent" />
 
                   {/* Date badge */}
-                  <div className="absolute left-3 top-3 sm:left-4 sm:top-4 flex flex-col items-center justify-center rounded-xl sm:rounded-2xl border border-white/20 bg-black/60 px-2.5 py-1 sm:px-3 sm:py-1.5 shadow-lg backdrop-blur-md">
-                    <span className="text-sm sm:text-base font-black leading-none text-[#D4FF00]">
+                  <div className="absolute left-3 top-3 sm:left-4 sm:top-4 flex flex-col items-center justify-center rounded-xl sm:rounded-2xl border-0 bg-black/75 px-2.5 py-1 sm:px-3 sm:py-1.5 shadow-md backdrop-blur-md">
+                    <span className="num-display text-sm sm:text-base leading-none text-[#D4FF00]">
                       {formattedDay}
                     </span>
-                    <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-white">
+                    <span className="tech-label text-[8px] sm:text-[9px] text-white">
                       {formattedMonth}
                     </span>
                   </div>
 
                   {/* Genre pill */}
                   {event.genre && (
-                    <span className="absolute right-3 top-3 sm:right-4 sm:top-4 rounded-full border border-white/15 bg-black/60 px-2.5 py-0.5 text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-neutral-200 backdrop-blur-md">
+                    <span className="absolute right-3 top-3 sm:right-4 sm:top-4 rounded-full border-0 bg-black/75 px-2.5 py-0.5 tech-label text-[8px] sm:text-[9px] text-neutral-200 backdrop-blur-md shadow-sm">
                       {event.genre}
                     </span>
                   )}
@@ -211,16 +212,16 @@ export function PromotedEvents({
                   </div>
 
                   {/* Card Footer: Price & Link button */}
-                  <div className="mt-3.5 flex items-center justify-between border-t border-white/5 pt-2.5">
+                  <div className="mt-3.5 flex items-center justify-between border-t border-white/[0.06] pt-2.5">
                     <div>
                       {event.isFree ? (
                         <span className="rounded-md bg-emerald-500/15 px-2 py-0.5 text-[10px] sm:text-xs font-black uppercase text-emerald-400">
                           Gratis
                         </span>
                       ) : event.price ? (
-                        <div className="text-[11px] sm:text-xs">
-                          <span className="text-neutral-500 font-bold">Desde </span>
-                          <span className="font-black text-white">
+                        <div className="text-[11px] sm:text-xs flex items-baseline gap-1">
+                          <span className="tech-label text-[9px] text-neutral-500">Desde</span>
+                          <span className="num-display text-sm text-white">
                             ${event.price.toLocaleString("es-AR")}
                           </span>
                         </div>
@@ -237,7 +238,7 @@ export function PromotedEvents({
                           type="button"
                           onClick={() => void handleRemoveSingle(event.id)}
                           aria-label="Quitar evento de la comunidad"
-                          className="rounded-xl border border-white/10 p-2 text-neutral-400 transition-colors hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-400"
+                          className="rounded-xl border-0 bg-white/5 p-2 text-neutral-400 shadow-sm transition-colors hover:bg-red-500/15 hover:text-red-400"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>

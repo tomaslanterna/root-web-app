@@ -47,11 +47,25 @@
 }
 .profile-modern :is(button, input, textarea, select) { font-family: inherit; }
 
-.data-display {
+.data-display,
+.num-display {
   font-family: var(--font-geist-sans), sans-serif;
   font-style: italic;
   font-weight: 900;
   letter-spacing: -0.05em;
+}
+
+.tech-label {
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+.tech-mono {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-feature-settings: "tnum";
+  letter-spacing: 0.05em;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -173,40 +187,53 @@ input, textarea, [contenteditable="true"] {
   }
 
   .glass-obsidian {
-    background: rgba(20, 23, 31, 0.82);
+    background: rgba(18, 21, 29, 0.85);
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-top: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: 0 16px 36px -12px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
 
   .glass-header-obsidian {
-    background: rgba(11, 13, 16, 0.85);
-    backdrop-filter: blur(16px) saturate(180%);
-    -webkit-backdrop-filter: blur(16px) saturate(180%);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(11, 13, 16, 0.82);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   }
 
   /* Liquid Glass System (Apple VisionOS / Linear styling) */
   .liquid-glass-dock {
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.09) 0%, rgba(10, 12, 16, 0.78) 50%, rgba(11, 13, 16, 0.88) 100%);
-    backdrop-filter: blur(24px) saturate(160%);
-    -webkit-backdrop-filter: blur(24px) saturate(160%);
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(10, 12, 16, 0.82) 45%, rgba(11, 13, 16, 0.92) 100%);
+    backdrop-filter: blur(28px) saturate(170%);
+    -webkit-backdrop-filter: blur(28px) saturate(170%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-top: 1px solid rgba(255, 255, 255, 0.18);
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7),
-                inset 0 1px 1px 0 rgba(255, 255, 255, 0.22),
-                inset 0 -1px 1px 0 rgba(0, 0, 0, 0.5);
+                inset 0 1px 1px 0 rgba(255, 255, 255, 0.18);
     overflow: hidden;
   }
 
   .liquid-glass-bar {
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, rgba(11, 13, 16, 0.86) 45%, rgba(11, 13, 16, 0.94) 100%);
-    backdrop-filter: blur(24px) saturate(160%);
-    -webkit-backdrop-filter: blur(24px) saturate(160%);
-    border-top: 1px solid rgba(255, 255, 255, 0.12);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(11, 13, 16, 0.88) 45%, rgba(11, 13, 16, 0.96) 100%);
+    backdrop-filter: blur(28px) saturate(170%);
+    -webkit-backdrop-filter: blur(28px) saturate(170%);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6),
-                inset 0 1px 1px 0 rgba(255, 255, 255, 0.16);
+                inset 0 1px 1px 0 rgba(255, 255, 255, 0.14);
+  }
+
+  .glow-lime {
+    box-shadow: 0 10px 35px rgba(212, 255, 0, 0.16);
+  }
+
+  .glow-lime-sm {
+    box-shadow: 0 6px 20px rgba(212, 255, 0, 0.14);
+  }
+
+  .surface-tonal {
+    background-color: #111114;
   }
 
   .liquid-glass-specular {

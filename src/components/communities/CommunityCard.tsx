@@ -45,7 +45,7 @@ export function CommunityCard({ community }: CommunityCardProps) {
       )}
     >
       <Card
-        className="relative w-full rounded-3xl overflow-hidden group h-48 sm:h-56 transition-all duration-300 border-white/10 hover:border-white/20 shadow-lg text-white"
+        className="relative w-full rounded-3xl overflow-hidden group h-48 sm:h-56 transition-all duration-300 hover:border-[#D4FF00]/40 shadow-xl text-white"
       >
         {/* Background Image */}
         <CommunityCover
@@ -59,15 +59,16 @@ export function CommunityCard({ community }: CommunityCardProps) {
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none" />
 
         {/* Members Tag */}
-        <div className="absolute top-3 right-3 px-3 py-1 rounded-full bg-neutral-950/80 backdrop-blur-md text-[#D4FF00] text-[10px] font-extrabold uppercase tracking-widest border border-white/15 shadow-md flex items-center gap-1">
-          <Users className="w-3 h-3" />
-          {community.membersCount} MIEMBROS
+        <div className="absolute top-3 right-3 px-3 py-1 rounded-full bg-neutral-950/80 backdrop-blur-md text-[#D4FF00] border-0 shadow-md flex items-center gap-1.5">
+          <Users className="w-3 h-3 text-[#D4FF00]" />
+          <span className="num-display text-xs text-white">{community.membersCount}</span>
+          <span className="tech-label text-[9px] text-[#D4FF00]">MIEMBROS</span>
         </div>
 
-        {community.isMember && <div className="absolute left-3 top-3 rounded-full bg-neutral-950/90 px-3 py-1 text-[10px] font-bold text-[#D4FF00]">{community.muted ? "Silenciada" : community.unreadCount > 0 ? `${community.unreadCount} novedades` : "Al día"}</div>}
+        {community.isMember && <div className="tech-label absolute left-3 top-3 rounded-full bg-neutral-950/85 backdrop-blur-md border-0 px-3 py-1 text-[#D4FF00]">{community.muted ? "Silenciada" : community.unreadCount > 0 ? `${community.unreadCount} novedades` : "Al día"}</div>}
         {/* Content over image */}
         <div className="absolute inset-0 p-4 flex flex-col justify-end space-y-1.5">
-          <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.18em] text-[#D4FF00]">
+          <div className="tech-label flex items-center gap-2 text-[#D4FF00]">
             <span>{community.category || "Comunidad"}</span>
             {community.zone && (
               <span className="flex items-center gap-1 text-neutral-300">
@@ -88,7 +89,7 @@ export function CommunityCard({ community }: CommunityCardProps) {
 
           {/* Status (isMember) */}
           {community.isMember && (
-            <div className="pt-1 flex items-center gap-1.5 text-[#D4FF00] text-[10px] font-extrabold uppercase tracking-widest">
+            <div className="tech-label pt-1 flex items-center gap-1.5 text-[#D4FF00]">
               <CheckCircle2 className="w-3.5 h-3.5" />
               <span>Ya eres miembro</span>
             </div>

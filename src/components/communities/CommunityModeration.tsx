@@ -9,14 +9,14 @@ import { useCommunityModeration } from "@/hooks/useCommunityModeration";
 export function CommunityModeration({ communityId }: { communityId: string }) {
   const [open, setOpen] = useState(false);
   const { reports, meta, load, review, isLoading, isReviewing, error } = useCommunityModeration(communityId);
-  return <section className="rounded-3xl border border-white/10 bg-[#14171F] p-4">
+  return <section className="rounded-3xl border-0 bg-[#111114] p-4 shadow-xl">
     <button type="button" aria-expanded={open} onClick={() => { setOpen(!open); if (!open) void load(0).catch(() => undefined); }} className="flex w-full items-center gap-2 text-xs font-black uppercase text-[#D4FF00]"><ShieldAlert className="h-4 w-4" /> Revisar reportes {open && `(${meta.total})`}</button>
     {open && <div className="mt-4 space-y-4">
       <p className="text-xs text-neutral-500">Marcar como revisado o descartar no elimina el contenido.</p>
       {error && <div role="alert" className="text-xs text-red-400">No pudimos actualizar los reportes. <button onClick={() => void load(0).catch(() => undefined)} className="underline">Reintentar</button></div>}
       {isLoading && <p className="text-xs text-neutral-400">Cargando…</p>}
       {!isLoading && !error && reports.length === 0 && <p className="text-sm text-neutral-400">No hay reportes pendientes.</p>}
-      {reports.map((report) => <article key={report.id} className="space-y-2 rounded-2xl border border-white/10 p-4">
+      {reports.map((report) => <article key={report.id} className="space-y-2 rounded-2xl border-0 bg-white/[0.04] p-4 shadow-sm">
         <p className="text-xs font-bold">{report.reporterName} · {report.reason === "spam" ? "Spam" : report.reason === "abuse" ? "Abuso" : "Otro motivo"} · {report.targetType === "post" ? "Anuncio" : "Comentario"}</p>
         <p className="text-[10px] text-neutral-500">{new Date(report.createdAt).toLocaleString("es-UY")}</p>
         <p className="break-words whitespace-pre-wrap text-sm text-neutral-300">{report.content}</p>

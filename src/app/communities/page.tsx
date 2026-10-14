@@ -28,7 +28,7 @@ const DEFAULT_FILTERS: CommunityFilters = {
 };
 
 const fieldClassName =
-  "h-11 w-full rounded-2xl border border-white/10 bg-[#0B0D10] px-4 text-sm font-semibold text-white outline-none transition-colors placeholder:text-neutral-600 focus:border-[#D4FF00]/60";
+  "h-11 w-full rounded-2xl border-0 bg-[#0B0D10] px-4 text-sm font-semibold text-white outline-none transition-colors placeholder:text-neutral-500 focus:ring-1 focus:ring-[#D4FF00]/40 shadow-sm";
 const selectClassName = `${fieldClassName} appearance-none pr-12`;
 
 const URUGUAY_DEPARTMENTS = [
@@ -100,20 +100,23 @@ export default function CommunitiesPage() {
           <Users className="h-5 w-5 text-[#D4FF00]" />
           <h1 className="text-lg font-black uppercase tracking-wider">Comunidades</h1>
         </div>
-        <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#D4FF00]">
+        <div className="flex items-center gap-1.5 rounded-full bg-[#D4FF00]/10 px-2.5 py-1">
           {isLoading && communities.length === 0 ? (
-            <Loader2 className="h-3 w-3 animate-spin" />
+            <Loader2 className="h-3 w-3 animate-spin text-[#D4FF00]" />
           ) : (
-            `${meta.total} ${scope === "mine" ? "tuyas" : "disponibles"}`
+            <>
+              <span className="num-display text-xs text-white">{meta.total}</span>
+              <span className="tech-label text-[9px] text-[#D4FF00]">{scope === "mine" ? "tuyas" : "disponibles"}</span>
+            </>
           )}
-        </span>
+        </div>
       </header>
 
       <main className="mx-auto w-full max-w-6xl space-y-5 p-4 md:p-8">
-        <div role="tablist" aria-label="Comunidades" className="flex gap-2 rounded-2xl border border-white/10 bg-[#14171F] p-1">
-          {(["mine", "explore"] as const).map((tab) => <button key={tab} type="button" role="tab" aria-selected={scope === tab} disabled={isLoading} onClick={() => { setScope(tab); setAreFiltersExpanded(false); const defaults = { ...DEFAULT_FILTERS, country: tab === "mine" ? "" : DEFAULT_FILTERS.country }; setDraftFilters(defaults); setAppliedFilters(defaults); }} className={`flex-1 rounded-xl px-3 py-3 text-xs font-black ${scope === tab ? "bg-[#D4FF00] text-black" : "text-neutral-400 hover:text-white"}`}>{tab === "mine" ? "Mis comunidades" : "Explorar"}</button>)}
+        <div role="tablist" aria-label="Comunidades" className="flex gap-1.5 rounded-full border-0 bg-black/60 p-1">
+          {(["mine", "explore"] as const).map((tab) => <button key={tab} type="button" role="tab" aria-selected={scope === tab} disabled={isLoading} onClick={() => { setScope(tab); setAreFiltersExpanded(false); const defaults = { ...DEFAULT_FILTERS, country: tab === "mine" ? "" : DEFAULT_FILTERS.country }; setDraftFilters(defaults); setAppliedFilters(defaults); }} className={`flex-1 rounded-full px-3 py-2.5 tech-label text-xs transition-all cursor-pointer ${scope === tab ? "bg-[#D4FF00] text-black shadow-md shadow-[#D4FF00]/20" : "text-neutral-400 hover:text-white"}`}>{tab === "mine" ? "Mis comunidades" : "Explorar"}</button>)}
         </div>
-        {scope === "explore" && <section className="overflow-hidden rounded-3xl border border-white/10 bg-[#14171F] shadow-xl">
+        {scope === "explore" && <section className="overflow-hidden rounded-3xl border-0 bg-[#111114] shadow-[0_12px_32px_-8px_rgba(0,0,0,0.6)]">
           <button
             type="button"
             onClick={() => setAreFiltersExpanded((current) => !current)}
@@ -126,13 +129,18 @@ export default function CommunitiesPage() {
                 <Filter className="h-4 w-4" />
               </span>
               <span className="min-w-0">
-                <span className="block truncate text-xs font-black uppercase tracking-[0.18em] text-neutral-100">
+                <span className="block truncate tech-label text-xs text-neutral-100">
                   Descubrí tu comunidad
                 </span>
                 <span className="mt-0.5 block text-[10px] font-bold uppercase tracking-wider text-neutral-500">
-                  {activeFilterCount > 0
-                    ? `${activeFilterCount} filtros activos`
-                    : "Filtrar por estilo y departamento"}
+                  {activeFilterCount > 0 ? (
+                    <span className="inline-flex items-center gap-1">
+                      <span className="num-display text-xs text-white">{activeFilterCount}</span>
+                      <span className="tech-label text-[9px] text-[#D4FF00]">filtros activos</span>
+                    </span>
+                  ) : (
+                    "Filtrar por estilo y departamento"
+                  )}
                 </span>
               </span>
             </span>
@@ -146,7 +154,7 @@ export default function CommunitiesPage() {
           {areFiltersExpanded && (
             <div
               id="community-filters"
-              className="border-t border-white/5 px-4 pb-4 pt-4 md:px-5 md:pb-5"
+              className="border-t border-white/[0.06] px-4 pb-4 pt-4 md:px-5 md:pb-5"
             >
               <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
             <label className="relative block">
@@ -247,7 +255,7 @@ export default function CommunitiesPage() {
           )}
         </section>}
 
-        {scope === "mine" && !user ? <div className="rounded-3xl border border-white/10 p-6 text-center text-sm"><Link href="/login" className="font-bold text-[#D4FF00]">Iniciá sesión para ver tus comunidades</Link></div> : error && communities.length === 0 ? (
+        {scope === "mine" && !user ? <div className="rounded-3xl border-0 bg-[#111114] p-6 text-center text-sm shadow-xl"><Link href="/login" className="font-bold text-[#D4FF00]">Iniciá sesión para ver tus comunidades</Link></div> : error && communities.length === 0 ? (
           <section className="rounded-3xl border border-red-500/20 bg-red-500/5 p-8 text-center">
             <p className="text-sm font-bold text-red-300">
               No pudimos cargar las comunidades.
@@ -275,7 +283,7 @@ export default function CommunitiesPage() {
         )}
 
         {scope === "explore" && (
-          <p className="border-t border-white/10 px-2 pt-6 text-center text-sm font-medium leading-relaxed text-neutral-400">
+          <p className="border-t border-white/[0.06] px-2 pt-6 text-center text-sm font-medium leading-relaxed text-neutral-400">
             si sos RRPP y queres tener tu comunidad, contactanos!
           </p>
         )}

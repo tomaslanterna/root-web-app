@@ -48,7 +48,7 @@ export function DanceStatsWidget() {
 
   if (isLoading) {
     return (
-      <div className="w-full h-28 flex items-center justify-center border border-white/5 bg-[#14171F] rounded-3xl">
+      <div className="w-full h-28 flex items-center justify-center border-0 bg-[#111114] rounded-3xl shadow-md">
         <Loader2 className="w-5 h-5 animate-spin text-neutral-600" />
       </div>
     );
@@ -59,15 +59,15 @@ export function DanceStatsWidget() {
     return (
       <div 
         onClick={() => router.push("/dance-ranker")}
-        className="w-full flex items-center justify-between border border-white/10 bg-[#14171F] hover:bg-white/5 transition-colors rounded-3xl p-4 cursor-pointer group"
+        className="w-full flex items-center justify-between border-0 bg-[#111114] hover:bg-[#16171D] transition-colors rounded-3xl p-4 cursor-pointer group shadow-[0_8px_30px_rgba(0,0,0,0.5)]"
       >
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-neutral-900 flex items-center justify-center">
-            <Activity className="w-5 h-5 text-neutral-500" />
+          <div className="w-10 h-10 rounded-2xl bg-black/40 flex items-center justify-center shrink-0">
+            <Activity className="w-5 h-5 text-[#D4FF00] stroke-[1.8]" />
           </div>
           <div className="text-left">
-            <h3 className="text-sm font-semibold tracking-[-.02em] text-neutral-300">Estadísticas de baile</h3>
-            <p className="text-[10px] font-medium tracking-wide text-neutral-500">Aún no hay registros</p>
+            <h3 className="text-sm font-black uppercase tracking-wide text-white">Estadísticas de baile</h3>
+            <p className="text-xs font-medium text-neutral-400">Aún no hay registros</p>
           </div>
         </div>
       </div>
@@ -86,16 +86,19 @@ export function DanceStatsWidget() {
   return (
     <div 
       onClick={() => router.push("/dance-ranker")}
-      className="relative w-full overflow-hidden bg-[#D4FF00] hover:bg-[#cbe31c] border-none transition-colors rounded-3xl p-4 sm:p-5 cursor-pointer group shadow-xl"
+      className="relative w-full overflow-hidden bg-[#D4FF00] hover:brightness-105 border-0 transition-all rounded-3xl p-4 sm:p-5 cursor-pointer group shadow-[0_12px_40px_rgba(212,255,0,0.16)]"
     >
       <div className="flex justify-between items-start mb-4">
         <div className="space-y-0.5">
           <div className="flex items-center gap-1.5">
-            <Flame className="w-4 h-4 text-black fill-black/20" />
-            <h3 className="text-xs font-semibold uppercase tracking-[.14em] text-black">Actividad</h3>
+            <Flame className="w-4 h-4 text-black stroke-[2] fill-none" />
+            <h3 className="tech-label text-black">Actividad</h3>
           </div>
           <p className="pl-5.5 text-2xl text-black">
-            <span className="data-display">{totalSteps.toLocaleString()}</span> <span className="text-[10px] font-medium uppercase tracking-[.14em] text-black/55">pasos</span>
+            <span className="num-display">{totalSteps.toLocaleString()}</span>{" "}
+            <span className="tech-label text-black/70">
+              pasos
+            </span>
           </p>
         </div>
       </div>

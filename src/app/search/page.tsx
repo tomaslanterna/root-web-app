@@ -99,7 +99,7 @@ export default function SearchPage() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "relative z-10 flex-1 py-2 text-xs font-black uppercase tracking-wider transition-all rounded-full select-none active:scale-95 text-center",
+                "relative z-10 flex-1 py-2 tech-label text-xs transition-all rounded-full select-none active:scale-95 text-center",
                 activeTab === tab.id
                   ? "bg-[#D4FF00] text-neutral-950 shadow-[0_0_15px_rgba(212,255,0,0.35),inset_0_1px_1px_0_rgba(255,255,255,0.4)]"
                   : "text-neutral-400 hover:text-white hover:bg-white/5",

@@ -1,21 +1,32 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import Image from "next/image";
-import { Heart, MessageCircle, MoreHorizontal } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  ChevronLeft,
+  Heart,
+  MessageCircle,
+  Share2,
+  Check,
+  MoreHorizontal,
+  BadgeCheck,
+} from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
-import { DetailHeader } from "@/components/ui/DetailHeader";
 import { CommentSection } from "@/components/ui/CommentSection";
-import { cn } from "@/lib/utils";
-
+import { DetailHeader } from "@/components/ui/DetailHeader";
 import { usePostDetail } from "@/hooks/usePostDetail";
+import { postsApi } from "@/services/posts";
 import { ReportContentAction } from "@/components/communities/ReportContentAction";
+import { cn } from "@/lib/utils";
 
 export default function PostDetailPage({
   params,
 }: {
   params: Promise<{ id: string }> | { id: string };
 }) {
+  const router = useRouter();
 
   // React.use() to unwrap params if it is a Promise (Next.js 15+)
   const unwrappedParams =
@@ -25,174 +36,266 @@ export default function PostDetailPage({
   const { post, hasLoaded, isLoading: isLoadingPost } = usePostDetail(id);
   const [liked, setLiked] = useState(false);
   const [likesDelta, setLikesDelta] = useState(0);
-  const likesCount = (post?.likesCount || 0) + likesDelta;
+  const [showHeartBurst, setShowHeartBurst] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const lastTapRef = useRef<number>(0);
+
+  const likesCount = Math.max(0, (post?.likesCount || 0) + likesDelta);
 
   const handleLike = () => {
-    setLiked(!liked);
-    setLikesDelta((delta) => delta + (liked ? -1 : 1));
+    const nextLiked = !liked;
+    setLiked(nextLiked);
+    setLikesDelta((delta) => delta + (nextLiked ? 1 : -1));
+    if (post?.id) {
+      void postsApi.likePost(post.id).catch(() => undefined);
+    }
+  };
+
+  const handleDoubleTap = () => {
+    const now = Date.now();
+    if (now - lastTapRef.current < 300) {
+      if (!liked) {
+        setLiked(true);
+        setLikesDelta((prev) => prev + 1);
+        if (post?.id) {
+          void postsApi.likePost(post.id).catch(() => undefined);
+        }
+      }
+      setShowHeartBurst(true);
+      setTimeout(() => setShowHeartBurst(false), 800);
+    }
+    lastTapRef.current = now;
+  };
+
+  const handleShare = () => {
+    if (typeof window !== "undefined") {
+      navigator.clipboard.writeText(window.location.href);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
+    }
   };
 
   if (!hasLoaded && isLoadingPost) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-[#0B0D10] p-6 text-white">
-        <div className="w-8 h-8 border-4 border-[#D4FF00] border-t-transparent rounded-full animate-spin" />
-        <p className="text-xs font-black uppercase tracking-wider text-neutral-400">
-          Cargando post...
-        </p>
+      <div className="flex min-h-[100dvh] flex-col bg-[#0B0D10] text-white">
+        <DetailHeader
+          showBrand={false}
+          showSave={false}
+          showShare={false}
+          onBack={() => router.back()}
+        />
+        <div className="flex-1 flex flex-col items-center justify-center gap-3 p-6 mt-16">
+          <div className="w-8 h-8 border-4 border-[#D4FF00] border-t-transparent rounded-full animate-spin" />
+          <p className="text-xs font-black uppercase tracking-wider text-neutral-400">
+            Cargando publicación...
+          </p>
+        </div>
       </div>
     );
   }
 
   if (!post) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#0B0D10] p-6 text-center text-white">
-        <p className="text-sm font-bold uppercase text-neutral-300">
-          No pudimos encontrar el post
-        </p>
+      <div className="flex min-h-[100dvh] flex-col bg-[#0B0D10] text-white">
+        <DetailHeader
+          showBrand={false}
+          showSave={false}
+          showShare={false}
+          onBack={() => router.back()}
+        />
+        <div className="flex-1 flex flex-col items-center justify-center gap-4 p-6 text-center mt-16">
+          <p className="text-sm font-bold uppercase text-neutral-300">
+            No pudimos encontrar la publicación
+          </p>
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="rounded-full bg-white/10 px-5 py-2 text-xs font-bold text-white hover:bg-white/20 transition-colors"
+          >
+            Volver
+          </button>
+        </div>
       </div>
     );
   }
 
-  // Separa el primer párrafo del resto para la letra capital
-  const paragraphs = post.longContent
-    ?.split("\n")
-    .filter((p: string) => p.trim() !== "") || [post.content];
-  const firstParagraph = paragraphs[0];
-  const restParagraphs = paragraphs.slice(1);
-
   return (
-    <div className="min-h-screen bg-[#0B0D10] text-white pb-24">
-      {/* 1. Header Fijo/Transparente */}
-      <DetailHeader showBrand />
-
-      {/* 2. Hero Section Editorial */}
-      <div className="relative w-full h-[55vh] sm:h-[65vh] bg-neutral-900 overflow-hidden">
-        {post.headerImageUrl && (
-          <Image fill unoptimized sizes="100vw"
-            src={post.headerImageUrl}
-            alt="Hero cover"
-            className="w-full h-full object-cover opacity-85"
-          />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0B0D10] via-[#0B0D10]/40 to-transparent pointer-events-none" />
-
-        <div className="absolute bottom-0 inset-x-0 px-4 pb-8 max-w-3xl mx-auto">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black uppercase tracking-tight text-white mb-6 leading-[1.1] shadow-black/50 drop-shadow-lg">
-            {post.title || "Sin Título"}
-          </h1>
-
-          <div className="flex items-center gap-3">
-            <Avatar
-              src={post.authorAvatar}
-              fallback={post.authorName?.charAt(0) || "U"}
-              size="md"
-              className="ring-2 ring-[#D4FF00]/40 shadow-xl"
-            />
-            <div>
-              <p className="text-sm font-bold text-white flex items-center gap-1 drop-shadow-md">
-                {post.authorName || "Autor Desconocido"}
-                {post.isVerified && (
-                  <span className="w-3.5 h-3.5 bg-[#D4FF00] rounded-full flex items-center justify-center">
-                    <svg
-                      className="w-2.5 h-2.5 text-black"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={4}
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
-                  </span>
-                )}
-              </p>
-              <p className="text-xs text-neutral-300 font-semibold tracking-wide uppercase drop-shadow-md">
-                {new Date(post.timestamp).toLocaleDateString("es-AR", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
-              </p>
-            </div>
-          </div>
+    <div className="min-h-[100dvh] bg-[#0B0D10] text-white flex flex-col pb-24 relative">
+      {/* Toast Feedback de Compartir */}
+      {copiedLink && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 rounded-full bg-[#D4FF00] px-5 py-2.5 text-xs font-black tracking-wide text-neutral-950 shadow-2xl shadow-[#D4FF00]/40 animate-in fade-in slide-in-from-top-4 duration-200">
+          ✓ Enlace copiado al portapapeles
         </div>
-      </div>
+      )}
 
-      {/* 3. Experiencia de Lectura */}
-      <main className="px-5 py-8 max-w-2xl mx-auto">
-        <article className="text-neutral-300 leading-[1.8] text-[17px] md:text-lg font-medium tracking-wide">
-          {firstParagraph && (
-            <p className="mb-6 first-letter:text-6xl first-letter:font-black first-letter:text-[#D4FF00] first-letter:mr-3 first-letter:float-left first-line:uppercase first-line:tracking-widest first-line:text-white">
-              {firstParagraph}
-            </p>
-          )}
-          {restParagraphs.map((paragraph: string, idx: number) => (
-            <p key={idx} className="mb-6">
-              {paragraph}
-            </p>
-          ))}
-        </article>
-
-        {/* Divider */}
-        <div className="flex items-center justify-center my-14 gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#D4FF00]"></span>
-          <span className="w-1.5 h-1.5 rounded-full bg-[#D4FF00]/60"></span>
-          <span className="w-1.5 h-1.5 rounded-full bg-[#D4FF00]/30"></span>
-        </div>
-      </main>
-
-      {/* 4. Sección de Comentarios */}
-      <CommentSection
-        targetId={post.id}
-        title="Comentarios"
-        isMock={false}
-        endpointType="posts"
-        reportCommunityId={post.communityId}
-        className="px-5"
+      {/* Header Superior idéntico a /events/[id] pero sin el logo de root */}
+      <DetailHeader
+        showBrand={false}
+        showSave={false}
+        showShare={true}
+        onBack={() => router.back()}
+        onShare={handleShare}
+        isCopied={copiedLink}
       />
 
-      {/* 5. Sticky Bottom Action Bar */}
-      <div className="fixed bottom-0 inset-x-0 mx-auto w-full max-w-md md:max-w-[1360px] bg-[#0B0D10]/80 backdrop-blur-xl border-t border-white/10 py-3 sm:py-4 px-6 z-40">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <button
-              onClick={handleLike}
-              className="flex items-center gap-2 group cursor-pointer"
+      {/* Contenedor de la publicación */}
+      <main className="w-full max-w-xl mx-auto flex-1 flex flex-col px-0 sm:px-4 pt-16 sm:pt-20">
+        <article className="overflow-hidden bg-[#111114] sm:rounded-3xl border-0 shadow-[0_16px_40px_-12px_rgba(0,0,0,0.7)]">
+          {/* Cabecera del Autor */}
+          <div className="flex items-center justify-between p-3.5 sm:p-4">
+            <Link
+              href={post.authorName ? `/profile/${post.authorName}` : "#"}
+              className="flex items-center gap-3 min-w-0 group"
             >
-              <Heart
-                className={cn(
-                  "w-6 h-6 transition-transform active:scale-90",
-                  liked
-                    ? "fill-[#D4FF00] stroke-[#D4FF00]"
-                    : "stroke-neutral-400 group-hover:stroke-white",
-                )}
+              <Avatar
+                src={post.authorAvatar}
+                fallback={post.authorName?.charAt(0) || "U"}
+                size="sm"
+                className="ring-1 ring-white/20 group-hover:ring-[#D4FF00]/50 transition-all shrink-0"
               />
-              <span
-                className={cn(
-                  "text-sm font-black",
-                  liked
-                    ? "text-[#D4FF00]"
-                    : "text-neutral-400 group-hover:text-white transition-colors",
-                )}
+              <div className="min-w-0">
+                <p className="truncate text-xs font-black uppercase tracking-wider text-white group-hover:text-[#D4FF00] transition-colors flex items-center gap-1">
+                  <span>{post.authorName || "Usuario"}</span>
+                  {post.isVerified && (
+                    <BadgeCheck className="h-3.5 w-3.5 text-[#D4FF00] fill-current" />
+                  )}
+                </p>
+                <p className="tech-mono text-[9px] text-neutral-500">
+                  {new Date(post.timestamp).toLocaleDateString("es-AR", {
+                    day: "numeric",
+                    month: "short",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </p>
+              </div>
+            </Link>
+
+            {post.communityId ? (
+              <ReportContentAction
+                communityId={post.communityId}
+                targetType="post"
+                targetId={post.id}
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={handleShare}
+                className="p-1.5 text-neutral-400 hover:text-white transition-colors"
+                aria-label="Más opciones"
               >
-                {likesCount}
-              </span>
-            </button>
-            <button className="flex items-center gap-2 group cursor-pointer">
-              <MessageCircle className="w-6 h-6 stroke-neutral-400 group-hover:stroke-white transition-transform active:scale-90" />
-              <span className="text-sm font-black text-neutral-400 group-hover:text-white transition-colors">
-                0
-              </span>
-            </button>
+                <MoreHorizontal className="h-5 w-5" />
+              </button>
+            )}
           </div>
-          {post.communityId ? <ReportContentAction communityId={post.communityId} targetType="post" targetId={post.id} /> : <button className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors cursor-pointer">
-            <MoreHorizontal className="w-5 h-5 text-neutral-400" />
-          </button>}
-        </div>
-      </div>
+
+          {/* Imagen de la publicación (con soporte de doble tap para dar Me Gusta) */}
+          {post.headerImageUrl && (
+            <div
+              className="relative aspect-square w-full bg-black flex items-center justify-center select-none overflow-hidden cursor-pointer"
+              onClick={handleDoubleTap}
+            >
+              <img
+                src={post.headerImageUrl}
+                alt={post.title || "Foto de publicación"}
+                className="h-full w-full object-cover"
+              />
+
+              {/* Animación corazón neón al dar doble tap */}
+              {showHeartBurst && (
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                  <Heart className="h-28 w-28 fill-[#D4FF00] text-[#D4FF00] drop-shadow-[0_0_35px_rgba(212,255,0,0.85)] animate-in zoom-in-50 duration-200" />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Barra de Acciones debajo de la foto */}
+          <div className="p-3.5 sm:p-4 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {/* Botón Me Gusta */}
+                <button
+                  type="button"
+                  onClick={handleLike}
+                  className="p-1 text-neutral-300 hover:text-white transition-transform active:scale-90 cursor-pointer"
+                  aria-label="Dar me gusta"
+                >
+                  <Heart
+                    className={cn(
+                      "h-6 w-6 transition-all",
+                      liked
+                        ? "fill-[#D4FF00] text-[#D4FF00] scale-110"
+                        : "text-neutral-300 hover:text-white",
+                    )}
+                  />
+                </button>
+
+                {/* Botón Comentar */}
+                <button
+                  type="button"
+                  className="p-1 text-neutral-300 hover:text-white transition-transform active:scale-90 cursor-pointer"
+                  aria-label="Comentar"
+                >
+                  <MessageCircle className="h-6 w-6" />
+                </button>
+
+                {/* Botón Compartir */}
+                <button
+                  type="button"
+                  onClick={handleShare}
+                  className="p-1 text-neutral-300 hover:text-white transition-transform active:scale-90 cursor-pointer"
+                  aria-label="Compartir"
+                >
+                  {copiedLink ? (
+                    <Check className="h-6 w-6 text-[#D4FF00]" />
+                  ) : (
+                    <Share2 className="h-6 w-6" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Contador de Likes */}
+            <div className="text-xs font-black uppercase tracking-wider text-white">
+              <span className="num-display">{likesCount}</span>{" "}
+              {likesCount === 1 ? "Me gusta" : "Me gustas"}
+            </div>
+
+            {/* Pie de foto / Caption */}
+            {post.content && (
+              <div className="text-xs sm:text-sm leading-relaxed text-neutral-300 pt-0.5">
+                <span className="font-black uppercase tracking-wider text-white mr-2">
+                  {post.authorName || "Usuario"}
+                </span>
+                <span className="whitespace-pre-wrap">{post.content}</span>
+              </div>
+            )}
+
+            {/* Si tiene título o contenido largo adicional (artículos editoriales) */}
+            {post.title && (
+              <h2 className="text-base font-black uppercase tracking-tight text-white pt-2">
+                {post.title}
+              </h2>
+            )}
+            {post.longContent && (
+              <p className="text-xs leading-relaxed text-neutral-400 whitespace-pre-wrap pt-1">
+                {post.longContent}
+              </p>
+            )}
+          </div>
+
+          {/* Muro de Comentarios con Moderación por IA */}
+          <div className="border-t border-white/[0.06] p-3.5 sm:p-5">
+            <CommentSection
+              targetId={post.id}
+              title="Comentarios"
+              endpointType="posts"
+              reportCommunityId={post.communityId}
+            />
+          </div>
+        </article>
+      </main>
     </div>
   );
 }

@@ -74,7 +74,7 @@ export function CommunityManageEventsModal({
       onClose={onClose}
       title="Gestionar Eventos Promocionados"
       footer={
-        <div className="flex items-center justify-between w-full gap-3 pt-3 border-t border-white/10">
+        <div className="flex items-center justify-between w-full gap-3 pt-3 border-t border-white/[0.06]">
           <span className="text-xs font-bold text-neutral-400">
             {selected.length} {selected.length === 1 ? "evento seleccionado" : "eventos seleccionados"}
           </span>
@@ -114,7 +114,7 @@ export function CommunityManageEventsModal({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Buscar por evento, club, DJ..."
-            className="h-10 w-full rounded-2xl border border-white/10 bg-[#0B0D10] pl-10 pr-4 text-xs font-medium text-white placeholder:text-neutral-500 focus:border-[#D4FF00]/50 outline-none"
+            className="h-10 w-full rounded-2xl border-0 bg-[#0B0D10] pl-10 pr-4 text-xs font-medium text-white placeholder:text-neutral-500 focus:ring-1 focus:ring-[#D4FF00]/50 outline-none shadow-sm"
           />
         </div>
 
@@ -134,10 +134,10 @@ export function CommunityManageEventsModal({
                   key={evt.id}
                   onClick={() => toggleEvent(evt.id)}
                   className={cn(
-                    "flex items-center gap-3 p-3 rounded-2xl border cursor-pointer transition-all select-none",
+                    "flex items-center gap-3 p-3 rounded-2xl border-0 cursor-pointer transition-all select-none shadow-sm",
                     isSelected
-                      ? "border-[#D4FF00]/50 bg-[#D4FF00]/10"
-                      : "border-white/5 bg-[#0B0D10]/60 hover:border-white/20 hover:bg-[#0B0D10]",
+                      ? "bg-[#D4FF00]/15 ring-1 ring-[#D4FF00]/50"
+                      : "bg-white/[0.04] hover:bg-white/[0.08]",
                   )}
                 >
                   <div className="text-[#D4FF00] shrink-0">

@@ -141,7 +141,7 @@ export default function TransferDealRoomPage({ params }: { params: Promise<{ id:
           <div className="flex flex-col items-center">
             <div className="flex items-center gap-1.5 text-indigo-400">
               <ShieldCheck className="w-4 h-4" />
-              <h1 className="text-sm font-black uppercase tracking-widest">Sala de Trato Seguro</h1>
+              <h1 className="tech-label text-sm text-indigo-400">Sala de Trato Seguro</h1>
             </div>
           </div>
           
@@ -152,20 +152,20 @@ export default function TransferDealRoomPage({ params }: { params: Promise<{ id:
         <div className="px-4 pb-3 flex items-center justify-between bg-[#14171F] mx-4 rounded-xl border border-white/5 mb-3 p-3">
           <div>
             <h2 className="text-sm font-bold leading-tight">{transfer.event_name || "Evento Privado"}</h2>
-            <p className="text-[10px] text-neutral-400 font-semibold uppercase tracking-wider mt-0.5">
+            <p className="tech-mono text-[10px] text-neutral-400 mt-0.5">
               {formatDate(transfer.event_date)} • {formatTime(transfer.event_date)}
             </p>
           </div>
           <div className="text-right">
-            <p className="text-[10px] uppercase font-bold text-neutral-500">Acordado</p>
-            <p className="font-black text-[#D4FF00]">${transfer.price_agreed?.toLocaleString('es-AR')}</p>
+            <p className="tech-label text-[10px] text-neutral-500">Acordado</p>
+            <p className="num-display text-base text-[#D4FF00]">${transfer.price_agreed?.toLocaleString('es-AR')}</p>
           </div>
         </div>
       </header>
 
       {/* Contraparte */}
       <div className="shrink-0 px-4 py-2 flex items-center justify-center gap-2">
-        <span className="text-xs text-neutral-500 font-bold uppercase tracking-wider">Tratando con:</span>
+        <span className="tech-label text-[10px] text-neutral-500">Tratando con:</span>
         <div className="flex items-center gap-1.5 bg-white/5 pr-3 pl-1 py-1 rounded-full border border-white/10">
           {counterpartyAvatar ? (
              <img src={counterpartyAvatar} className="w-5 h-5 rounded-full object-cover" alt="Avatar" />
@@ -175,7 +175,7 @@ export default function TransferDealRoomPage({ params }: { params: Promise<{ id:
              </div>
           )}
           <span className="text-xs font-semibold">{counterpartyName}</span>
-          <span className="text-[10px] text-indigo-400 flex items-center ml-1 font-bold">
+          <span className="tech-mono text-[10px] text-indigo-400 flex items-center ml-1 font-bold">
              ★ 5.0
           </span>
         </div>

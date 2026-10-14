@@ -22,7 +22,7 @@ export function ArtistRatings({ eventId, lineup, ratings, onChange, loading, err
       <div className="flex min-w-0 items-center gap-3">
         {entry.artist!.avatarUrl && !failedPhotos.includes(entry.artistId) ? <Image src={badgeArtistImageUrl(eventId, entry.artistId)} alt="" width={36} height={36} unoptimized onError={() => setFailedPhotos(current => [...current, entry.artistId])} className="h-9 w-9 shrink-0 rounded-full object-cover" /> : <span aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/5 text-xs text-neutral-500">{entry.artist!.name[0]}</span>}
         <div className="min-w-0 flex-1"><p className="break-words text-sm font-semibold">{entry.artist!.name}</p><p className="text-[10px] text-neutral-500">{entry.isHeadliner ? "Headliner" : entry.artist!.artistType}</p></div>
-        <span className="shrink-0 text-xs text-neutral-400">{readonly && ratings[entry.artistId] == null ? "Sin puntuar" : `${ratings[entry.artistId] ?? 1}/5`}</span>
+        <span className="shrink-0 text-xs text-neutral-400">{readonly && ratings[entry.artistId] == null ? "Sin puntuar" : <span className="tech-mono font-bold text-white">{ratings[entry.artistId] ?? 1}<span className="text-neutral-500">/5</span></span>}</span>
       </div>
       <StarRating value={ratings[entry.artistId] ?? (readonly ? null : 1)} onChange={value => onChange(entry.artistId, value)} readonly={readonly} appearance="slider" size={20} label={`Puntuación de ${entry.artist!.name}`} className="mt-3" />
     </div>)}
