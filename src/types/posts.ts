@@ -14,6 +14,7 @@ export interface Post {
   authorAvatar?: string;
   isVerified?: boolean;
   likesCount?: number;
+  isLiked?: boolean;
 }
 
 export interface PaginationMeta {

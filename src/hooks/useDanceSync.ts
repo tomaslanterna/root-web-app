@@ -78,14 +78,17 @@ export function useDanceSync() {
               : event.date;
           const eventStart = new Date(safeDateString);
 
-          // Usar endDate si existe, de lo contrario +12 horas
+          // Usar endDate si existe y es posterior al inicio, de lo contrario +12 horas
           let eventEnd = new Date(eventStart.getTime() + 12 * 60 * 60 * 1000);
           if (event.endDate) {
             const safeEndDateString =
               typeof event.endDate === "string"
                 ? event.endDate.replace(" ", "T")
                 : event.endDate;
-            eventEnd = new Date(safeEndDateString);
+            const parsedEnd = new Date(safeEndDateString);
+            if (parsedEnd.getTime() > eventStart.getTime()) {
+              eventEnd = parsedEnd;
+            }
           }
 
           // Verificar si estamos dentro del horario (con un pequeño margen de 2h antes)

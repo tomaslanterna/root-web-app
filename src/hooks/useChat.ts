@@ -6,6 +6,7 @@ import { useChatRealtime } from "@/context/ChatRealtimeContext";
 import { useAuth } from "@/context/AuthContext";
 import { useMutation } from "@/hooks/useMutation";
 import { mergeChatMessages, messageSortKey } from "@/lib/chatMessages";
+import { generateUUID } from "@/lib/uuid";
 import { isAxiosError } from "axios";
 
 export type { ChatMessage } from "@/services/chat";
@@ -132,7 +133,7 @@ export function useChat(chatId: string | undefined, currentUserId?: string) {
   const sendMessage = async (content: string, type: MessageType = "text", senderHint?: string) => {
     if (!chatId || !userId || !content.trim() || (senderHint && senderHint !== userId)) return null;
     return transmit({
-      id: crypto.randomUUID(), chat_id: chatId, sender_id: userId,
+      id: generateUUID(), chat_id: chatId, sender_id: userId,
       content: content.trim(), type, metadata: null,
       timestamp: new Date().toISOString(), status: "sending",
     });

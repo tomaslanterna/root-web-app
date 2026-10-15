@@ -4,6 +4,7 @@ import { Filesystem, Directory } from "@capacitor/filesystem";
 import { getBadgeFlyer, getBadgeArtistImage } from "./badges";
 import { attendanceDate, badgeProgress } from "@/lib/badgeAppearance";
 import { badgeLocation } from "@/lib/badgeLocation";
+import { generateUUID } from "@/lib/uuid";
 import type { EventBadge } from "@/types/badges";
 
 export async function createBadgeCard(badge: EventBadge): Promise<File> {
@@ -70,7 +71,7 @@ export async function shareBadgeFile(file: File, title: string): Promise<"shared
   if (Capacitor.isNativePlatform()) {
     if (!(await Share.canShare()).value) return "unsupported";
     const data = await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onerror=()=>reject(new Error("No pudimos preparar la imagen."));reader.onload=()=>resolve(String(reader.result).split(",")[1]);reader.readAsDataURL(file);});
-    const path = `badge-shares/${crypto.randomUUID()}.png`;
+    const path = `badge-shares/${generateUUID()}.png`;
     const saved = await Filesystem.writeFile({path,data,directory:Directory.Cache,recursive:true});
     try { await Share.share({title,files:[saved.uri],dialogTitle:"Compartir tu insignia"}); return "shared"; }
     finally { await Filesystem.deleteFile({path,directory:Directory.Cache}).catch(()=>undefined); }

@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { QuickActionMenu } from "@/components/ui/QuickActionMenu";
 import { Avatar } from "@/components/ui/Avatar";
+import { Capacitor } from "@capacitor/core";
 
 const subscribeMounted = () => () => {};
 
@@ -34,6 +35,13 @@ export function BottomNav() {
   const [isVisible, setIsVisible] = useState(true);
   const [isCompact, setIsCompact] = useState(false);
   const lastScrollY = useRef(0);
+
+  const isIOS =
+    typeof window !== "undefined" &&
+    (Capacitor.getPlatform() === "ios" ||
+      document.documentElement.classList.contains("platform-ios") ||
+      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
 
   useEffect(() => {
     setIsCompact(false);
@@ -273,7 +281,10 @@ export function BottomNav() {
         inert={hideOnMobile}
         aria-hidden={hideOnMobile || undefined}
         className={cn(
-          "fixed bottom-[var(--root-mobile-nav-bottom)] left-1/2 -translate-x-1/2 z-50 w-full px-4 flex justify-center transition-all duration-300 ease-out md:hidden",
+          "fixed left-1/2 -translate-x-1/2 z-50 w-full px-4 flex justify-center transition-all duration-300 ease-out md:hidden",
+          isIOS
+            ? "bottom-[max(0.75rem,var(--root-safe-bottom))]"
+            : "bottom-[var(--root-mobile-nav-bottom)]",
           hideOnMobile
             ? "translate-y-32 opacity-0 pointer-events-none"
             : isCompact
@@ -286,7 +297,7 @@ export function BottomNav() {
             "liquid-glass-dock rounded-full flex items-center justify-around transition-all duration-300 ease-out w-full",
             isCompact
               ? "max-w-xs h-12 p-1 shadow-[0_16px_36px_rgba(0,0,0,0.85)] scale-95"
-              : "max-w-md h-14 p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.7)] scale-100",
+              : "max-w-md h-14 p-1 shadow-[0_20px_50px_rgba(0,0,0,0.7)] scale-100",
           )}
         >
           {/* Liquid Glass: Specular top edge highlight */}
@@ -311,7 +322,7 @@ export function BottomNav() {
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
                   "relative min-w-0 flex flex-1 items-center justify-center rounded-full select-none transition-all duration-200 group z-10",
-                  isCompact ? "h-10" : "h-11",
+                  isCompact ? "h-10" : "h-12",
                   isActive
                     ? "text-[#D4FF00]"
                     : "text-neutral-400 hover:text-white",
@@ -321,9 +332,9 @@ export function BottomNav() {
                   <span
                     className={cn(
                       "absolute rounded-full -z-10 transition-all duration-200 animate-fade-in",
-                      "bg-gradient-to-b from-white/[0.14] to-white/[0.04] border border-white/[0.14]",
-                      "shadow-[inset_0_1px_1px_0_rgba(255,255,255,0.22),0_4px_14px_rgba(0,0,0,0.4)]",
-                      isCompact ? "w-12 h-9" : "w-14 h-10",
+                      "bg-gradient-to-b from-white/[0.18] to-white/[0.06] border border-white/[0.16]",
+                      "shadow-[inset_0_1px_1px_0_rgba(255,255,255,0.25),0_4px_14px_rgba(0,0,0,0.4)]",
+                      isCompact ? "w-[80%] max-w-[64px] h-9" : "w-[88%] max-w-[84px] h-11",
                     )}
                   />
                 )}

@@ -256,11 +256,19 @@ export default function EventsPage() {
     inbox ? { onProgress: inbox.move, onCancel: inbox.cancel } : undefined,
   );
 
+  const isEventFinished = (ev: Event) => {
+    const startDate = new Date(ev.date).getTime();
+    const endDate = ev.endDate ? new Date(ev.endDate).getTime() : 0;
+    const finishTime = endDate > startDate ? endDate : startDate + 4 * 60 * 60 * 1000;
+    return Date.now() >= finishTime;
+  };
+
   const { mutate: fetchPendingSurveys } = useMutation<Event[], void>(
     surveysApi.getPendingSurveys,
     {
       onSuccess: (data) => {
-        setPendingSurveys(data);
+        const endedSurveys = (data || []).filter(isEventFinished);
+        setPendingSurveys(endedSurveys);
       },
       onError: (err) => {
         console.error("Error fetching pending surveys:", err);

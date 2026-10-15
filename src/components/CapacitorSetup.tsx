@@ -10,6 +10,19 @@ export function CapacitorSetup() {
   const { confirmExit, cancelExit, exit } = useNativeBack();
   useEffect(() => {
     const setupCapacitor = async () => {
+      if (typeof window !== "undefined") {
+        const platform = Capacitor.getPlatform();
+        const isIOS =
+          platform === "ios" ||
+          /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+          (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+        if (isIOS) {
+          document.documentElement.classList.add("platform-ios");
+        } else if (platform === "android" || /android/i.test(navigator.userAgent)) {
+          document.documentElement.classList.add("platform-android");
+        }
+      }
+
       if (Capacitor.isNativePlatform()) {
         try {
           // Asegurar que los íconos de la barra (batería, hora) sean blancos (Dark mode)

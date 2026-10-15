@@ -16,8 +16,8 @@ export function LiveEventBanner() {
   return (
     <div className="px-4 pt-4 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-4 duration-500">
       <Link
-        href={`/events/${liveEvent.id}/survey`}
-        aria-label={`Valorar ${liveEvent.title}`}
+        href="/dance-ranker"
+        aria-label={`Dance Ranker - ${liveEvent.title}`}
         className="relative block overflow-hidden rounded-3xl bg-[#14171F] border border-[#D4FF00]/30 shadow-lg shadow-[#D4FF00]/10 cursor-pointer group motion-safe:active:scale-[0.98] transition-colors"
       >
         {/* Banner de fondo si existe */}
@@ -47,7 +47,6 @@ export function LiveEventBanner() {
               <h3 className="text-sm font-bold text-white line-clamp-1">
                 ¡Disfruta {liveEvent.title}!
               </h3>
-              <p className="mt-1 text-xs text-neutral-300">{attendanceConfirmed ? "Insignia desbloqueada · Tocá para valorar" : "Tocá para recordar y valorar tu noche"}</p>
             </div>
           </div>
           <div className="shrink-0 flex items-center gap-2 ml-2">

@@ -11,7 +11,7 @@ import { attendanceDate } from "@/lib/badgeAppearance";
 import type { Event } from "@/types/events";
 import type { EventBadge } from "@/types/badges";
 import { StarRating } from "@/components/ui/StarRating";
-import { ChevronLeft, Loader2, CheckCircle } from "lucide-react";
+import { ChevronLeft, Loader2, CheckCircle, Star } from "lucide-react";
 import { ArtistRatings } from "@/components/profile/ArtistRatings";
 import { badgeFlyerUrl } from "@/services/badges";
 import { badgeLocation } from "@/lib/badgeLocation";
@@ -143,6 +143,45 @@ export default function SurveyPage() {
         <p className="px-4 text-center">{detailError?.response?.status === 404 ? "Necesitás asistencia confirmada para valorar esta fiesta." : "No pudimos cargar tu valoración."}</p>
         <button onClick={() => void loadDetail().then(hydrateDetail).catch(() => undefined)} className="mt-4 text-[#D4FF00]">Reintentar</button>
         <button onClick={() => router.back()} className="mt-4 text-[#D4FF00]">Volver</button>
+      </div>
+    );
+  }
+
+  const isPartyOngoing = () => {
+    if (!event) return false;
+    const start = new Date(event.date).getTime();
+    const end = event.endDate && new Date(event.endDate).getTime() > start
+      ? new Date(event.endDate).getTime()
+      : start + 4 * 60 * 60 * 1000;
+    return Date.now() < end;
+  };
+
+  if (isPartyOngoing()) {
+    return (
+      <div className="min-h-screen bg-[#0B0D10] flex flex-col items-center justify-center text-white px-6 text-center">
+        <DetailHeader
+          onBack={() => router.back()}
+          showSave={false}
+          showShare={false}
+          showBrand={true}
+        />
+        <div className="max-w-md w-full p-8 rounded-3xl bg-[#14171F] border border-white/10 shadow-2xl flex flex-col items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-[#D4FF00]/10 border border-[#D4FF00]/20 flex items-center justify-center text-[#D4FF00]">
+            <Star className="w-6 h-6 fill-[#D4FF00]" />
+          </div>
+          <h2 className="text-xl font-black italic tracking-tight text-white">
+            La fiesta todavía está en curso
+          </h2>
+          <p className="text-sm text-neutral-400">
+            La encuesta de <span className="text-white font-bold">{event.title}</span> estará disponible una vez que el evento haya finalizado.
+          </p>
+          <button
+            onClick={() => router.back()}
+            className="mt-2 w-full py-3 rounded-full bg-[#D4FF00] text-neutral-950 font-black uppercase text-xs tracking-wider transition-all hover:bg-[#c2eb00] active:scale-95 cursor-pointer"
+          >
+            Volver
+          </button>
+        </div>
       </div>
     );
   }

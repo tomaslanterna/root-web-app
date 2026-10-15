@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -18,6 +18,7 @@ import { CommentSection } from "@/components/ui/CommentSection";
 import { DetailHeader } from "@/components/ui/DetailHeader";
 import { usePostDetail } from "@/hooks/usePostDetail";
 import { postsApi } from "@/services/posts";
+import { useAuth } from "@/context/AuthContext";
 import { ReportContentAction } from "@/components/communities/ReportContentAction";
 import { cn } from "@/lib/utils";
 
@@ -27,6 +28,7 @@ export default function PostDetailPage({
   params: Promise<{ id: string }> | { id: string };
 }) {
   const router = useRouter();
+  const { user } = useAuth();
 
   // React.use() to unwrap params if it is a Promise (Next.js 15+)
   const unwrappedParams =
@@ -35,34 +37,81 @@ export default function PostDetailPage({
 
   const { post, hasLoaded, isLoading: isLoadingPost } = usePostDetail(id);
   const [liked, setLiked] = useState(false);
-  const [likesDelta, setLikesDelta] = useState(0);
+  const [likesCount, setLikesCount] = useState(0);
+  const [isLiking, setIsLiking] = useState(false);
   const [showHeartBurst, setShowHeartBurst] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const lastTapRef = useRef<number>(0);
 
-  const likesCount = Math.max(0, (post?.likesCount || 0) + likesDelta);
+  // Sync post data when loaded
+  useEffect(() => {
+    if (post) {
+      setLiked(Boolean(post.isLiked));
+      setLikesCount(post.likesCount ?? 0);
+    }
+  }, [post?.id, post?.isLiked, post?.likesCount]);
 
-  const handleLike = () => {
-    const nextLiked = !liked;
+  const handleLike = async () => {
+    if (!post?.id || isLiking) return;
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+
+    const prevLiked = liked;
+    const prevCount = likesCount;
+    const nextLiked = !prevLiked;
+    const nextCount = Math.max(0, prevCount + (nextLiked ? 1 : -1));
+
+    // Optimistic update
     setLiked(nextLiked);
-    setLikesDelta((delta) => delta + (nextLiked ? 1 : -1));
-    if (post?.id) {
-      void postsApi.likePost(post.id).catch(() => undefined);
+    setLikesCount(nextCount);
+    setIsLiking(true);
+
+    try {
+      const res = await postsApi.likePost(post.id);
+      if (res && typeof res.liked === "boolean") {
+        setLiked(res.liked);
+        if (typeof res.likesCount === "number") {
+          setLikesCount(res.likesCount);
+        }
+      }
+    } catch {
+      // Revert if request fails
+      setLiked(prevLiked);
+      setLikesCount(prevCount);
+    } finally {
+      setIsLiking(false);
     }
   };
 
-  const handleDoubleTap = () => {
+  const handleDoubleTap = async () => {
     const now = Date.now();
     if (now - lastTapRef.current < 300) {
-      if (!liked) {
-        setLiked(true);
-        setLikesDelta((prev) => prev + 1);
-        if (post?.id) {
-          void postsApi.likePost(post.id).catch(() => undefined);
-        }
-      }
       setShowHeartBurst(true);
       setTimeout(() => setShowHeartBurst(false), 800);
+
+      if (!liked && post?.id && user && !isLiking) {
+        const prevLiked = liked;
+        const prevCount = likesCount;
+        setLiked(true);
+        setLikesCount(prevCount + 1);
+        setIsLiking(true);
+        try {
+          const res = await postsApi.likePost(post.id);
+          if (res && typeof res.liked === "boolean") {
+            setLiked(res.liked);
+            if (typeof res.likesCount === "number") {
+              setLikesCount(res.likesCount);
+            }
+          }
+        } catch {
+          setLiked(prevLiked);
+          setLikesCount(prevCount);
+        } finally {
+          setIsLiking(false);
+        }
+      }
     }
     lastTapRef.current = now;
   };
@@ -84,7 +133,7 @@ export default function PostDetailPage({
           showShare={false}
           onBack={() => router.back()}
         />
-        <div className="flex-1 flex flex-col items-center justify-center gap-3 p-6 mt-16">
+        <div className="flex-1 flex flex-col items-center justify-center gap-3 p-6 pt-safe-header">
           <div className="w-8 h-8 border-4 border-[#D4FF00] border-t-transparent rounded-full animate-spin" />
           <p className="text-xs font-black uppercase tracking-wider text-neutral-400">
             Cargando publicación...
@@ -103,7 +152,7 @@ export default function PostDetailPage({
           showShare={false}
           onBack={() => router.back()}
         />
-        <div className="flex-1 flex flex-col items-center justify-center gap-4 p-6 text-center mt-16">
+        <div className="flex-1 flex flex-col items-center justify-center gap-4 p-6 text-center pt-safe-header">
           <p className="text-sm font-bold uppercase text-neutral-300">
             No pudimos encontrar la publicación
           </p>
@@ -120,7 +169,7 @@ export default function PostDetailPage({
   }
 
   return (
-    <div className="min-h-[100dvh] bg-[#0B0D10] text-white flex flex-col pb-24 relative">
+    <div className="min-h-[100dvh] bg-[#0B0D10] text-white flex flex-col pb-[calc(6.5rem+var(--root-safe-bottom,env(safe-area-inset-bottom,0px)))] sm:pb-32 relative">
       {/* Toast Feedback de Compartir */}
       {copiedLink && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 rounded-full bg-[#D4FF00] px-5 py-2.5 text-xs font-black tracking-wide text-neutral-950 shadow-2xl shadow-[#D4FF00]/40 animate-in fade-in slide-in-from-top-4 duration-200">
@@ -139,10 +188,10 @@ export default function PostDetailPage({
       />
 
       {/* Contenedor de la publicación */}
-      <main className="w-full max-w-xl mx-auto flex-1 flex flex-col px-0 sm:px-4 pt-16 sm:pt-20">
+      <main className="w-full max-w-xl mx-auto flex-1 flex flex-col px-0 sm:px-4 pt-safe-1 sm:pt-20">
         <article className="overflow-hidden bg-[#111114] sm:rounded-3xl border-0 shadow-[0_16px_40px_-12px_rgba(0,0,0,0.7)]">
-          {/* Cabecera del Autor */}
-          <div className="flex items-center justify-between p-3.5 sm:p-4">
+          {/* Cabecera del Autor - Deja espacio para el botón de GoBack a la izquierda y el Share a la derecha en mobile */}
+          <div className="flex items-center justify-between min-h-10 py-1 pl-16 pr-14 sm:p-4">
             <Link
               href={post.authorName ? `/profile/${post.authorName}` : "#"}
               className="flex items-center gap-3 min-w-0 group"
@@ -181,7 +230,7 @@ export default function PostDetailPage({
               <button
                 type="button"
                 onClick={handleShare}
-                className="p-1.5 text-neutral-400 hover:text-white transition-colors"
+                className="hidden sm:block p-1.5 text-neutral-400 hover:text-white transition-colors"
                 aria-label="Más opciones"
               >
                 <MoreHorizontal className="h-5 w-5" />
@@ -292,6 +341,7 @@ export default function PostDetailPage({
               title="Comentarios"
               endpointType="posts"
               reportCommunityId={post.communityId}
+              fixedInput={true}
             />
           </div>
         </article>

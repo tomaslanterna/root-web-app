@@ -94,6 +94,19 @@
   --root-mobile-nav-clearance: calc(var(--root-mobile-nav-height) + var(--root-mobile-nav-bottom));
 }
 
+/* En iOS la barra se ubica a la distancia nativa de la safe area (34px en iPhone con Face ID / Dynamic Island, igual que Instagram) */
+.platform-ios {
+  --root-mobile-nav-bottom: max(0.75rem, var(--root-safe-bottom));
+  --root-mobile-nav-clearance: calc(var(--root-mobile-nav-height) + var(--root-mobile-nav-bottom) + 0.5rem);
+}
+
+@supports (-webkit-touch-callout: none) {
+  :root:not(.platform-android) {
+    --root-mobile-nav-bottom: max(0.75rem, var(--root-safe-bottom));
+    --root-mobile-nav-clearance: calc(var(--root-mobile-nav-height) + var(--root-mobile-nav-bottom) + 0.5rem);
+  }
+}
+
 @layer base {
   body {
     @apply bg-neutral-50 text-neutral-950 antialiased selection:bg-neutral-900 selection:text-white;
