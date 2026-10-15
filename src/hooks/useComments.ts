@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useMutation } from "@/hooks/useMutation";
 import { getComments, createComment } from "@/services/comments";
+import { generateUUID } from "@/lib/uuid";
 import type { EventComment } from "@/types/events";
 
 export function useComments(targetId: string, type: "events" | "posts", isMock: boolean, mockComments: EventComment[]) {
@@ -18,7 +19,7 @@ export function useComments(targetId: string, type: "events" | "posts", isMock: 
   });
   const create = useMutation(async (text: string) => {
     if (!isMock) return createComment(type, targetId, text);
-    return { id: crypto.randomUUID(), targetId, authorId: user?.id || "mock-author", authorName: user?.name || "Usuario", authorUsername: user?.username || "usuario", authorAvatar: user?.avatarUrl, content: text, timestamp: new Date().toISOString() };
+    return { id: generateUUID(), targetId, authorId: user?.id || "mock-author", authorName: user?.name || "Usuario", authorUsername: user?.username || "usuario", authorAvatar: user?.avatarUrl, content: text, timestamp: new Date().toISOString() };
   }, { onSuccess: (comment) => { setComments((current) => [comment, ...current]); setTotal((current) => current + 1); } });
   const fetchComments = list.mutate;
   useEffect(() => { if (!isMock) void fetchComments(0).catch(() => undefined); }, [isMock, targetId, type, fetchComments]);

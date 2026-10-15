@@ -46,9 +46,11 @@ export function DanceProvider({ children }: { children: React.ReactNode }) {
     let mounted = true;
 
     const checkLiveStatus = async () => {
-      setLiveEvent(null);
-      setAttendanceConfirmed(false);
-      if (!user) return;
+      if (!user) {
+        setLiveEvent(null);
+        setAttendanceConfirmed(false);
+        return;
+      }
 
       try {
         console.log("DANCE_CONTEXT: Pidiendo permisos / getCurrentPosition...");
@@ -71,7 +73,9 @@ export function DanceProvider({ children }: { children: React.ReactNode }) {
         });
         console.log("DANCE_CONTEXT: Respuesta live-status:", res.data);
 
-        if (mounted && res.data?.isLive && res.data?.event) {
+        if (!mounted) return;
+
+        if (res.data?.isLive && res.data?.event) {
           console.log(
             "DANCE_CONTEXT: ¡Fiesta detectada! Activando startDanceSession...",
           );
@@ -90,12 +94,13 @@ export function DanceProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (error) {
         console.error("DANCE_CONTEXT: Error crítico chequeando estado:", error);
+        // Preservar el estado anterior en caso de fallo transitorio de red/GPS
       }
     };
 
     checkLiveStatus();
-    // Validar ubicación y horario cada 60 segundos
-    const interval = setInterval(checkLiveStatus, 60000);
+    // Validar ubicación y horario cada 5 minutos (300.000 ms)
+    const interval = setInterval(checkLiveStatus, 5 * 60 * 1000);
 
     return () => {
       mounted = false;
