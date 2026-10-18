@@ -1,5 +1,27 @@
 import UIKit
 import Capacitor
+import ObjectiveC.runtime
+
+extension UIImagePickerController {
+    private static let swizzleCameraAvailability: Void = {
+        guard let originalMethod = class_getClassMethod(UIImagePickerController.self, #selector(isSourceTypeAvailable(_:))),
+              let swizzledMethod = class_getClassMethod(UIImagePickerController.self, #selector(root_isSourceTypeAvailable(_:))) else {
+            return
+        }
+        method_exchangeImplementations(originalMethod, swizzledMethod)
+    }()
+
+    static func disableCameraInFileInputs() {
+        _ = swizzleCameraAvailability
+    }
+
+    @objc private class func root_isSourceTypeAvailable(_ sourceType: UIImagePickerController.SourceType) -> Bool {
+        if sourceType == .camera {
+            return false
+        }
+        return root_isSourceTypeAvailable(sourceType)
+    }
+}
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -8,6 +30,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
+        UIImagePickerController.disableCameraInFileInputs()
         return true
     }
 

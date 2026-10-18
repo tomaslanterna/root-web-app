@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useMutation } from "@/hooks/useMutation";
-import { matchApi, type PermanentCrew, DEFAULT_ARGENTINA_CREWS } from "@/services/match";
+import { matchApi, type PermanentCrew } from "@/services/match";
 
 export function useMatcherCatalog() {
   const { user } = useAuth();
@@ -14,12 +14,11 @@ export function useMatcherCatalog() {
   const [localCreatedCrews, setLocalCreatedCrews] = useState<PermanentCrew[]>([]);
 
   const fetchCrews = useCallback(async () => {
+    const tasks: Promise<unknown>[] = [loadAllCrews(undefined)];
     if (user?.id) {
-      await Promise.allSettled([
-        loadMyCrews(undefined),
-        loadAllCrews(undefined),
-      ]);
+      tasks.push(loadMyCrews(undefined));
     }
+    await Promise.allSettled(tasks);
   }, [user?.id, loadMyCrews, loadAllCrews]);
 
   useEffect(() => {
@@ -30,56 +29,43 @@ export function useMatcherCatalog() {
     void fetchCrews();
   }, [fetchCrews]);
 
-  // Combine user's permanent crews
+  // Combine user's permanent crews deduplicating by id
+  const fetchedMyCrews = myCrewsData ?? [];
   const permanentCrews = [
-    ...localCreatedCrews,
-    ...(myCrewsData ?? []),
+    ...fetchedMyCrews,
+    ...localCreatedCrews.filter((lc) => !fetchedMyCrews.some((mc) => mc.id === lc.id)),
   ];
 
-  // All crews in the country: fetched list merged with any locally created crews, falling back to default list
-  const baseAllCrews = allCrewsData && allCrewsData.length > 0 ? allCrewsData : DEFAULT_ARGENTINA_CREWS;
+  // All crews in the country: fetched list merged with any locally created crews
+  const baseAllCrews = allCrewsData ?? [];
   const allCrews = [
-    ...localCreatedCrews,
-    ...baseAllCrews.filter((c) => !localCreatedCrews.some((lc) => lc.id === c.id)),
+    ...baseAllCrews,
+    ...localCreatedCrews.filter((lc) => !baseAllCrews.some((c) => c.id === lc.id)),
   ];
 
   const createCrew = async (payload?: {
     name?: string;
     memberIds?: string[];
+    eventIds?: string[];
     friends?: Array<{ id: string; name: string; username: string; avatarUrl?: string }>;
   }) => {
     const crewName = payload?.name?.trim() || "Nueva Crew";
-    const resId = await mutateCreateCrew({
+    const createdCrew = await mutateCreateCrew({
       name: crewName,
       memberIds: payload?.memberIds,
+      eventIds: payload?.eventIds,
     });
-    const finalId = resId || `perm_crew_${Date.now()}`;
-    const newCrew: PermanentCrew = {
-      id: finalId,
-      name: crewName,
-      inviteCode: "CREW" + Math.floor(1000 + Math.random() * 9000),
-      memberCount: 1 + (payload?.friends?.length || 0),
-      topSteps: 0,
-      status: "active",
-      location: "Buenos Aires, Argentina",
-      members: [
-        {
-          userId: user?.id || "me",
-          name: user?.name,
-          username: user?.username,
-          avatarUrl: user?.avatarUrl,
-        },
-        ...(payload?.friends || []).map((f) => ({
-          userId: f.id,
-          name: f.name,
-          username: f.username,
-          avatarUrl: f.avatarUrl,
-        })),
-      ],
-    };
 
-    setLocalCreatedCrews((prev) => [newCrew, ...prev]);
-    return finalId;
+    if (createdCrew?.id) {
+      setLocalCreatedCrews((prev) => [
+        createdCrew,
+        ...prev.filter((c) => c.id !== createdCrew.id),
+      ]);
+      void fetchCrews();
+      return createdCrew.id;
+    }
+
+    return "";
   };
 
   return {

@@ -1,20 +1,19 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import Image from "next/image";
 import {
   X,
   ArrowLeft,
   ArrowRight,
   Image as ImageIcon,
   Loader2,
-  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import type { Post } from "@/types/posts";
+import { compressImageFile } from "@/lib/imageCompression";
 
 interface CreatePhotoModalProps {
   isOpen: boolean;
@@ -80,12 +79,12 @@ export function CreatePhotoModal({
       // 1. Subir imagen al backend
       if (selectedFile) {
         try {
+          const fileToUpload = await compressImageFile(selectedFile);
           const formData = new FormData();
-          formData.append("image", selectedFile);
+          formData.append("image", fileToUpload);
           const uploadRes = await api.post<{ key?: string; url?: string } | string>(
             "/v1/posts/image",
             formData,
-            { headers: { "Content-Type": "multipart/form-data" } },
           );
           if (typeof uploadRes.data === "string") {
             uploadedKey = uploadRes.data;
@@ -94,22 +93,39 @@ export function CreatePhotoModal({
             presignedUrl = uploadRes.data.url || "";
           }
         } catch (uploadErr) {
-          console.warn("Subida de imagen al servidor falló, usando preview local:", uploadErr);
+          console.error("Subida de imagen al servidor falló:", uploadErr);
+          const err = uploadErr as { response?: { data?: { error?: string } }; message?: string };
+          const msg =
+            err?.response?.data?.error ||
+            err?.message ||
+            "Error al subir imagen";
+          setError(`No pudimos subir la foto: ${msg}`);
+          setIsSubmitting(false);
+          return;
         }
       }
 
+      if (!uploadedKey) {
+        setError("No pudimos subir la foto. Por favor intentá nuevamente.");
+        setIsSubmitting(false);
+        return;
+      }
+
       // 2. Persistir post en backend
-      let createdPost: any = null;
+      let createdPost: Partial<Post> | null = null;
       try {
         const res = await api.post("/v1/posts", {
           content: caption.trim(),
-          header_image_url: uploadedKey || undefined,
+          header_image_url: uploadedKey,
         });
         if (res.data) {
           createdPost = res.data;
         }
       } catch (postErr) {
-        console.warn("Creación de post en API falló o endpoint offline:", postErr);
+        console.error("Creación de post en API falló:", postErr);
+        setError("Error al crear la publicación en el servidor.");
+        setIsSubmitting(false);
+        return;
       }
 
       // 3. Resolver URL de imagen final visible (siempre displayable)
@@ -141,7 +157,7 @@ export function CreatePhotoModal({
 
       onPostCreated(finalPost);
       handleClose();
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error al crear la publicación:", err);
       setError("No pudimos publicar la foto. Intentá nuevamente.");
       setIsSubmitting(false);

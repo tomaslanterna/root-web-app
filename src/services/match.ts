@@ -8,6 +8,8 @@ export interface PermanentCrewMember {
   name?: string;
   username?: string;
   avatarUrl?: string | null;
+  role?: string;
+  steps?: number;
 }
 
 export interface PermanentCrew {
@@ -16,68 +18,18 @@ export interface PermanentCrew {
   inviteCode: string | null;
   memberCount: number;
   topSteps: number;
+  totalSteps?: number;
+  userRank?: number;
   status: string;
+  chatRoomId?: string;
   location?: string;
   country?: string;
   members?: PermanentCrewMember[];
+  leaderboardAllTime?: PermanentCrewMember[];
+  events?: any[];
 }
 
-export const DEFAULT_ARGENTINA_CREWS: PermanentCrew[] = [
-  {
-    id: "crew_ba_underground",
-    name: "Underground BA Crew",
-    inviteCode: "UBA841",
-    memberCount: 28,
-    topSteps: 64200,
-    status: "active",
-    location: "Buenos Aires, Argentina",
-  },
-  {
-    id: "crew_afterlife_melodic",
-    name: "Afterlife Melodic BA",
-    inviteCode: "ALBA99",
-    memberCount: 22,
-    topSteps: 51800,
-    status: "active",
-    location: "CABA, Argentina",
-  },
-  {
-    id: "crew_cba_ravers",
-    name: "Córdoba Rave Collective",
-    inviteCode: "CBA202",
-    memberCount: 19,
-    topSteps: 43100,
-    status: "active",
-    location: "Córdoba, Argentina",
-  },
-  {
-    id: "crew_rosario_techno",
-    name: "Rosario Groove Club",
-    inviteCode: "ROS774",
-    memberCount: 15,
-    topSteps: 34900,
-    status: "active",
-    location: "Rosario, Argentina",
-  },
-  {
-    id: "crew_mdz_sunset",
-    name: "Mendoza Sunset Beats",
-    inviteCode: "MDZ115",
-    memberCount: 14,
-    topSteps: 29800,
-    status: "active",
-    location: "Mendoza, Argentina",
-  },
-  {
-    id: "crew_lp_electronic",
-    name: "La Plata Night Squad",
-    inviteCode: "LP902",
-    memberCount: 12,
-    topSteps: 26400,
-    status: "active",
-    location: "La Plata, Argentina",
-  },
-];
+export const DEFAULT_ARGENTINA_CREWS: PermanentCrew[] = [];
 
 export type SwipeDirection = "like" | "pass" | "superlike";
 export type SwipeResponse = { status: "queued" } | { status: "matched"; crew: EventSquad };
@@ -94,20 +46,35 @@ export const matchApi = {
   getAllPermanentCrews: async (): Promise<PermanentCrew[]> => {
     try {
       const { data } = await api.get<{ data: PermanentCrew[] }>("/v1/crews?scope=all");
-      const list = data.data ?? [];
-      if (list.length > 0) return list;
+      return data.data ?? [];
     } catch {
-      // Fallback if network or unauthenticated
+      return [];
     }
-    return DEFAULT_ARGENTINA_CREWS;
   },
-  createPermanentCrew: async (payload?: { name?: string; memberIds?: string[] }): Promise<string> => {
-    const { data } = await api.post<{ crew: { id: string } }>("/v1/crews", {
+  createPermanentCrew: async (payload?: {
+    name?: string;
+    memberIds?: string[];
+    eventIds?: string[];
+  }): Promise<PermanentCrew> => {
+    const { data } = await api.post<{ crew: PermanentCrew }>("/v1/crews", {
       name: payload?.name || "Nueva Crew",
       type: "permanent",
       member_ids: payload?.memberIds || [],
+      event_ids: payload?.eventIds || [],
     });
-    return data.crew?.id ?? "";
+    return data.crew;
+  },
+  joinPermanentCrew: async (codeOrId: string): Promise<PermanentCrew> => {
+    const { data } = await api.post<{ crew: PermanentCrew }>(
+      `/v1/crews/join/${encodeURIComponent(codeOrId.trim())}`,
+    );
+    return data.crew;
+  },
+  addCrewEvent: async (crewId: string, eventId: string): Promise<any[]> => {
+    const { data } = await api.post<{ data: any[] }>(`/v1/crews/${crewId}/events`, {
+      eventId,
+    });
+    return data.data ?? [];
   },
   getMatches: async (): Promise<EventSquad[]> => {
     const { data } = await api.get<{ data: EventSquad[] }>("/v1/crews/matches");

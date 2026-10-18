@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, LogIn, XCircle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useDanceContext } from "@/context/DanceContext";
 import { useMutation } from "@/hooks/useMutation";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -30,6 +31,7 @@ export function EventAttendanceVote({
 }: EventAttendanceVoteProps) {
   const router = useRouter();
   const { user } = useAuth();
+  const { refreshLiveStatus } = useDanceContext();
   const [goingCount, setGoingCount] = useState(initialGoing);
   const [notGoingCount, setNotGoingCount] = useState(initialNotGoing);
   const [status, setStatus] = useState<EventRSVPStatus | null>(initialStatus);
@@ -49,6 +51,9 @@ export function EventAttendanceVote({
       setNotGoingCount(response.notGoingCount);
       setStatus(response.userRsvp);
       onChange?.(response);
+      if (response.userRsvp === "going") {
+        void refreshLiveStatus?.().catch(() => undefined);
+      }
     },
   });
 

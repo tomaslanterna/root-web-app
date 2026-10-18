@@ -61,11 +61,13 @@ export default function MatchPage() {
   const handleCreateCrewSubmit = async (data: {
     name: string;
     memberIds: string[];
+    eventIds: string[];
     friends: Array<{ id: string; name: string; username: string; avatarUrl?: string }>;
   }) => {
     const createdId = await createCrew({
       name: data.name,
       memberIds: data.memberIds,
+      eventIds: data.eventIds,
       friends: data.friends,
     });
     if (createdId) {
@@ -408,6 +410,7 @@ export default function MatchPage() {
       <CreateCrewModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
+        events={events}
         onSubmit={handleCreateCrewSubmit}
       />
     </div>
