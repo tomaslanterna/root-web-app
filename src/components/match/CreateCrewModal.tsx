@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { X, Users, UserPlus, Search, Loader2, Check, Flame } from "lucide-react";
+import { X, Users, UserPlus, Search, Loader2, Check, Flame, Calendar } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { searchApi } from "@/services/search";
+import type { Event } from "@/types/events";
 
 interface FriendUser {
   id: string;
@@ -15,9 +16,11 @@ interface FriendUser {
 interface CreateCrewModalProps {
   isOpen: boolean;
   onClose: () => void;
+  events?: Event[];
   onSubmit: (data: {
     name: string;
     memberIds: string[];
+    eventIds: string[];
     friends: FriendUser[];
   }) => Promise<string | void>;
 }
@@ -25,6 +28,7 @@ interface CreateCrewModalProps {
 export function CreateCrewModal({
   isOpen,
   onClose,
+  events = [],
   onSubmit,
 }: CreateCrewModalProps) {
   const [crewName, setCrewName] = useState("");
@@ -32,6 +36,7 @@ export function CreateCrewModal({
   const [searchResults, setSearchResults] = useState<FriendUser[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedFriends, setSelectedFriends] = useState<FriendUser[]>([]);
+  const [selectedEventIds, setSelectedEventIds] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,6 +48,7 @@ export function CreateCrewModal({
       setSearchQuery("");
       setSearchResults([]);
       setSelectedFriends([]);
+      setSelectedEventIds([]);
       setError(null);
       setIsSubmitting(false);
     }
@@ -95,6 +101,12 @@ export function CreateCrewModal({
     }
   };
 
+  const toggleSelectEvent = (eventId: string) => {
+    setSelectedEventIds((prev) =>
+      prev.includes(eventId) ? prev.filter((id) => id !== eventId) : [...prev, eventId],
+    );
+  };
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!crewName.trim()) {
@@ -109,6 +121,7 @@ export function CreateCrewModal({
       await onSubmit({
         name: crewName.trim(),
         memberIds: selectedFriends.map((f) => f.id),
+        eventIds: selectedEventIds,
         friends: selectedFriends,
       });
       onClose();
@@ -137,7 +150,7 @@ export function CreateCrewModal({
                 Crear una Crew
               </h2>
               <p className="text-[11px] text-neutral-400 font-bold">
-                Armá tu equipo y sumá amigos para romperla en los eventos
+                Armá tu equipo, sumá amigos y asociá eventos para competir en pasos
               </p>
             </div>
           </div>
@@ -290,6 +303,52 @@ export function CreateCrewModal({
               </div>
             )}
           </div>
+
+          {/* Asociar Eventos (Opcional) */}
+          {events.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="tech-label text-xs text-neutral-300 flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-[#D4FF00]" /> Eventos Asociados (Opcional)
+                </label>
+                {selectedEventIds.length > 0 && (
+                  <span className="flex items-center gap-1 bg-[#D4FF00]/10 px-2.5 py-0.5 rounded-full">
+                    <span className="num-display text-xs text-white">{selectedEventIds.length}</span>
+                    <span className="tech-label text-[9px] text-[#D4FF00]">
+                      {selectedEventIds.length === 1 ? "evento" : "eventos"}
+                    </span>
+                  </span>
+                )}
+              </div>
+              <div className="max-h-36 overflow-y-auto rounded-2xl bg-[#0B0D10] border border-white/[0.06] divide-y divide-white/[0.04]">
+                {events.slice(0, 12).map((ev) => {
+                  const isSelected = selectedEventIds.includes(ev.id);
+                  return (
+                    <div
+                      key={ev.id}
+                      onClick={() => toggleSelectEvent(ev.id)}
+                      className="flex items-center justify-between p-2.5 hover:bg-white/5 cursor-pointer transition-colors"
+                    >
+                      <div className="min-w-0 pr-2">
+                        <p className="text-xs font-black text-white truncate">{ev.title}</p>
+                        <p className="text-[10px] text-neutral-500 truncate">{ev.location}</p>
+                      </div>
+                      <button
+                        type="button"
+                        className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase transition-all shrink-0 cursor-pointer ${
+                          isSelected
+                            ? "bg-[#D4FF00] text-neutral-950"
+                            : "bg-white/10 text-white hover:bg-white/20"
+                        }`}
+                      >
+                        {isSelected ? "Asociado" : "+ Asociar"}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Footer Action Buttons */}
           <div className="pt-2 flex items-center justify-end gap-3">

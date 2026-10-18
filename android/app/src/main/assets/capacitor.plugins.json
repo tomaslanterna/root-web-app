@@ -26,5 +26,9 @@
 	{
 		"pkg": "@capawesome/capacitor-google-sign-in",
 		"classpath": "io.capawesome.capacitorjs.plugins.googlesignin.GoogleSignInPlugin"
+	},
+	{
+		"pkg": "@capgo/capacitor-health",
+		"classpath": "app.capgo.plugin.health.HealthPlugin"
 	}
 ]

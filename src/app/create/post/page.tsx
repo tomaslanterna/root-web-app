@@ -3,8 +3,9 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
-import { ChevronLeft, Image as ImageIcon, Sparkles, Loader2, Check, ArrowRight, X } from "lucide-react";
+import { ChevronLeft, Image as ImageIcon, Sparkles, Loader2, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { compressImageFile } from "@/lib/imageCompression";
 
 function CreatePostContent() {
   const router = useRouter();
@@ -36,7 +37,7 @@ function CreatePostContent() {
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
+    if (file && (!file.type || file.type.startsWith("image/"))) {
       setImageFile(file);
       const url = URL.createObjectURL(file);
       setImagePreview(url);
@@ -63,11 +64,10 @@ function CreatePostContent() {
     try {
       let headerImageUrl = "";
       if (imageFile) {
+        const fileToUpload = await compressImageFile(imageFile);
         const formData = new FormData();
-        formData.append("image", imageFile);
-        const uploadRes = await api.post("/v1/posts/image", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+        formData.append("image", fileToUpload);
+        const uploadRes = await api.post("/v1/posts/image", formData);
         headerImageUrl = uploadRes.data.key;
       }
 

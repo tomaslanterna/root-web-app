@@ -36,16 +36,47 @@ export function useEventReview(eventId: string) {
   const detail = useMutation<EventBadge, void>(() => getMyEventBadge(eventId));
   const save = useMutation<EventBadge, SubmitSurveyPayload>(async input => {
     await surveysApi.submitSurvey(eventId, input);
-    return getMyEventBadge(eventId);
+    try {
+      return await getMyEventBadge(eventId);
+    } catch {
+      return {
+        eventId,
+        title: "",
+        imageUrl: "",
+        eventDate: new Date().toISOString(),
+        location: "",
+        confirmedAt: new Date().toISOString(),
+        review: {
+          id: "",
+          eventId,
+          generalRating: input.general_rating,
+          comment: input.comment,
+          organizationRating: input.organization_rating,
+          vibeRating: input.vibe_rating,
+          soundVisualRating: input.sound_visual_rating,
+          pricingRating: input.pricing_rating,
+          spaceRating: input.space_rating,
+          wouldReturn: input.would_return,
+          artistRatings: input.artist_ratings?.map(ar => ({ artistId: ar.artist_id, rating: ar.rating })),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      };
+    }
   });
   return { load: detail.mutate, badge: save.data || detail.data, isLoading: detail.isLoading, error: detail.error,
     save: save.mutate, isSaving: save.isLoading, saveError: save.error };
 }
 
 export function useSurveyDetail(eventId: string) {
-  return useMutation<{ event: Event; badge: EventBadge }, void>(async () => {
-    const badge = await getMyEventBadge(eventId);
+  return useMutation<{ event: Event; badge: EventBadge | null }, void>(async () => {
     const event: Event = await eventsApi.getEventById(eventId);
+    let badge: EventBadge | null = null;
+    try {
+      badge = await getMyEventBadge(eventId);
+    } catch {
+      // Badge may be unavailable or unobtained, but survey can still be completed
+    }
     return { event, badge };
   });
 }

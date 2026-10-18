@@ -58,6 +58,8 @@ export function useDanceSync() {
     [requestLocation, setSteps, syncSteps],
   );
 
+  const currentEventIdRef = useRef<string | null>(null);
+
   const startDanceSession = useCallback(
     async (event: LiveEvent, initialSteps: any) => {
       console.log(
@@ -66,8 +68,15 @@ export function useDanceSync() {
       );
       if (syncInterval.current) clearInterval(syncInterval.current);
 
-      // Seteamos el estado inicial con lo que haya en la DB, solo si no teníamos pasos acumulados en memoria
-      setTotalSessionSteps((prev) => (prev > 0 ? prev : initialSteps));
+      // Si cambia de evento, reiniciamos el contador con los pasos del nuevo evento
+      const isDifferentEvent = currentEventIdRef.current !== event?.id;
+      currentEventIdRef.current = event?.id || null;
+
+      if (isDifferentEvent) {
+        setTotalSessionSteps(Number(initialSteps) || 0);
+      } else {
+        setTotalSessionSteps((prev) => (prev > 0 ? prev : Number(initialSteps) || 0));
+      }
 
       const checkAndToggleTracking = async () => {
         try {

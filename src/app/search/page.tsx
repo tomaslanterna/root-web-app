@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import { Search, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
-import { PostCard } from "@/components/ui/PostCard";
 import { EventCard } from "@/components/ui/EventCard";
+import { CommunityCard } from "@/components/communities/CommunityCard";
 import { DetailHeader } from "@/components/ui/DetailHeader";
 
-type TabType = "usuarios" | "eventos" | "posteos";
+type TabType = "usuarios" | "eventos" | "comunidades";
 
 export default function SearchPage() {
   const router = useRouter();
@@ -24,7 +24,7 @@ export default function SearchPage() {
   const tabs: { id: TabType; label: string }[] = [
     { id: "usuarios", label: "Usuarios" },
     { id: "eventos", label: "Eventos" },
-    { id: "posteos", label: "Posteos" },
+    { id: "comunidades", label: "Comunidades" },
   ];
 
   // Auto focus input on mount
@@ -55,7 +55,7 @@ export default function SearchPage() {
       const typeMap: Record<TabType, string> = {
         usuarios: "USER",
         eventos: "EVENT",
-        posteos: "POST",
+        comunidades: "COMMUNITY",
       };
 
       try {
@@ -79,36 +79,50 @@ export default function SearchPage() {
 
   return (
     <div className="flex flex-col min-h-[100dvh] bg-[#0B0D10] text-white">
-      {/* Search Header */}
-      <DetailHeader
-        isSearch={true}
-        searchValue={query}
-        onSearchChange={setQuery}
-        onClearSearch={() => setQuery("")}
-        searchInputRef={inputRef}
-        className="sticky top-0 bg-[#0B0D10]/95 backdrop-blur-xl border-b border-white/10 pb-3 pt-safe-header"
-      />
+      {/* Sticky Search Header & Tabs Navigation */}
+      <div className="sticky top-0 z-30 bg-[#0B0D10]/95 backdrop-blur-xl border-b border-white/10">
+        <DetailHeader
+          isSearch={true}
+          searchValue={query}
+          onSearchChange={setQuery}
+          onClearSearch={() => setQuery("")}
+          searchInputRef={inputRef}
+          className="relative inset-x-auto top-auto z-auto bg-none bg-transparent border-none pb-2 pt-safe-header pointer-events-auto"
+        />
 
-      {/* Tabs */}
-      <div className="sticky top-[68px] z-30 liquid-glass-bar px-4 py-2 overflow-hidden">
-        <div className="liquid-glass-specular" />
-        <div className="liquid-glass-dock rounded-full p-1 flex gap-1 max-w-md mx-auto relative z-10">
-          <div className="liquid-glass-specular" />
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={cn(
-                "relative z-10 flex-1 py-2 tech-label text-xs transition-all rounded-full select-none active:scale-95 text-center",
-                activeTab === tab.id
-                  ? "bg-[#D4FF00] text-neutral-950 shadow-[0_0_15px_rgba(212,255,0,0.35),inset_0_1px_1px_0_rgba(255,255,255,0.4)]"
-                  : "text-neutral-400 hover:text-white hover:bg-white/5",
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        {/* Tabs estilo Perfil / Detalle de Comunidades */}
+        <nav aria-label="Filtro de búsqueda" className="w-full">
+          <div className="flex w-full items-center justify-around max-w-md md:max-w-xl mx-auto" role="tablist">
+            {tabs.map((tab) => {
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  role="tab"
+                  type="button"
+                  aria-selected={isActive}
+                  aria-controls={`search-tab-${tab.id}`}
+                  onClick={() => setActiveTab(tab.id)}
+                  className="relative flex-1 flex items-center justify-center py-3.5 sm:py-4 transition-colors group select-none cursor-pointer"
+                >
+                  <span
+                    className={cn(
+                      "tech-label text-xs sm:text-sm transition-all duration-200 tracking-wider",
+                      isActive
+                        ? "text-[#D4FF00]"
+                        : "text-neutral-500 group-hover:text-neutral-300",
+                    )}
+                  >
+                    {tab.label}
+                  </span>
+                  {isActive && (
+                    <span className="absolute bottom-0 inset-x-0 h-[2.5px] bg-[#D4FF00]" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </nav>
       </div>
 
       {/* Results Content */}
@@ -167,9 +181,9 @@ export default function SearchPage() {
                 <EventCard key={event.id} event={event} variant="full" />
               ))}
 
-            {activeTab === "posteos" &&
-              results.map((post: any) => (
-                <PostCard key={post.id} post={post} variant="electronic" />
+            {activeTab === "comunidades" &&
+              results.map((community: any) => (
+                <CommunityCard key={community.id} community={community} />
               ))}
           </div>
         )}

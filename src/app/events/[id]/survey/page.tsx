@@ -11,9 +11,8 @@ import { attendanceDate } from "@/lib/badgeAppearance";
 import type { Event } from "@/types/events";
 import type { EventBadge } from "@/types/badges";
 import { StarRating } from "@/components/ui/StarRating";
-import { ChevronLeft, Loader2, CheckCircle, Star } from "lucide-react";
+import { Loader2, CheckCircle, Star } from "lucide-react";
 import { ArtistRatings } from "@/components/profile/ArtistRatings";
-import { badgeFlyerUrl } from "@/services/badges";
 import { badgeLocation } from "@/lib/badgeLocation";
 import { ConfirmModal } from "@/components/ui/Modal";
 
@@ -28,6 +27,7 @@ export default function SurveyPage() {
 
   const [event, setEvent] = useState<Event | null>(null);
   const [isLoadingEvent, setIsLoadingEvent] = useState(true);
+  const [mountedAt] = useState(() => Date.now());
   
   const [generalRating, setGeneralRating] = useState<number | null>(null);
   const [organizationRating, setOrganizationRating] = useState<number | null>(null);
@@ -43,11 +43,11 @@ export default function SurveyPage() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const submitting = useRef(false);
-  const locked = detail?.badge.review != null;
+  const locked = detail?.badge?.review != null;
 
-  const hydrateDetail = useCallback((result: { event: Event; badge: EventBadge }) => {
+  const hydrateDetail = useCallback((result: { event: Event; badge?: EventBadge | null }) => {
     setEvent(result.event);
-    const review = result.badge.review;
+    const review = result.badge?.review;
     setGeneralRating(review?.generalRating ?? 1);
     setComment(review?.comment ?? "");
     setOrganizationRating(review?.organizationRating ?? (review ? null : 1));
@@ -68,7 +68,7 @@ export default function SurveyPage() {
         if (!mounted) return;
         hydrateDetail(result);
       } catch {
-        // The hook exposes errors and does not treat unconfirmed presence as an empty review.
+        // Handled by detailError
       } finally {
         if (mounted) setIsLoadingEvent(false);
       }
@@ -105,7 +105,7 @@ export default function SurveyPage() {
         space_rating: spaceRating,
         would_return: wouldReturn,
         comment: comment || null,
-        artist_ratings: (detail?.badge.lineup || []).filter(entry => entry.artist).map(entry => ({
+        artist_ratings: (detail?.badge?.lineup || event?.artists || []).filter(entry => entry.artist).map(entry => ({
           artist_id: entry.artistId,
           rating: artistRatings[entry.artistId] ?? 1,
         })),
@@ -120,7 +120,7 @@ export default function SurveyPage() {
       }, 2000);
       
     } catch {
-      await loadDetail().then(result => { if (result.badge.review) hydrateDetail(result); }).catch(() => undefined);
+      await loadDetail().then(result => { if (result?.badge?.review) hydrateDetail(result); }).catch(() => undefined);
     } finally {
       submitting.current = false;
       setConfirmOpen(false);
@@ -140,9 +140,39 @@ export default function SurveyPage() {
   if (!event) {
     return (
       <div className="min-h-screen bg-[#0B0D10] flex flex-col items-center justify-center text-white">
-        <p className="px-4 text-center">{detailError?.response?.status === 404 ? "Necesitás asistencia confirmada para valorar esta fiesta." : "No pudimos cargar tu valoración."}</p>
+        <p className="px-4 text-center">{detailError?.response?.status === 404 ? "No pudimos encontrar el evento." : "No pudimos cargar la encuesta."}</p>
         <button onClick={() => void loadDetail().then(hydrateDetail).catch(() => undefined)} className="mt-4 text-[#D4FF00]">Reintentar</button>
         <button onClick={() => router.back()} className="mt-4 text-[#D4FF00]">Volver</button>
+      </div>
+    );
+  }
+
+  if (event.userRsvp !== "going" && !detail?.badge) {
+    return (
+      <div className="min-h-screen bg-[#0B0D10] flex flex-col items-center justify-center text-white px-6 text-center">
+        <DetailHeader
+          onBack={() => router.back()}
+          showSave={false}
+          showShare={false}
+          showBrand={true}
+        />
+        <div className="max-w-md w-full p-8 rounded-3xl bg-[#14171F] border border-white/10 shadow-2xl flex flex-col items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-[#D4FF00]/10 border border-[#D4FF00]/20 flex items-center justify-center text-[#D4FF00]">
+            <Star className="w-6 h-6 fill-[#D4FF00]" />
+          </div>
+          <h2 className="text-xl font-black italic tracking-tight text-white">
+            Asistencia no registrada
+          </h2>
+          <p className="text-sm text-neutral-400">
+            Necesitás haber marcado &ldquo;Voy&rdquo; o contar con asistencia confirmada a <span className="text-white font-bold">{event.title}</span> para completar su encuesta.
+          </p>
+          <button
+            onClick={() => router.back()}
+            className="mt-2 w-full py-3 rounded-full bg-[#D4FF00] text-neutral-950 font-black uppercase text-xs tracking-wider transition-all hover:bg-[#c2eb00] active:scale-95 cursor-pointer"
+          >
+            Volver
+          </button>
+        </div>
       </div>
     );
   }
@@ -153,7 +183,7 @@ export default function SurveyPage() {
     const end = event.endDate && new Date(event.endDate).getTime() > start
       ? new Date(event.endDate).getTime()
       : start + 4 * 60 * 60 * 1000;
-    return Date.now() < end;
+    return mountedAt < end;
   };
 
   if (isPartyOngoing()) {
@@ -209,7 +239,7 @@ export default function SurveyPage() {
       {/* Background Image Blurred */}
       <div className="fixed inset-0 z-0 w-full h-[60vh]">
         <Image
-          src={event.cinematicBannerUrl ? badgeFlyerUrl(id) : "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7"}
+          src={event.cinematicBannerUrl || "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7"}
           alt={event.title} 
           fill
           unoptimized
@@ -224,8 +254,8 @@ export default function SurveyPage() {
           ¿Cómo te fue en <span className="text-[#D4FF00]">{event.title}</span>?
         </h1>
         <p className="text-neutral-400 font-medium">Dejanos tu opinión sincera. Toma 30 segundos.</p>
-        {detail && <p className="mt-2 text-xs text-neutral-500">{badgeLocation(detail.badge)} · {attendanceDate(detail.badge.eventDate)}</p>}
-        {detail && <p className="mt-3 text-sm text-[#D4FF00]">Insignia obtenida · Asistencia: {attendanceDate(detail.badge.confirmedAt)}</p>}
+        {detail?.badge && <p className="mt-2 text-xs text-neutral-500">{badgeLocation(detail.badge)} · {attendanceDate(detail.badge.eventDate)}</p>}
+        {detail?.badge && <p className="mt-3 text-sm text-[#D4FF00]">Insignia obtenida · Asistencia: {attendanceDate(detail.badge.confirmedAt)}</p>}
 
         {locked && <p role="status" className="mt-4 text-sm text-neutral-400">Reseña confirmada. Las puntuaciones y el texto no se pueden cambiar.</p>}
         <fieldset disabled={locked || isSubmitting || confirmOpen} className="mt-8 space-y-8">
@@ -305,7 +335,7 @@ export default function SurveyPage() {
           </div>
 
           {/* Lineup Ratings */}
-          <ArtistRatings eventId={id} lineup={{ artists: detail?.badge.lineup || [], names: detail?.badge.lineupNames || [] }} ratings={artistRatings} readonly={locked} onChange={handleArtistRating} />
+          <ArtistRatings eventId={id} lineup={{ artists: detail?.badge?.lineup || event.artists || [], names: detail?.badge?.lineupNames || event.lineup || [] }} ratings={artistRatings} readonly={locked} onChange={handleArtistRating} />
 
           {/* Comment */}
           <div className="space-y-3">
