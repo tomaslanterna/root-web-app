@@ -10,6 +10,7 @@ interface CommunityLockedContentProps {
   isJoining: boolean;
   onViewMembers: () => void;
   isLoggedIn: boolean;
+  showMembersActions?: boolean;
 }
 
 export function CommunityLockedContent({
@@ -19,6 +20,7 @@ export function CommunityLockedContent({
   isJoining,
   onViewMembers,
   isLoggedIn,
+  showMembersActions = true,
 }: CommunityLockedContentProps) {
   return (
     <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border-0 bg-[#111114] p-5 sm:p-8 md:p-12 text-center shadow-[0_20px_50px_rgba(0,0,0,0.7)] backdrop-blur-md">
@@ -48,10 +50,10 @@ export function CommunityLockedContent({
         </div>
 
         {/* Social Proof Teaser */}
-        <button
+        {showMembersActions && <button
           type="button"
           onClick={onViewMembers}
-          className="mx-auto flex items-center gap-3 rounded-full border-0 bg-white/5 px-4 py-2 text-xs font-bold text-neutral-300 shadow-sm transition-all hover:bg-white/10 hover:text-white"
+          className="mx-auto flex min-h-11 items-center gap-3 rounded-full border-0 bg-white/5 px-4 py-2 text-xs font-bold text-neutral-300 shadow-sm transition-all hover:bg-white/10 hover:text-white"
         >
           <div className="flex -space-x-2">
             <span className="flex h-6 w-6 items-center justify-center rounded-full border border-black bg-neutral-700 text-[9px] font-black text-white">
@@ -70,7 +72,7 @@ export function CommunityLockedContent({
           <span className="text-[10px] uppercase tracking-wider text-[#D4FF00] underline">
             Ver miembros
           </span>
-        </button>
+        </button>}
 
         {/* Actions */}
         <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:justify-center">
@@ -89,14 +91,14 @@ export function CommunityLockedContent({
             {!isLoggedIn ? "Iniciá sesión para unirte" : "Unirme a la comunidad"}
           </Button>
 
-          <Button
+          {showMembersActions && <Button
             variant="outline"
             size="lg"
             onClick={onViewMembers}
             className="w-full sm:w-auto"
           >
             <Users className="h-4 w-4" /> Ver directorio de miembros
-          </Button>
+          </Button>}
         </div>
       </div>
     </div>
