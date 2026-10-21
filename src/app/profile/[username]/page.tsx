@@ -214,9 +214,9 @@ export default function UserProfilePage() {
 
   return (
     <div className="profile-modern flex min-h-[100dvh] flex-col bg-[#0B0D10] pb-20 text-white">
-      {/* Header Fixed Transparente para el Perfil */}
-      <header className="fixed top-0 inset-x-0 z-50 mx-auto w-full max-w-md bg-transparent px-4 pb-3 pt-safe-header flex items-center justify-between pointer-events-none md:max-w-[1360px]">
-        <div className="flex items-center pointer-events-auto">
+      {/* Fila superior para el botón de volver y el icono de ajustes (en flujo normal para no superponerse con la info) */}
+      <header className="w-full max-w-5xl mx-auto px-4 pt-safe-header pb-2 flex items-center justify-between">
+        <div className="flex items-center">
           {(fromSearch || fromCommunities) && (
             <button
               type="button"
@@ -228,7 +228,7 @@ export default function UserProfilePage() {
             </button>
           )}
         </div>
-        <div>
+        <div className="flex items-center">
           {isMyProfile && (
             <Link
               href="/settings"
@@ -241,7 +241,7 @@ export default function UserProfilePage() {
       </header>
 
       {/* Información de perfil en la fila de abajo (símil Instagram, sin cover ni recuadro) */}
-      <div className="px-4 pb-2 relative z-10 w-full max-w-5xl mx-auto">
+      <div className="px-4 pt-1 pb-2 relative z-10 w-full max-w-5xl mx-auto">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4 sm:gap-5 min-w-0">
             {/* Avatar a la izquierda */}

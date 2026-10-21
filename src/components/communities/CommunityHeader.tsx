@@ -33,9 +33,9 @@ export function CommunityHeader({
           aria-haspopup="dialog"
           aria-expanded={isInfoOpen}
           aria-label={`Ver información de ${name}`}
-          className="pointer-events-auto flex h-11 min-w-0 max-w-[calc(100%-3.25rem)] items-center gap-2 rounded-full border border-white/10 bg-black/55 px-4 text-left backdrop-blur-xl transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4FF00]/70"
+          className="pointer-events-auto flex h-11 min-w-0 max-w-[calc(100%-3.25rem)] items-center gap-2 rounded-full border-0 bg-transparent px-2 text-left transition-colors hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4FF00]/70"
         >
-          <span className="min-w-0 truncate text-sm font-extrabold tracking-tight text-white sm:text-base">
+          <span className="min-w-0 truncate text-lg font-black uppercase tracking-wider text-white">
             {name}
           </span>
           <ChevronRight className="h-4 w-4 shrink-0 text-[#D4FF00]" />
