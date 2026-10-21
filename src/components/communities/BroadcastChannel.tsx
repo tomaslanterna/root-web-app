@@ -8,11 +8,8 @@ import {
   MessageSquare,
   Radio,
   Send,
-  Sparkles,
   Volume2,
-  VolumeX,
   Loader2,
-  Check,
   SmilePlus,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -20,7 +17,6 @@ import { useCommunityChat } from "@/hooks/useCommunities";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
-import type { CommunityChatMode } from "@/types/communities";
 
 const QUICK_REACTION_EMOJIS = ["🔥", "❤️", "⚡", "🙌", "🎧", "🚀", "👏", "🖤"];
 
@@ -33,9 +29,7 @@ interface BroadcastChannelProps {
 
 export function BroadcastChannel({
   communityId,
-  communityName,
   isRRPP,
-  isMember,
 }: BroadcastChannelProps) {
   const router = useRouter();
   const { user } = useAuth();
@@ -107,15 +101,15 @@ export function BroadcastChannel({
     if (isRRPP) {
       return "Enviar comunicado oficial como RRPP...";
     }
-    if (chatMode === "broadcast_only") {
-      return "Solo el administrador puede enviar mensajes";
-    }
     return "Escribí un mensaje en la comunidad...";
   };
 
   return (
     <>
-      <section className="flex flex-col overflow-hidden rounded-2xl sm:rounded-3xl border-0 bg-[#111114] shadow-[0_16px_40px_-12px_rgba(0,0,0,0.7)] h-[calc(100dvh-12rem-var(--root-safe-top,env(safe-area-inset-top,0px))-var(--root-safe-bottom,env(safe-area-inset-bottom,0px)))] sm:h-[calc(100dvh-13.5rem)] mb-[calc(5rem+var(--root-safe-bottom,env(safe-area-inset-bottom,0px)))] sm:mb-20">
+      <section
+        data-testid="community-chat"
+        className="flex h-[calc(100dvh-12rem-var(--root-safe-top,env(safe-area-inset-top,0px))-var(--root-safe-bottom,env(safe-area-inset-bottom,0px)))] w-full min-w-0 max-w-full flex-col overflow-hidden rounded-2xl border-0 bg-[#111114] shadow-[0_16px_40px_-12px_rgba(0,0,0,0.7)] mb-[calc(5rem+var(--root-safe-bottom,env(safe-area-inset-bottom,0px)))] sm:h-[calc(100dvh-13.5rem)] sm:mb-20 sm:rounded-3xl"
+      >
         {/* Header */}
         <div className="shrink-0 flex flex-col gap-2.5 border-b border-white/[0.06] bg-[#0E1118]/80 p-3 sm:p-4 md:px-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2.5 min-w-0">
@@ -183,7 +177,7 @@ export function BroadcastChannel({
         {/* Messages area */}
         <div
           ref={chatAreaRef}
-          className="flex flex-1 flex-col overflow-y-auto overscroll-contain p-3 sm:p-5 space-y-3 bg-gradient-to-b from-[#111114] to-[#0B0D10]"
+          className="flex min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-contain bg-gradient-to-b from-[#111114] to-[#0B0D10] p-3 space-y-3 sm:p-5"
         >
           {isLoading && messages.length === 0 ? (
             <div className="flex flex-1 items-center justify-center py-16">
@@ -211,7 +205,7 @@ export function BroadcastChannel({
                 <div
                   key={message.id}
                   className={cn(
-                    "flex items-start gap-2 sm:gap-3 max-w-[92%] sm:max-w-[78%]",
+                    "flex w-fit min-w-0 max-w-[92%] items-start gap-2 sm:max-w-[78%] sm:gap-3",
                     isMine ? "ml-auto flex-row-reverse" : "mr-auto",
                   )}
                 >
@@ -368,59 +362,57 @@ export function BroadcastChannel({
       </section>
 
       {/* Fixed Chat Input Footer */}
-      <footer className="fixed bottom-0 inset-x-0 z-30 liquid-glass-bar shadow-[0_-12px_40px_rgba(0,0,0,0.8)] overflow-hidden">
+      <footer
+        data-testid="community-chat-footer"
+        className="liquid-glass-bar fixed bottom-0 left-1/2 z-30 w-full max-w-md -translate-x-1/2 overflow-hidden shadow-[0_-12px_40px_rgba(0,0,0,0.8)] md:max-w-[1360px]"
+      >
         {/* Liquid Glass: Specular top edge highlight */}
         <div className="liquid-glass-specular" />
 
-        <div className="relative z-10 mx-auto w-full max-w-4xl px-3.5 pt-2.5 pb-[calc(0.75rem+var(--root-safe-bottom,env(safe-area-inset-bottom,0px)))] sm:px-6 sm:py-3.5">
+        <div className="relative z-10 mx-auto w-full min-w-0 max-w-4xl px-3.5 pt-2.5 pb-[calc(0.75rem+var(--root-safe-bottom,env(safe-area-inset-bottom,0px)))] sm:px-6 sm:py-3.5">
           {error && (
             <p className="mb-2 text-xs font-bold text-red-400" role="alert">
               {error}
             </p>
           )}
 
-          <form onSubmit={handleSend} className="relative flex items-center gap-2">
-            <div className="relative flex-1 min-w-0">
-              <input
-                type="text"
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                placeholder={getPlaceholder()}
-                disabled={isInputDisabled || isSending}
-                maxLength={1000}
-                className={cn(
-                  "h-11 sm:h-12 w-full rounded-xl sm:rounded-2xl border-0 px-3 sm:px-4 pr-9 text-xs sm:text-sm font-medium text-white outline-none transition-colors shadow-sm",
-                  isInputDisabled
-                    ? "cursor-not-allowed bg-black/40 text-neutral-500 placeholder:text-neutral-600"
-                    : "bg-black/40 placeholder:text-neutral-500 focus:ring-1 focus:ring-[#D4FF00]/50 backdrop-blur-md",
-                )}
-              />
-              {isInputDisabled && (
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500">
-                  <Lock className="h-3.5 w-3.5" />
-                </div>
-              )}
-            </div>
-
-            <Button
-              type="submit"
-              variant={isInputDisabled ? "outline" : "primary"}
-              disabled={isInputDisabled || !inputText.trim() || isSending}
-              className="h-11 sm:h-12 px-3.5 sm:px-5 shrink-0"
+          {isInputDisabled ? (
+            <div
+              role="status"
+              data-testid="broadcast-only-notice"
+              className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-black/30 px-4 py-3 text-center text-xs font-medium leading-relaxed text-neutral-400 sm:min-h-12 sm:rounded-2xl"
             >
-              {isSending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
-              <span className="hidden sm:inline">Enviar</span>
-            </Button>
-          </form>
+              <Lock className="h-3.5 w-3.5 shrink-0 text-neutral-500" aria-hidden="true" />
+              <span>Solo el administrador puede enviar mensajes en este canal.</span>
+            </div>
+          ) : (
+            <form onSubmit={handleSend} className="relative flex items-center gap-2">
+              <div className="relative min-w-0 flex-1">
+                <input
+                  type="text"
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  placeholder={getPlaceholder()}
+                  disabled={isSending}
+                  maxLength={1000}
+                  className="h-11 w-full rounded-xl border-0 bg-black/40 px-3 pr-9 text-xs font-medium text-white shadow-sm outline-none backdrop-blur-md transition-colors placeholder:text-neutral-500 focus:ring-1 focus:ring-[#D4FF00]/50 sm:h-12 sm:rounded-2xl sm:px-4 sm:text-sm"
+                />
+              </div>
 
-          {isInputDisabled && (
-            <p className="mt-1.5 text-center text-[10px] font-medium text-neutral-500">
-              🔒 Solo el administrador puede enviar mensajes en este canal.
-            </p>
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={!inputText.trim() || isSending}
+                className="h-11 shrink-0 px-3.5 sm:h-12 sm:px-5"
+              >
+                {isSending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+                <span className="hidden sm:inline">Enviar</span>
+              </Button>
+            </form>
           )}
         </div>
       </footer>

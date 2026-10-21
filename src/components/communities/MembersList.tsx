@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   BadgeCheck,
   Crown,
@@ -22,7 +24,6 @@ interface MembersListProps {
   communityId: string;
   community?: Community | null;
   isRRPP: boolean;
-  isMember: boolean;
   isGuest: boolean;
 }
 
@@ -30,9 +31,10 @@ export function MembersList({
   communityId,
   community,
   isRRPP,
-  isMember,
   isGuest,
 }: MembersListProps) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const {
     members,
@@ -47,6 +49,7 @@ export function MembersList({
   } = useCommunityMembers(communityId, community);
 
   const [memberToKick, setMemberToKick] = useState<CommunityMember | null>(null);
+  const currentCommunityUrl = `${pathname}${searchParams.size > 0 ? `?${searchParams.toString()}` : ""}`;
 
   useEffect(() => {
     void loadMembers();
@@ -136,7 +139,11 @@ export function MembersList({
                 )}
               >
                 {/* Member Identity */}
-                <div className="flex min-w-0 items-center gap-3">
+                <Link
+                  href={`/profile/${encodeURIComponent(member.username)}?from=communities&returnTo=${encodeURIComponent(currentCommunityUrl)}`}
+                  aria-label={`Ver perfil de ${member.name}`}
+                  className="flex min-h-11 min-w-0 flex-1 items-center gap-3 rounded-xl outline-none transition-opacity hover:opacity-85 focus-visible:ring-2 focus-visible:ring-[#D4FF00]/70"
+                >
                   <Avatar
                     src={member.avatarUrl}
                     fallback={member.name}
@@ -171,7 +178,7 @@ export function MembersList({
                       )}
                     </div>
                   </div>
-                </div>
+                </Link>
 
                 {/* RRPP Management Action (Kick Member) */}
                 {canKick && (
