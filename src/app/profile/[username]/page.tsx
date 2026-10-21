@@ -13,24 +13,17 @@ import {
   ChevronLeft,
   BadgeCheck,
   Grid3X3,
-  Users,
-  Calendar,
   Award,
 } from "lucide-react";
 import { MOCK_POSTS } from "@/lib/mocks";
-import { PostCard } from "@/components/ui/PostCard";
-import { EventCard } from "@/components/ui/EventCard";
-import { CommunityList } from "@/components/communities/CommunityList";
 import { DanceStatsWidget } from "@/components/profile/DanceStatsWidget";
-import { cn } from "@/lib/utils";
+import { cn, isValidImageUrl } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { usersApi } from "@/services/users";
 import { useMutation } from "@/hooks/useMutation";
 import { BadgeCollection } from "@/components/profile/BadgeCollection";
 import { ProfilePostsGrid } from "@/components/profile/ProfilePostsGrid";
 import type { AuthUser } from "@/types/auth";
-import type { Community } from "@/types/communities";
-import type { Event } from "@/types/events";
 import type { Post } from "@/types/posts";
 
 interface ProfileUser extends AuthUser { followers?: string[]; following?: string[] }
@@ -55,8 +48,6 @@ export default function UserProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("Posts");
 
-  const [communities, setCommunities] = useState<Community[]>([]);
-  const [userEvents, setUserEvents] = useState<Event[]>([]);
   const [userPosts, setUserPosts] = useState<Post[]>([]);
 
   const isMyProfile = Boolean(currentUser?.id && profileUser?.id === currentUser.id);
@@ -84,12 +75,6 @@ export default function UserProfilePage() {
         const data = await usersApi.getUserProfile(username);
         setProfileUser(data.user);
         setIsFollowing(data.isFollowing);
-
-        // Fetch communities and events
-        const comms = await usersApi.getUserCommunities(username);
-        const evts = await usersApi.getUserEvents(username);
-        setCommunities(comms || []);
-        setUserEvents(evts || []);
 
         // 1. Obtener posts del backend (con UUID real y URL firmada de S3)
         let backendUserPosts: Post[] = [];
@@ -224,32 +209,14 @@ export default function UserProfilePage() {
 
   const tabs = [
     { id: "Posts", icon: Grid3X3, label: "Publicaciones" },
-    { id: "Comunidades", icon: Users, label: "Comunidades" },
-    { id: "Eventos", icon: Calendar, label: "Eventos" },
     { id: "Insignias", icon: Award, label: "Insignias" },
   ];
 
-  const coverUrl =
-    "https://images.unsplash.com/photo-1574169208507-84376144848b?q=80&w=2079&auto=format&fit=crop";
-
   return (
     <div className="profile-modern flex min-h-[100dvh] flex-col bg-[#0B0D10] pb-20 text-white">
-      <div className="relative h-36 sm:h-48 md:h-56 w-full bg-neutral-900 border-b border-white/10">
-        <Image
-          src={coverUrl}
-          alt="Cover"
-          fill
-          unoptimized
-          loading="eager"
-          sizes="100vw"
-          className="w-full h-full object-cover opacity-60"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0B0D10] to-transparent" />
-      </div>
-
-      {/* Header Fixed Transparente para el Perfil */}
-      <header className="fixed top-0 inset-x-0 z-50 mx-auto w-full max-w-md bg-transparent px-4 pb-3 pt-safe-header flex items-center justify-between pointer-events-none md:max-w-[1360px]">
-        <div className="flex items-center pointer-events-auto">
+      {/* Fila superior para el botón de volver y el icono de ajustes (en flujo normal para no superponerse con la info) */}
+      <header className="w-full max-w-5xl mx-auto px-4 pt-safe-header pb-2 flex items-center justify-between">
+        <div className="flex items-center">
           {(fromSearch || fromCommunities) && (
             <button
               type="button"
@@ -261,8 +228,7 @@ export default function UserProfilePage() {
             </button>
           )}
         </div>
-        
-        <div className="pointer-events-auto">
+        <div className="flex items-center">
           {isMyProfile && (
             <Link
               href="/settings"
@@ -274,16 +240,16 @@ export default function UserProfilePage() {
         </div>
       </header>
 
-      {/* Rectángulo de información de perfil */}
-      <div className="px-4 -mt-10 sm:-mt-14 relative z-10 w-full max-w-5xl mx-auto">
-        <div className="rounded-2xl border border-white/5 bg-[#14171F]/90 backdrop-blur-md p-4 sm:p-5 shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Información de perfil en la fila de abajo (símil Instagram, sin cover ni recuadro) */}
+      <div className="px-4 pt-1 pb-2 relative z-10 w-full max-w-5xl mx-auto">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4 sm:gap-5 min-w-0">
             {/* Avatar a la izquierda */}
             <div className="relative shrink-0">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full overflow-hidden ring-2 ring-[#0B0D10] shadow-xl relative bg-neutral-800">
-                {profileUser.avatarUrl ? (
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden ring-2 ring-white/10 relative bg-neutral-800">
+                {isValidImageUrl(profileUser.avatarUrl) ? (
                   <Image
-                    src={profileUser.avatarUrl}
+                    src={profileUser.avatarUrl.trim()}
                     alt={profileUser.name}
                     fill
                     unoptimized
@@ -342,7 +308,7 @@ export default function UserProfilePage() {
 
           {/* Botones de acción si no es mi perfil */}
           {!isMyProfile && (
-            <div className="flex sm:flex-col md:flex-row gap-2 shrink-0 w-full sm:w-auto pt-2 sm:pt-0">
+            <div className="flex sm:flex-col md:flex-row gap-2 shrink-0 w-full sm:w-auto pt-1 sm:pt-0">
               <Button
                 onClick={toggleFollow}
                 disabled={isFollowingLoading || isUnfollowingLoading}
@@ -379,7 +345,7 @@ export default function UserProfilePage() {
             className="flex w-full items-center justify-center gap-2 rounded-2xl border border-amber-500/40 bg-amber-500/5 py-3 text-xs font-semibold tracking-wide text-amber-400 transition-colors hover:border-amber-500 hover:bg-amber-500/10"
           >
             <ShieldAlert className="w-4 h-4" />
-            Comenzar Validación KYC
+            Comenzar Validación de Identidad
           </Button>
         </div>
       )}
@@ -434,20 +400,6 @@ export default function UserProfilePage() {
             isMyProfile={isMyProfile}
             onPostCreated={handlePostCreated}
           />
-        )}
-
-        {activeTab === "Comunidades" && (
-          <div className="space-y-4">
-            <CommunityList communities={communities} />
-          </div>
-        )}
-
-        {activeTab === "Eventos" && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-            {userEvents.map((event) => (
-              <EventCard key={event.id} event={event} variant="full" />
-            ))}
-          </div>
         )}
       </div>
     </div>

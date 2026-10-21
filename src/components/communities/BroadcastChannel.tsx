@@ -242,6 +242,7 @@ export function BroadcastChannel({
                         {new Date(message.timestamp).toLocaleTimeString("es-AR", {
                           hour: "2-digit",
                           minute: "2-digit",
+                          hour12: false,
                         })}
                       </span>
                     </div>
@@ -251,109 +252,113 @@ export function BroadcastChannel({
                       {message.content}
                     </p>
 
-                    {/* Emoji Reactions for RRPP messages */}
-                    {isMsgRRPP && (
-                      <div className="mt-2.5 flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-white/[0.06] relative">
-                        {message.reactions &&
-                          message.reactions.map((reaction) => {
-                            const hasReacted = Boolean(
-                              user && reaction.users.includes(user.id),
-                            );
+                    {/* Emoji Reactions for RRPP messages (sin línea divisoria) */}
+                    {isMsgRRPP && message.reactions && message.reactions.length > 0 && (
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5 relative">
+                        {message.reactions.map((reaction) => {
+                          const hasReacted = Boolean(
+                            user && reaction.users.includes(user.id),
+                          );
 
-                            return (
-                              <button
-                                key={reaction.emoji}
-                                type="button"
-                                onClick={() =>
-                                  handleReactionClick(message.id, reaction.emoji)
-                                }
-                                className={cn(
-                                  "group/reaction inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold transition-all select-none active:scale-95 cursor-pointer",
-                                  hasReacted
-                                    ? "border-0 bg-[#D4FF00]/20 text-[#D4FF00] shadow-[0_0_12px_rgba(212,255,0,0.2)]"
-                                    : "border-0 bg-white/5 text-neutral-300 hover:bg-white/10 shadow-sm",
-                                )}
-                                title={
-                                  hasReacted
-                                    ? "Quitar reacción"
-                                    : `Reaccionar con ${reaction.emoji}`
-                                }
-                              >
-                                <span className="text-xs transition-transform group-hover/reaction:scale-110">
-                                  {reaction.emoji}
-                                </span>
-                                <span className="num-display text-[11px]">
-                                  {reaction.count}
-                                </span>
-                              </button>
-                            );
-                          })}
-
-                        {/* Add reaction trigger button */}
-                        <div className="relative">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setPickerOpenMsgId(
-                                pickerOpenMsgId === message.id ? null : message.id,
-                              )
-                            }
-                            className={cn(
-                              "inline-flex items-center justify-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-bold transition-all active:scale-95 cursor-pointer",
-                              pickerOpenMsgId === message.id
-                                ? "border-0 bg-[#D4FF00]/20 text-[#D4FF00] shadow-sm"
-                                : "border-0 bg-white/5 text-neutral-400 hover:bg-white/10 hover:text-white shadow-sm",
-                            )}
-                            title="Reaccionar al comunicado del RRPP"
-                            aria-label="Reaccionar"
-                          >
-                            <SmilePlus className="h-3 w-3 text-neutral-400" />
-                            <span>+</span>
-                          </button>
-
-                          {/* Floating Emoji Picker Popover */}
-                          {pickerOpenMsgId === message.id && (
-                            <>
-                              {/* Invisible backdrop to close picker when clicking outside */}
-                              <div
-                                className="fixed inset-0 z-30"
-                                onClick={() => setPickerOpenMsgId(null)}
-                              />
-                              <div className="absolute bottom-full left-0 mb-1.5 z-40 flex items-center gap-1 rounded-full border-0 bg-[#16171D] p-1 shadow-2xl backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-150">
-                                {QUICK_REACTION_EMOJIS.map((emoji) => {
-                                  const hasReacted = Boolean(
-                                    user &&
-                                      message.reactions
-                                        ?.find((r) => r.emoji === emoji)
-                                        ?.users.includes(user.id),
-                                  );
-
-                                  return (
-                                    <button
-                                      key={emoji}
-                                      type="button"
-                                      onClick={() => {
-                                        handleReactionClick(message.id, emoji);
-                                        setPickerOpenMsgId(null);
-                                      }}
-                                      className={cn(
-                                        "flex h-7 w-7 items-center justify-center rounded-full text-sm transition-transform hover:scale-125 active:scale-110 cursor-pointer",
-                                        hasReacted &&
-                                          "bg-[#D4FF00]/20 ring-1 ring-[#D4FF00]/40",
-                                      )}
-                                      title={emoji}
-                                    >
-                                      {emoji}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            </>
-                          )}
-                        </div>
+                          return (
+                            <button
+                              key={reaction.emoji}
+                              type="button"
+                              onClick={() =>
+                                handleReactionClick(message.id, reaction.emoji)
+                              }
+                              className={cn(
+                                "group/reaction inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold transition-all select-none active:scale-95 cursor-pointer",
+                                hasReacted
+                                  ? "border-0 bg-[#D4FF00]/20 text-[#D4FF00] shadow-[0_0_12px_rgba(212,255,0,0.2)]"
+                                  : "border-0 bg-white/5 text-neutral-300 hover:bg-white/10 shadow-sm",
+                              )}
+                              title={
+                                hasReacted
+                                  ? "Quitar reacción"
+                                  : `Reaccionar con ${reaction.emoji}`
+                              }
+                            >
+                              <span className="text-xs transition-transform group-hover/reaction:scale-110">
+                                {reaction.emoji}
+                              </span>
+                              <span className="num-display text-[11px]">
+                                {reaction.count}
+                              </span>
+                            </button>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
+
+                  {/* Botón de reaccionar flotando al lado del mensaje (estilo Instagram) */}
+                  {isMsgRRPP && (
+                    <div className="relative self-center shrink-0">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPickerOpenMsgId(
+                            pickerOpenMsgId === message.id ? null : message.id,
+                          )
+                        }
+                        className={cn(
+                          "flex h-7 w-7 items-center justify-center rounded-full transition-all active:scale-90 cursor-pointer",
+                          pickerOpenMsgId === message.id
+                            ? "bg-[#D4FF00]/20 text-[#D4FF00] shadow-sm"
+                            : "bg-white/[0.04] text-neutral-500 hover:bg-white/10 hover:text-white",
+                        )}
+                        title="Reaccionar al comunicado del RRPP"
+                        aria-label="Reaccionar"
+                      >
+                        <SmilePlus className="h-3.5 w-3.5" />
+                      </button>
+
+                      {/* Floating Emoji Picker Popover */}
+                      {pickerOpenMsgId === message.id && (
+                        <>
+                          <div
+                            className="fixed inset-0 z-30"
+                            onClick={() => setPickerOpenMsgId(null)}
+                          />
+                          <div
+                            className={cn(
+                              "absolute bottom-full mb-1.5 z-40 flex items-center gap-1 rounded-full border border-white/10 bg-[#16171D] p-1 shadow-2xl backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-150",
+                              isMine ? "left-0" : "right-0 sm:left-1/2 sm:-translate-x-1/2",
+                            )}
+                          >
+                            {QUICK_REACTION_EMOJIS.map((emoji) => {
+                              const hasReacted = Boolean(
+                                user &&
+                                  message.reactions
+                                    ?.find((r) => r.emoji === emoji)
+                                    ?.users.includes(user.id),
+                              );
+
+                              return (
+                                <button
+                                  key={emoji}
+                                  type="button"
+                                  onClick={() => {
+                                    handleReactionClick(message.id, emoji);
+                                    setPickerOpenMsgId(null);
+                                  }}
+                                  className={cn(
+                                    "flex h-7 w-7 items-center justify-center rounded-full text-sm transition-transform hover:scale-125 active:scale-110 cursor-pointer",
+                                    hasReacted &&
+                                      "bg-[#D4FF00]/20 ring-1 ring-[#D4FF00]/40",
+                                  )}
+                                  title={emoji}
+                                >
+                                  {emoji}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })

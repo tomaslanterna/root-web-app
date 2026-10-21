@@ -141,50 +141,80 @@ export function EventCalendarView({ events }: EventCalendarViewProps) {
 
   // Día seleccionado para inspeccionar eventos en modal / drawer
   const [selectedDayKey, setSelectedDayKey] = useState<string | null>(null);
+  const [lastSelectedDayKey, setLastSelectedDayKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (selectedDayKey) {
+      setLastSelectedDayKey(selectedDayKey);
+    }
+  }, [selectedDayKey]);
+
+  const activeDayKey = selectedDayKey ?? lastSelectedDayKey;
+  const isDaySheetOpen = Boolean(selectedDayKey);
 
   const selectedDayEvents = useMemo(() => {
-    if (!selectedDayKey) return [];
-    return eventsByDay.get(selectedDayKey) || [];
-  }, [selectedDayKey, eventsByDay]);
+    if (!activeDayKey) return [];
+    return eventsByDay.get(activeDayKey) || [];
+  }, [activeDayKey, eventsByDay]);
 
   const selectedDayFormatted = useMemo(() => {
-    if (!selectedDayKey) return "";
-    const [y, m, d] = selectedDayKey.split("-").map(Number);
+    if (!activeDayKey) return "";
+    const [y, m, d] = activeDayKey.split("-").map(Number);
     const dateObj = new Date(y, m - 1, d);
     return new Intl.DateTimeFormat("es-AR", {
       weekday: "long",
       day: "numeric",
       month: "long",
     }).format(dateObj);
-  }, [selectedDayKey]);
+  }, [activeDayKey]);
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Modal en Portal para no verse afectado por stacking contexts de padres
-  const modalContent = selectedDayKey ? (
-    <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
+  // BottomSheet en Portal con los mismos estilos y animación que los filtros de /events
+  const modalContent = (
+    <div
+      aria-hidden={!isDaySheetOpen}
+      className={cn(
+        "fixed inset-0 z-[9999] flex flex-col justify-end sm:items-center sm:justify-center p-0 sm:p-4",
+        isDaySheetOpen ? "pointer-events-auto" : "pointer-events-none",
+      )}
+    >
       {/* Backdrop con blur */}
       <div
-        className="fixed inset-0 bg-black/80 backdrop-blur-md"
-        onClick={() => setSelectedDayKey(null)}
+        className={cn(
+          "fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
+          isDaySheetOpen ? "opacity-100" : "opacity-0",
+        )}
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          setSelectedDayKey(null);
+        }}
       />
 
-      {/* Contenedor del Drawer */}
-      <div className="relative z-10 w-full max-w-2xl max-h-[85vh] sm:max-h-[90vh] bg-[#0B0D10] border border-[#D4FF00]/40 rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-300">
-        {/* Cabecera del modal */}
-        <div className="flex items-center justify-between border-b border-white/10 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#D4FF00] text-neutral-950 flex items-center justify-center font-black shadow-md shadow-[#D4FF00]/25">
-              <Sparkles className="w-5 h-5 fill-neutral-950" />
-            </div>
-            <div>
-              <h4 className="text-base sm:text-lg font-black uppercase tracking-tight text-white capitalize">
+      {/* Contenedor de la BottomSheet */}
+      <div
+        onClick={(event) => event.stopPropagation()}
+        className={cn(
+          "relative z-10 w-full sm:max-w-2xl max-h-[85dvh] sm:max-h-[90dvh] rounded-t-3xl sm:rounded-3xl border-t sm:border border-white/10 bg-[#14171F] px-5 pt-3 pb-[calc(1.5rem+var(--root-safe-bottom))] sm:p-6 shadow-[0_-20px_50px_rgba(0,0,0,0.85)] flex flex-col overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
+          isDaySheetOpen ? "translate-y-0 opacity-100" : "translate-y-full opacity-0",
+        )}
+      >
+        {/* Indicador superior de arrastre */}
+        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20 sm:hidden shrink-0" />
+
+        {/* Cabecera de la BottomSheet */}
+        <div className="flex items-center justify-between border-b border-white/10 pb-3 shrink-0">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <CalendarIcon className="h-5 w-5 text-[#D4FF00] shrink-0" />
+            <div className="min-w-0">
+              <h4 className="text-sm sm:text-base font-black uppercase tracking-widest text-white capitalize truncate">
                 {selectedDayFormatted}
               </h4>
-              <p className="text-xs font-bold text-[#D4FF00] uppercase tracking-wider">
+              <p className="text-[10px] sm:text-xs font-bold text-[#D4FF00] uppercase tracking-wider">
                 {selectedDayEvents.length === 0
                   ? "Sin eventos programados"
                   : selectedDayEvents.length === 1
@@ -197,10 +227,10 @@ export function EventCalendarView({ events }: EventCalendarViewProps) {
           <button
             type="button"
             onClick={() => setSelectedDayKey(null)}
-            className="p-2 rounded-full bg-white/5 text-neutral-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+            className="rounded-full bg-white/5 p-1.5 text-neutral-400 hover:bg-white/10 hover:text-white transition-colors cursor-pointer shrink-0"
             aria-label="Cerrar modal"
           >
-            <X className="w-5 h-5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
 
@@ -325,7 +355,7 @@ export function EventCalendarView({ events }: EventCalendarViewProps) {
         )}
       </div>
     </div>
-  ) : null;
+  );
 
   return (
     <div className="space-y-10 animate-in fade-in duration-300">
