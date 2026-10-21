@@ -168,7 +168,7 @@ export function EventCard({ event, variant = "swimlane", className }: EventCardP
           "relative overflow-hidden rounded-3xl border-0 bg-[#111114] text-white shadow-[0_12px_36px_-10px_rgba(0,0,0,0.7)] transition-all duration-300 ease-out hover:bg-[#16171D] hover:shadow-[0_20px_45px_rgba(0,0,0,0.8)] md:hover:-translate-y-1",
           isSwimlane
             ? "aspect-[3/4]"
-            : "mx-auto aspect-[4/5] w-full max-w-md md:max-w-none",
+            : "mx-auto h-72 sm:h-80 md:h-auto md:aspect-[4/5] w-full max-w-md md:max-w-none",
         )}
       >
 

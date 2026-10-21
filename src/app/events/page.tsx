@@ -67,6 +67,7 @@ interface LoadVariables {
   offset: number;
   append: boolean;
   query?: string;
+  limit?: number;
 }
 
 function localDayToISO(value: string, endOfDay: boolean): string {
@@ -117,8 +118,13 @@ function getThisMonthRange(): { startDate: string; endDate: string } {
   return { startDate: format(now), endDate: format(endOfMonth) };
 }
 
-function toQueryParams(filters: EventFilters, offset: number, query?: string) {
-  const params: Record<string, string | number | boolean> = { limit: pageSize, offset };
+function toQueryParams(
+  filters: EventFilters,
+  offset: number,
+  query?: string,
+  limit: number = pageSize,
+) {
+  const params: Record<string, string | number | boolean> = { limit, offset };
   if (filters.genre !== "all") params.genre = filters.genre;
   if (filters.location.trim()) params.location = filters.location.trim();
   if (filters.priceType === "free") params.isFree = true;
@@ -244,14 +250,16 @@ export default function EventsPage() {
   const [sortBy, setSortBy] = useState<"date" | "popular">("date");
   const [isWhenOpen, setIsWhenOpen] = useState(false);
   const [isGenreOpen, setIsGenreOpen] = useState(false);
-  const whenDropdownRef = useRef<HTMLDivElement>(null);
-  const genreDropdownRef = useRef<HTMLDivElement>(null);
+  const [activeSheetType, setActiveSheetType] = useState<"when" | "genre">("when");
+  const [isDatesOpen, setIsDatesOpen] = useState(false);
+  const filtersContainerRef = useRef<HTMLDivElement>(null);
+  const bottomSheetRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const openInbox = inbox?.open ?? (() => router.push("/chat?from=events"));
   const { ref: swipeRef } = useHorizontalSwipe(
     -1,
-    !!user && !isMenuOpen && !showFilters && !isWhenOpen && !isGenreOpen,
+    !!user && !isMenuOpen && !showFilters && !isWhenOpen && !isGenreOpen && !isDatesOpen,
     openInbox,
     inbox ? { onProgress: inbox.move, onCancel: inbox.cancel } : undefined,
   );
@@ -283,49 +291,56 @@ export default function EventsPage() {
   }, [fetchPendingSurveys, user]);
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+    const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
-      if (whenDropdownRef.current && !whenDropdownRef.current.contains(target)) {
+      if (
+        filtersContainerRef.current &&
+        !filtersContainerRef.current.contains(target) &&
+        (!bottomSheetRef.current || !bottomSheetRef.current.contains(target))
+      ) {
         setIsWhenOpen(false);
-      }
-      if (genreDropdownRef.current && !genreDropdownRef.current.contains(target)) {
         setIsGenreOpen(false);
+        setIsDatesOpen(false);
       }
     };
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setIsWhenOpen(false);
         setIsGenreOpen(false);
+        setIsDatesOpen(false);
       }
     };
-    if (isWhenOpen || isGenreOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-      document.addEventListener("touchstart", handleClickOutside);
+    if (isWhenOpen || isGenreOpen || isDatesOpen) {
+      document.addEventListener("click", handleClickOutside);
       document.addEventListener("keydown", handleKeyDown);
     }
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("touchstart", handleClickOutside);
+      document.removeEventListener("click", handleClickOutside);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isWhenOpen, isGenreOpen]);
+  }, [isWhenOpen, isGenreOpen, isDatesOpen]);
 
   const {
     mutate: fetchEvents,
     isLoading: isLoadingEvents,
     error: eventsError,
   } = useMutation<EventListResponse, LoadVariables>(
-    async ({ filters, offset, query }) => {
-      const response = await eventsApi.getEvents(toQueryParams(filters, offset, query));
+    async ({ filters, offset, query, limit }) => {
+      const response = await eventsApi.getEvents(
+        toQueryParams(filters, offset, query, limit),
+      );
       return response;
     },
     {
       onSuccess: (response, variables) => {
-        setEvents((current) =>
-          variables.append ? [...current, ...response.data] : response.data,
-        );
+        setEvents((current) => {
+          if (!variables.append) return response.data;
+          const existingIds = new Set(current.map((ev) => ev.id));
+          const uniqueNew = response.data.filter((ev) => !existingIds.has(ev.id));
+          return [...current, ...uniqueNew];
+        });
         setTotal(response.meta.total);
-        setHasMore(response.meta.hasMore);
+        setHasMore(response.data.length > 0 && response.meta.hasMore);
         setHasLoaded(true);
       },
       onError: () => setHasLoaded(true),
@@ -381,6 +396,18 @@ export default function EventsPage() {
     };
   }, [hasLoaded, hasMore, isLoadingEvents, events.length, appliedFilters, debouncedQuery, fetchEvents]);
 
+  // Carga automática progresiva de las páginas restantes al activar la vista Calendario
+  useEffect(() => {
+    if (viewMode !== "calendar" || !hasLoaded || !hasMore || isLoadingEvents) return;
+    void fetchEvents({
+      filters: appliedFilters,
+      offset: events.length,
+      append: true,
+      query: debouncedQuery,
+      limit: 50,
+    }).catch(() => undefined);
+  }, [viewMode, hasLoaded, hasMore, isLoadingEvents, events.length, appliedFilters, debouncedQuery, fetchEvents]);
+
   // Top trending event for Hero Banner (based on goingCount survey attendance)
   const featuredEvent = useMemo(() => {
     if (events.length === 0) return null;
@@ -434,6 +461,7 @@ export default function EventsPage() {
     setSearchQuery("");
     setIsWhenOpen(false);
     setIsGenreOpen(false);
+    setIsDatesOpen(false);
     void fetchEvents({ filters: cleared, offset: 0, append: false, query: "" })
       .catch(() => undefined);
   };
@@ -469,6 +497,21 @@ export default function EventsPage() {
     setDraftFilters(next);
     setAppliedFilters(next);
     setIsWhenOpen(false);
+    setIsDatesOpen(false);
+    void fetchEvents({ filters: next, offset: 0, append: false, query: debouncedQuery }).catch(() => undefined);
+  };
+
+  const applyCustomDates = () => {
+    setTemporalPreset("all");
+    const next = {
+      ...appliedFilters,
+      startDate: draftFilters.startDate,
+      endDate: draftFilters.endDate,
+    };
+    setDraftFilters(next);
+    setAppliedFilters(next);
+    setIsDatesOpen(false);
+    setIsWhenOpen(false);
     void fetchEvents({ filters: next, offset: 0, append: false, query: debouncedQuery }).catch(() => undefined);
   };
 
@@ -494,11 +537,31 @@ export default function EventsPage() {
   const isDateActive =
     temporalPreset !== "all" || !!appliedFilters.startDate || !!appliedFilters.endDate;
 
+  const isCustomDateActive =
+    temporalPreset === "all" && (!!appliedFilters.startDate || !!appliedFilters.endDate);
+
+  const formatShortDate = (dateStr: string) => {
+    const [year, month, day] = dateStr.split("-").map(Number);
+    if (!year || !month || !day) return dateStr;
+    return new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "short" })
+      .format(new Date(year, month - 1, day))
+      .replace(".", "");
+  };
+
   const getDateLabel = () => {
     if (temporalPreset === "weekend") return "Este finde";
     if (temporalPreset === "week") return "Próximos 7 días";
     if (temporalPreset === "month") return "Este mes";
-    if (appliedFilters.startDate || appliedFilters.endDate) return "Fecha elegida";
+    if (isCustomDateActive) {
+      if (appliedFilters.startDate && appliedFilters.endDate) {
+        if (appliedFilters.startDate === appliedFilters.endDate) {
+          return formatShortDate(appliedFilters.startDate);
+        }
+        return `${formatShortDate(appliedFilters.startDate)} - ${formatShortDate(appliedFilters.endDate)}`;
+      }
+      if (appliedFilters.startDate) return `Desde ${formatShortDate(appliedFilters.startDate)}`;
+      if (appliedFilters.endDate) return `Hasta ${formatShortDate(appliedFilters.endDate)}`;
+    }
     return "¿Cuándo?";
   };
 
@@ -544,51 +607,369 @@ export default function EventsPage() {
       ref={swipeRef}
       className="feed-swipe events-swipe flex min-h-screen flex-col bg-[#0B0D10] text-white"
     >
-      {/* Root Sticky Header (Móvil) */}
+      {/* Fixed Header + Filtros (Móvil y Desktop) */}
       <header
         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-        className="md:hidden sticky top-0 z-40 glass-header-obsidian transition-all duration-300 cursor-pointer pt-[var(--root-safe-top)]"
+        className="fixed top-0 inset-x-0 z-40 mx-auto w-full max-w-md md:max-w-[1360px] glass-header-obsidian transition-all duration-300 pt-[var(--root-safe-top)] md:pt-20 md:px-8 lg:px-12"
       >
-        <div className="px-4 py-3 flex justify-between items-center">
-          <div className="flex items-center gap-2">
+        {/* Fila 1 (Mobile): Logo + Mensajes */}
+        <div className="md:hidden px-4 pt-2 pb-2 flex items-center justify-between gap-2.5 cursor-pointer">
+          <div className="flex items-center gap-2 shrink-0 h-9">
             <div className="w-8 h-8 rounded-full bg-[#D4FF00] text-neutral-950 flex items-center justify-center font-black italic text-sm tracking-tighter shadow-md shadow-[#D4FF00]/15">
               r
             </div>
             <h1 className="text-xl font-black italic tracking-tighter text-white">root</h1>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              aria-label={user ? "Abrir mensajes" : "Iniciar sesión para ver mensajes"}
-              onClick={(event) => {
-                event.stopPropagation();
-                if (!user) {
-                  router.push("/login");
-                  return;
-                }
-                openInbox();
-              }}
-              className="rounded-full border border-white/10 bg-white/5 p-2.5 text-[#D4FF00] hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-[#D4FF00]"
-            >
-              <MessageSquare className="h-5 w-5" />
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsMenuOpen(true);
-              }}
-              className="bg-[#D4FF00] text-neutral-950 p-2 rounded-full hover:bg-[#bce400] active:scale-95 transition-all shadow-md shadow-[#D4FF00]/10 flex items-center justify-center gap-1.5 px-3.5 text-xs font-black uppercase tracking-wider cursor-pointer"
-            >
-              <Plus className="w-4 h-4 stroke-[3]" />
-              <span className="hidden sm:inline">Crear</span>
-            </button>
+          <button
+            type="button"
+            aria-label={user ? "Abrir mensajes" : "Iniciar sesión para ver mensajes"}
+            onClick={(event) => {
+              event.stopPropagation();
+              if (!user) {
+                router.push("/login");
+                return;
+              }
+              openInbox();
+            }}
+            className="shrink-0 h-9 w-9 flex items-center justify-center rounded-full border-0 bg-transparent text-[#D4FF00] hover:opacity-80 focus-visible:outline-2 focus-visible:outline-[#D4FF00] transition-opacity cursor-pointer"
+          >
+            <MessageSquare className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Fila 2: Searchbar ancho completo (entre el header y los filtros) */}
+        <div
+          onClick={(event) => event.stopPropagation()}
+          className="px-4 md:px-6 pt-0 pb-2.5 max-w-7xl mx-auto w-full"
+        >
+          <div
+            onClick={() => router.push("/search")}
+            className="w-full h-9 md:h-10 bg-[#161922] border-0 rounded-full px-3.5 md:px-4 flex items-center gap-2 md:gap-3 text-neutral-400 hover:bg-[#1C202B] transition-colors cursor-text"
+          >
+            <Sparkles className="w-3.5 h-3.5 md:w-4 md:h-4 text-[#D4FF00] shrink-0" />
+            <span className="text-xs md:text-sm font-semibold tracking-wide truncate">
+              Buscar eventos, artistas o clubes...
+            </span>
           </div>
+        </div>
+
+        {/* Fila 3: Filtros a la izquierda (scroll horizontal) + Selector de layout fijo a la derecha en mobile */}
+        <div
+          ref={filtersContainerRef}
+          onClick={(event) => event.stopPropagation()}
+          className="relative z-30 px-4 md:px-6 pt-0 pb-2.5 max-w-7xl mx-auto w-full"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex-1 min-w-0 flex items-center gap-2 overflow-x-auto hide-scrollbar whitespace-nowrap">
+              {/* Filtro 1: ¿Cuándo? */}
+              <div
+                className={cn(
+                  "shrink-0 h-8 flex items-center rounded-full transition-all select-none",
+                  isDateActive
+                    ? "bg-[#D4FF00]/15 text-[#D4FF00] shadow-[0_0_15px_rgba(212,255,0,0.15)] border border-[#D4FF00]/40"
+                    : "border border-white/10 bg-[#14171F] text-neutral-300 hover:border-white/20 hover:text-white",
+                )}
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveSheetType("when");
+                    setIsWhenOpen((prev) => !prev);
+                    setIsGenreOpen(false);
+                    setIsDatesOpen(false);
+                  }}
+                  className={cn(
+                    "h-full flex items-center gap-1.5 text-xs font-bold tracking-wide cursor-pointer",
+                    isDateActive ? "pl-3.5 pr-1.5" : "px-3.5",
+                  )}
+                >
+                  <Calendar className={cn("h-3.5 w-3.5", isDateActive ? "text-[#D4FF00]" : "text-neutral-400")} />
+                  <span>{getDateLabel()}</span>
+                  {!isDateActive && (
+                    <ChevronDown
+                      className={cn(
+                        "h-3.5 w-3.5 text-neutral-400 transition-transform duration-200",
+                        isWhenOpen && "rotate-180",
+                      )}
+                    />
+                  )}
+                </button>
+
+                {isDateActive && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      clearDateFilter();
+                    }}
+                    className="h-full pr-3 pl-1 flex items-center text-[#D4FF00]/80 hover:text-white transition-colors cursor-pointer"
+                    title="Quitar filtro de fecha"
+                    aria-label="Quitar filtro de fecha"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Filtro 2: Categorías */}
+              <div
+                className={cn(
+                  "shrink-0 h-8 flex items-center rounded-full border transition-all select-none",
+                  isGenreActive
+                    ? "border-[#D4FF00]/40 bg-[#D4FF00]/15 text-[#D4FF00] shadow-sm shadow-[#D4FF00]/10"
+                    : "border-white/10 bg-[#14171F] text-neutral-300 hover:border-white/20 hover:text-white",
+                )}
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveSheetType("genre");
+                    setIsGenreOpen((prev) => !prev);
+                    setIsWhenOpen(false);
+                    setIsDatesOpen(false);
+                  }}
+                  className={cn(
+                    "h-full flex items-center gap-1.5 text-xs font-bold tracking-wide cursor-pointer",
+                    isGenreActive ? "pl-3.5 pr-1.5" : "px-3.5",
+                  )}
+                >
+                  <Music className={cn("h-3.5 w-3.5", isGenreActive ? "text-[#D4FF00]" : "text-neutral-400")} />
+                  <span>{getGenreLabel()}</span>
+                  {!isGenreActive && (
+                    <ChevronDown
+                      className={cn(
+                        "h-3.5 w-3.5 text-neutral-400 transition-transform duration-200",
+                        isGenreOpen && "rotate-180",
+                      )}
+                    />
+                  )}
+                </button>
+
+                {isGenreActive && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      clearGenreFilter();
+                    }}
+                    className="h-full pr-3 pl-1 flex items-center text-[#D4FF00]/80 hover:text-white transition-colors cursor-pointer"
+                    title="Quitar filtro de categoría"
+                    aria-label="Quitar filtro de categoría"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Selector de 3 iconos fijo a la derecha en Mobile */}
+            <div className="md:hidden shrink-0 h-8 flex items-center rounded-full border border-white/10 bg-[#14171F] p-0.5">
+              <button
+                type="button"
+                onClick={() => setViewMode("grid")}
+                title="Vista Cuadrícula"
+                aria-label="Vista Cuadrícula"
+                className={cn(
+                  "h-7 w-7 flex items-center justify-center rounded-full transition-all cursor-pointer",
+                  viewMode === "grid"
+                    ? "bg-[#D4FF00] text-neutral-950 shadow-[0_4px_16px_rgba(212,255,0,0.16)]"
+                    : "text-neutral-400 hover:text-white"
+                )}
+              >
+                <LayoutGrid className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("list")}
+                title="Vista Agenda"
+                aria-label="Vista Agenda"
+                className={cn(
+                  "h-7 w-7 flex items-center justify-center rounded-full transition-all cursor-pointer",
+                  viewMode === "list"
+                    ? "bg-[#D4FF00] text-neutral-950 shadow-[0_4px_16px_rgba(212,255,0,0.16)]"
+                    : "text-neutral-400 hover:text-white"
+                )}
+              >
+                <List className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("calendar")}
+                title="Vista Calendario"
+                aria-label="Vista Calendario"
+                className={cn(
+                  "h-7 w-7 flex items-center justify-center rounded-full transition-all cursor-pointer",
+                  viewMode === "calendar"
+                    ? "bg-[#D4FF00] text-neutral-950 shadow-[0_4px_16px_rgba(212,255,0,0.16)]"
+                    : "text-neutral-400 hover:text-white"
+                )}
+              >
+                <Calendar className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Menú Desplegable flotante de ¿Cuándo? (Solo Desktop) */}
+          {isWhenOpen && (
+            <div className="hidden md:block absolute left-6 top-full mt-1.5 w-72 rounded-2xl border border-white/10 bg-[#14171F] p-1.5 shadow-2xl shadow-black/90 z-50 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-xl">
+              <div className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-neutral-400">
+                ¿Cuándo?
+              </div>
+              {[
+                { id: "weekend", label: "Este finde", desc: "Vie a Dom" },
+                { id: "week", label: "Próximos 7 días", desc: "Semana entrante" },
+                { id: "month", label: "Este mes", desc: "Mes en curso" },
+              ].map((opt) => {
+                const isSelected = temporalPreset === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => {
+                      setIsDatesOpen(false);
+                      handleSelectTemporal(opt.id as TemporalPreset);
+                    }}
+                    className={cn(
+                      "flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-xs font-bold transition-all cursor-pointer",
+                      isSelected
+                        ? "bg-[#D4FF00]/15 text-[#D4FF00]"
+                        : "text-neutral-300 hover:bg-white/5 hover:text-white",
+                    )}
+                  >
+                    <div className="flex flex-col text-left">
+                      <span>{opt.label}</span>
+                      <span className="text-[10px] font-normal text-neutral-500">{opt.desc}</span>
+                    </div>
+                    {isSelected && <Check className="h-3.5 w-3.5 text-[#D4FF00]" />}
+                  </button>
+                );
+              })}
+
+              {/* Opción para seleccionar fechas específicas */}
+              <button
+                type="button"
+                onClick={() => setIsDatesOpen((prev) => !prev)}
+                className={cn(
+                  "flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-xs font-bold transition-all cursor-pointer",
+                  isCustomDateActive || isDatesOpen
+                    ? "bg-[#D4FF00]/15 text-[#D4FF00]"
+                    : "text-neutral-300 hover:bg-white/5 hover:text-white",
+                )}
+              >
+                <div className="flex flex-col text-left">
+                  <span>Seleccionar fechas</span>
+                  <span className="text-[10px] font-normal text-neutral-500">Elegir rango en el calendario</span>
+                </div>
+                <ChevronDown
+                  className={cn(
+                    "h-3.5 w-3.5 transition-transform duration-200",
+                    isDatesOpen && "rotate-180",
+                  )}
+                />
+              </button>
+
+              {isDatesOpen && (
+                <div className="mt-1.5 border-t border-white/10 px-2 pt-2.5 pb-1.5 space-y-2.5 animate-in fade-in duration-150">
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="space-y-1 text-[10px] font-extrabold uppercase tracking-wider text-neutral-400">
+                      Desde
+                      <input
+                        type="date"
+                        value={draftFilters.startDate}
+                        onChange={(event) =>
+                          setDraftFilters((current) => ({ ...current, startDate: event.target.value }))
+                        }
+                        className="w-full rounded-xl border border-white/10 bg-[#0B0D10] px-2.5 py-1.5 text-xs text-white focus:border-[#D4FF00] focus:outline-none transition-colors"
+                      />
+                    </label>
+                    <label className="space-y-1 text-[10px] font-extrabold uppercase tracking-wider text-neutral-400">
+                      Hasta
+                      <input
+                        type="date"
+                        value={draftFilters.endDate}
+                        onChange={(event) =>
+                          setDraftFilters((current) => ({ ...current, endDate: event.target.value }))
+                        }
+                        className="w-full rounded-xl border border-white/10 bg-[#0B0D10] px-2.5 py-1.5 text-xs text-white focus:border-[#D4FF00] focus:outline-none transition-colors"
+                      />
+                    </label>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={applyCustomDates}
+                    className="w-full rounded-xl bg-[#D4FF00] py-2 text-xs font-black uppercase tracking-wider text-neutral-950 hover:bg-[#bce400] transition-colors cursor-pointer"
+                  >
+                    Aplicar fechas
+                  </button>
+                </div>
+              )}
+
+              {isDateActive && (
+                <>
+                  <div className="my-1 border-t border-white/10" />
+                  <button
+                    type="button"
+                    onClick={clearDateFilter}
+                    className="flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-[11px] font-semibold text-neutral-400 hover:bg-white/5 hover:text-white transition-all cursor-pointer"
+                  >
+                    <span>Cualquier fecha</span>
+                    <X className="h-3 w-3" />
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Menú Desplegable flotante de Categorías (Solo Desktop) */}
+          {isGenreOpen && (
+            <div className="hidden md:block absolute left-6 top-full mt-1.5 w-56 rounded-2xl border border-white/[0.08] border-t-white/[0.16] bg-[#14171F]/95 p-1.5 shadow-2xl shadow-black/80 z-50 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-xl">
+              <div className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-neutral-400">
+                Categoría
+              </div>
+              {genreOptions.map((opt) => {
+                const isSelected =
+                  opt.id === "all"
+                    ? !isGenreActive
+                    : appliedFilters.genre.toLowerCase() === opt.id.toLowerCase();
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => handleSelectGenre(opt.id)}
+                    className={cn(
+                      "flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-xs font-bold transition-all cursor-pointer",
+                      isSelected
+                        ? "bg-[#D4FF00]/15 text-[#D4FF00]"
+                        : "text-neutral-300 hover:bg-white/5 hover:text-white",
+                    )}
+                  >
+                    <span>{opt.label}</span>
+                    {isSelected && <Check className="h-3.5 w-3.5 text-[#D4FF00]" />}
+                  </button>
+                );
+              })}
+
+              {isGenreActive && (
+                <>
+                  <div className="my-1 border-t border-white/[0.06]" />
+                  <button
+                    type="button"
+                    onClick={clearGenreFilter}
+                    className="flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-[11px] font-semibold text-neutral-400 hover:bg-white/5 hover:text-white transition-all cursor-pointer"
+                  >
+                    <span>Todas las categorías</span>
+                    <X className="h-3 w-3" />
+                  </button>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </header>
 
       <PullToRefresh onRefresh={handleRefresh}>
-        <div className="space-y-6 px-4 md:px-6 pt-4 md:pt-24 pb-28 w-full max-w-7xl mx-auto">
+        <div className="space-y-6 px-4 md:px-6 pt-[calc(var(--root-safe-top)+151px)] md:pt-28 pb-28 w-full max-w-7xl mx-auto">
           {/* Slide-over Drawer lateral para Filtros Avanzados (Cero Layout Shift) */}
         {showFilters && (
           <div className="fixed inset-0 z-50 flex justify-end">
@@ -794,19 +1175,6 @@ export default function EventsPage() {
         {/* Live Activity Banner */}
         <LiveEventBanner />
 
-        {/* Searchbar */}
-        <div className="w-full">
-          <div
-            onClick={() => router.push("/search")}
-            className="w-full bg-[#111114] border-0 rounded-full px-4 py-3 flex items-center gap-3 text-neutral-400 hover:bg-[#16171D] transition-colors cursor-text shadow-md"
-          >
-            <Sparkles className="w-4 h-4 text-[#D4FF00]" />
-            <span className="text-sm font-semibold tracking-wide">
-              Buscar eventos, artistas o clubes...
-            </span>
-          </div>
-        </div>
-
         {/* Swimlane de Encuestas Pendientes */}
         {pendingSurveys.length > 0 && (
           <div className="mt-2 mb-2">
@@ -823,11 +1191,11 @@ export default function EventsPage() {
           </div>
         )}
 
-        {/* Hero Banner: Evento Destacado con Enfoque en Artwork y Guía en la Lectura */}
+        {/* Hero Banner: Evento Destacado con Enfoque en Artwork y Guía en la Lectura (Solo Desktop) */}
         {!hasActiveChips && !debouncedQuery && !isDateActive && !isGenreActive && featuredEvent && (
           <Link
             href={`/events/${featuredEvent.id}?origin=/events`}
-            className="group relative block w-full rounded-3xl overflow-hidden border border-white/[0.08] border-t-white/[0.2] shadow-[0_20px_50px_rgba(0,0,0,0.7)] bg-neutral-950 transition-all duration-300 hover:border-white/[0.16] hover:border-t-[#D4FF00]/60 cursor-pointer animate-in fade-in"
+            className="group relative hidden md:block w-full rounded-3xl overflow-hidden border border-white/[0.08] border-t-white/[0.2] shadow-[0_20px_50px_rgba(0,0,0,0.7)] bg-neutral-950 transition-all duration-300 hover:border-white/[0.16] hover:border-t-[#D4FF00]/60 cursor-pointer animate-in fade-in"
           >
             {/* Specular top rim light */}
             <div className="pointer-events-none absolute inset-x-8 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/40 to-transparent z-20 opacity-80" />
@@ -908,280 +1276,6 @@ export default function EventsPage() {
             </div>
           </Link>
         )}
-
-        {/* Barra de Filtros y Selector de Vistas (Organizado en 2 filas) */}
-        <div className="relative z-20 flex flex-col gap-2.5 py-2.5 px-3 md:px-4 rounded-3xl bg-[#111114] border-0 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.6)] transition-all">
-          {/* Fila 1: Filtros (Únicamente ¿Cuándo?, Categorías y Botón de Filtros) */}
-          <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
-            <div className="flex items-center gap-2 flex-wrap">
-              {/* Dropdown ¿Cuándo? */}
-              <div ref={whenDropdownRef} className="relative shrink-0">
-                <div
-                  className={cn(
-                    "flex items-center rounded-full transition-all select-none",
-                    isDateActive
-                      ? "bg-[#D4FF00]/15 text-[#D4FF00] shadow-[0_0_15px_rgba(212,255,0,0.15)] border-0"
-                      : "border border-white/[0.06] border-t-white/[0.12] bg-white/[0.04] text-neutral-300 hover:border-white/[0.14] hover:text-white hover:bg-white/[0.07]",
-                  )}
-                >
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsWhenOpen((prev) => !prev);
-                      setIsGenreOpen(false);
-                    }}
-                    className={cn(
-                      "flex items-center gap-1.5 py-1.5 text-xs font-bold tracking-wide cursor-pointer",
-                      isDateActive ? "pl-3.5 pr-1.5" : "px-3.5",
-                    )}
-                  >
-                    <Calendar className={cn("h-3.5 w-3.5", isDateActive ? "text-[#D4FF00]" : "text-neutral-400")} />
-                    <span>{getDateLabel()}</span>
-                    {!isDateActive && (
-                      <ChevronDown
-                        className={cn(
-                          "h-3.5 w-3.5 text-neutral-400 transition-transform duration-200",
-                          isWhenOpen && "rotate-180",
-                        )}
-                      />
-                    )}
-                  </button>
-
-                  {isDateActive && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        clearDateFilter();
-                      }}
-                      className="pr-3 pl-1 py-1.5 text-[#D4FF00]/80 hover:text-white transition-colors cursor-pointer"
-                      title="Quitar filtro de fecha"
-                      aria-label="Quitar filtro de fecha"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
-
-                {/* Menú Desplegable flotante de Fecha */}
-                {isWhenOpen && (
-                  <div className="absolute left-0 top-full mt-2 w-52 rounded-2xl border border-white/10 bg-[#14171F] p-1.5 shadow-2xl shadow-black/90 z-50 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-xl">
-                    <div className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-neutral-400">
-                      ¿Cuándo?
-                    </div>
-                    {[
-                      { id: "weekend", label: "Este finde", desc: "Vie a Dom" },
-                      { id: "week", label: "Próximos 7 días", desc: "Semana entrante" },
-                      { id: "month", label: "Este mes", desc: "Mes en curso" },
-                    ].map((opt) => {
-                      const isSelected = temporalPreset === opt.id;
-                      return (
-                        <button
-                          key={opt.id}
-                          type="button"
-                          onClick={() => handleSelectTemporal(opt.id as TemporalPreset)}
-                          className={cn(
-                            "flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-xs font-bold transition-all cursor-pointer",
-                            isSelected
-                              ? "bg-[#D4FF00]/15 text-[#D4FF00]"
-                              : "text-neutral-300 hover:bg-white/5 hover:text-white",
-                          )}
-                        >
-                          <div className="flex flex-col text-left">
-                            <span>{opt.label}</span>
-                            <span className="text-[10px] font-normal text-neutral-500">{opt.desc}</span>
-                          </div>
-                          {isSelected && <Check className="h-3.5 w-3.5 text-[#D4FF00]" />}
-                        </button>
-                      );
-                    })}
-
-                    {isDateActive && (
-                      <>
-                        <div className="my-1 border-t border-white/10" />
-                        <button
-                          type="button"
-                          onClick={clearDateFilter}
-                          className="flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-[11px] font-semibold text-neutral-400 hover:bg-white/5 hover:text-white transition-all cursor-pointer"
-                        >
-                          <span>Cualquier fecha</span>
-                          <X className="h-3 w-3" />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Dropdown Categorías */}
-              <div ref={genreDropdownRef} className="relative shrink-0">
-                <div
-                  className={cn(
-                    "flex items-center rounded-full border transition-all select-none",
-                    isGenreActive
-                      ? "border-[#D4FF00]/50 bg-[#D4FF00]/15 text-[#D4FF00] shadow-sm shadow-[#D4FF00]/10"
-                      : "border-white/10 bg-[#14171F] text-neutral-300 hover:border-white/20 hover:text-white",
-                  )}
-                >
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsGenreOpen((prev) => !prev);
-                      setIsWhenOpen(false);
-                    }}
-                    className={cn(
-                      "flex items-center gap-1.5 py-1.5 text-xs font-bold tracking-wide cursor-pointer",
-                      isGenreActive ? "pl-3.5 pr-1.5" : "px-3.5",
-                    )}
-                  >
-                    <Music className={cn("h-3.5 w-3.5", isGenreActive ? "text-[#D4FF00]" : "text-neutral-400")} />
-                    <span>{getGenreLabel()}</span>
-                    {!isGenreActive && (
-                      <ChevronDown
-                        className={cn(
-                          "h-3.5 w-3.5 text-neutral-400 transition-transform duration-200",
-                          isGenreOpen && "rotate-180",
-                        )}
-                      />
-                    )}
-                  </button>
-
-                  {isGenreActive && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        clearGenreFilter();
-                      }}
-                      className="pr-3 pl-1 py-1.5 text-[#D4FF00]/80 hover:text-white transition-colors cursor-pointer"
-                      title="Quitar filtro de categoría"
-                      aria-label="Quitar filtro de categoría"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
-
-                {/* Menú Desplegable flotante de Categorías */}
-                {isGenreOpen && (
-                  <div className="absolute left-0 top-full mt-2 w-52 rounded-2xl border border-white/[0.08] border-t-white/[0.16] bg-[#14171F]/95 p-1.5 shadow-2xl shadow-black/80 z-50 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-xl">
-                    <div className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-neutral-400">
-                      Categoría
-                    </div>
-                    {genreOptions.map((opt) => {
-                      const isSelected =
-                        opt.id === "all"
-                          ? !isGenreActive
-                          : appliedFilters.genre.toLowerCase() === opt.id.toLowerCase();
-                      return (
-                        <button
-                          key={opt.id}
-                          type="button"
-                          onClick={() => handleSelectGenre(opt.id)}
-                          className={cn(
-                            "flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-xs font-bold transition-all cursor-pointer",
-                            isSelected
-                              ? "bg-[#D4FF00]/15 text-[#D4FF00]"
-                              : "text-neutral-300 hover:bg-white/5 hover:text-white",
-                          )}
-                        >
-                          <span>{opt.label}</span>
-                          {isSelected && <Check className="h-3.5 w-3.5 text-[#D4FF00]" />}
-                        </button>
-                      );
-                    })}
-
-                    {isGenreActive && (
-                      <>
-                        <div className="my-1 border-t border-white/[0.06]" />
-                        <button
-                          type="button"
-                          onClick={clearGenreFilter}
-                          className="flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-[11px] font-semibold text-neutral-400 hover:bg-white/5 hover:text-white transition-all cursor-pointer"
-                        >
-                          <span>Todas las categorías</span>
-                          <X className="h-3 w-3" />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Botón Drawer de Filtros Avanzados */}
-            <button
-              type="button"
-              onClick={() => setShowFilters(true)}
-              aria-label="Filtros avanzados"
-              title="Filtros avanzados"
-              className={cn(
-                "shrink-0 flex items-center justify-center gap-1.5 rounded-full p-2 text-xs font-black transition-all cursor-pointer select-none",
-                showFilters || activeFilters > 0
-                  ? "bg-[#D4FF00] text-neutral-950 shadow-md shadow-[#D4FF00]/25"
-                  : "border border-white/[0.08] border-t-white/[0.14] bg-white/[0.04] text-neutral-300 hover:bg-white/[0.08] hover:text-white",
-              )}
-            >
-              <SlidersHorizontal className="h-3.5 w-3.5" />
-              {activeFilters > 0 && (
-                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-neutral-950 text-[10px] text-[#D4FF00]">
-                  {activeFilters}
-                </span>
-              )}
-            </button>
-          </div>
-
-          {/* Fila 2: Elección del Layout (Grilla / Agenda / Calendario) */}
-          <div className="flex items-center justify-start sm:justify-end pt-2 border-t border-white/5">
-            <div className="flex items-center rounded-full border-0 bg-black/60 p-0.5 shrink-0">
-              <button
-                type="button"
-                onClick={() => setViewMode("grid")}
-                title="Vista Cuadrícula"
-                aria-label="Vista Cuadrícula"
-                className={cn(
-                  "flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold transition-all cursor-pointer",
-                  viewMode === "grid"
-                    ? "bg-[#D4FF00] text-neutral-950 shadow-[0_4px_16px_rgba(212,255,0,0.16)]"
-                    : "text-neutral-400 hover:text-white"
-                )}
-              >
-                <LayoutGrid className="h-3.5 w-3.5" />
-                <span className="tech-label text-[10px]">Grilla</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode("list")}
-                title="Vista Agenda"
-                aria-label="Vista Agenda"
-                className={cn(
-                  "flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold transition-all cursor-pointer",
-                  viewMode === "list"
-                    ? "bg-[#D4FF00] text-neutral-950 shadow-[0_4px_16px_rgba(212,255,0,0.16)]"
-                    : "text-neutral-400 hover:text-white"
-                )}
-              >
-                <List className="h-3.5 w-3.5" />
-                <span className="tech-label text-[10px]">Agenda</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode("calendar")}
-                title="Vista Calendario"
-                aria-label="Vista Calendario"
-                className={cn(
-                  "flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold transition-all cursor-pointer",
-                  viewMode === "calendar"
-                    ? "bg-[#D4FF00] text-neutral-950 shadow-[0_4px_16px_rgba(212,255,0,0.16)]"
-                    : "text-neutral-400 hover:text-white"
-                )}
-              >
-                <Calendar className="h-3.5 w-3.5" />
-                <span className="tech-label text-[10px]">Calendario</span>
-              </button>
-            </div>
-          </div>
-        </div>
 
         {/* Chips de Filtros Activos (solo para filtros adicionales no cubiertos directamente en la barra principal) */}
         {hasActiveChips && (
@@ -1265,17 +1359,64 @@ export default function EventsPage() {
           </div>
         )}
 
-        {/* Subheader: Próximos eventos + total contador */}
-        <div className="flex items-center justify-between gap-3 pt-1">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <h2 className="flex items-center gap-2 tech-label text-xs text-neutral-300">
-              <Sparkles className="h-4 w-4 text-[#D4FF00]" />
-              {sortBy === "popular" ? "Mayor Convocatoria" : "Próximos eventos"}
+        {/* Subheader (Solo Desktop): Próximos eventos + total contador + Selector de 3 iconos */}
+        <div className="hidden md:flex items-center justify-between gap-3 pt-1">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <h2 className="flex items-center gap-2 tech-label text-xs text-neutral-300 truncate">
+              <Sparkles className="h-4 w-4 text-[#D4FF00] shrink-0" />
+              <span className="truncate">
+                {sortBy === "popular" ? "Mayor Convocatoria" : "Próximos eventos"}
+              </span>
             </h2>
-            <span className="flex items-center gap-1.5 rounded-full bg-[#D4FF00]/10 px-2.5 py-1">
+            <span className="flex items-center gap-1.5 rounded-full bg-[#D4FF00]/10 px-2.5 py-1 shrink-0">
               <span className="num-display text-xs text-white">{hasLoaded ? total : "…"}</span>
               <span className="tech-label text-[9px] text-[#D4FF00]">{hasLoaded ? "eventos" : "cargando"}</span>
             </span>
+          </div>
+
+          <div className="flex items-center rounded-full border border-white/[0.06] bg-[#111114] p-0.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => setViewMode("grid")}
+              title="Vista Cuadrícula"
+              aria-label="Vista Cuadrícula"
+              className={cn(
+                "flex items-center justify-center rounded-full p-2 text-xs font-bold transition-all cursor-pointer",
+                viewMode === "grid"
+                  ? "bg-[#D4FF00] text-neutral-950 shadow-[0_4px_16px_rgba(212,255,0,0.16)]"
+                  : "text-neutral-400 hover:text-white"
+              )}
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("list")}
+              title="Vista Agenda"
+              aria-label="Vista Agenda"
+              className={cn(
+                "flex items-center justify-center rounded-full p-2 text-xs font-bold transition-all cursor-pointer",
+                viewMode === "list"
+                  ? "bg-[#D4FF00] text-neutral-950 shadow-[0_4px_16px_rgba(212,255,0,0.16)]"
+                  : "text-neutral-400 hover:text-white"
+              )}
+            >
+              <List className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("calendar")}
+              title="Vista Calendario"
+              aria-label="Vista Calendario"
+              className={cn(
+                "flex items-center justify-center rounded-full p-2 text-xs font-bold transition-all cursor-pointer",
+                viewMode === "calendar"
+                  ? "bg-[#D4FF00] text-neutral-950 shadow-[0_4px_16px_rgba(212,255,0,0.16)]"
+                  : "text-neutral-400 hover:text-white"
+              )}
+            >
+              <Calendar className="h-3.5 w-3.5" />
+            </button>
           </div>
         </div>
 
@@ -1304,7 +1445,7 @@ export default function EventsPage() {
               {[1, 2, 3, 4, 5, 6].map((item) => (
                 <div
                   key={item}
-                  className="mx-auto aspect-[4/5] w-full max-w-md animate-pulse rounded-3xl border border-white/5 bg-[#14171F] md:max-w-none"
+                  className="mx-auto h-72 sm:h-80 md:h-auto md:aspect-[4/5] w-full max-w-md animate-pulse rounded-3xl border border-white/5 bg-[#14171F] md:max-w-none"
                 />
               ))}
             </div>
@@ -1397,6 +1538,202 @@ export default function EventsPage() {
         <div ref={sentinelRef} className="h-6 w-full pointer-events-none" />
         </div>
       </PullToRefresh>
+
+      {/* BottomSheet de Filtros (Solo Mobile - Ancho completo con transición de abajo hacia arriba y de arriba hacia abajo) */}
+      <div
+        role="dialog"
+        aria-modal={isWhenOpen || isGenreOpen}
+        aria-hidden={!(isWhenOpen || isGenreOpen)}
+        aria-label={activeSheetType === "when" ? "Filtrar por fecha" : "Filtrar por categoría"}
+        className={cn(
+          "md:hidden fixed inset-0 z-[70] flex flex-col justify-end transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
+          isWhenOpen || isGenreOpen ? "pointer-events-auto" : "pointer-events-none",
+        )}
+      >
+        <div
+          className={cn(
+            "fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
+            isWhenOpen || isGenreOpen ? "opacity-100" : "opacity-0",
+          )}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            setIsWhenOpen(false);
+            setIsGenreOpen(false);
+            setIsDatesOpen(false);
+          }}
+        />
+
+        <div
+          ref={bottomSheetRef}
+          className={cn(
+            "relative z-10 w-full rounded-t-3xl border-t border-white/10 bg-[#14171F] px-5 pt-3 pb-[calc(1.5rem+var(--root-safe-bottom))] shadow-[0_-20px_50px_rgba(0,0,0,0.85)] transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
+            isWhenOpen || isGenreOpen
+              ? "translate-y-0 opacity-100"
+              : "translate-y-full opacity-0",
+          )}
+        >
+          {/* Indicador superior de arrastre */}
+          <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" />
+
+          <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-3">
+            <span className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[#D4FF00]">
+              {activeSheetType === "when" ? (
+                <>
+                  <Calendar className="h-4 w-4" />
+                  ¿Cuándo?
+                </>
+              ) : (
+                <>
+                  <Music className="h-4 w-4" />
+                  Categorías
+                </>
+              )}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setIsWhenOpen(false);
+                setIsGenreOpen(false);
+                setIsDatesOpen(false);
+              }}
+              className="rounded-full bg-white/5 p-1.5 text-neutral-400 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+              aria-label="Cerrar"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          {activeSheetType === "when" ? (
+            <div className="space-y-1.5">
+              {[
+                { id: "weekend", label: "Este finde", desc: "Vie a Dom" },
+                { id: "week", label: "Próximos 7 días", desc: "Semana entrante" },
+                { id: "month", label: "Este mes", desc: "Mes en curso" },
+              ].map((opt) => {
+                const isSelected = temporalPreset === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => {
+                      setIsDatesOpen(false);
+                      handleSelectTemporal(opt.id as TemporalPreset);
+                    }}
+                    className={cn(
+                      "flex w-full items-center justify-between rounded-2xl px-3.5 py-3 text-sm font-bold transition-all cursor-pointer",
+                      isSelected
+                        ? "bg-[#D4FF00]/15 text-[#D4FF00]"
+                        : "bg-white/[0.03] text-neutral-200 hover:bg-white/5 hover:text-white",
+                    )}
+                  >
+                    <div className="flex flex-col text-left">
+                      <span>{opt.label}</span>
+                      <span className="text-[11px] font-normal text-neutral-400">{opt.desc}</span>
+                    </div>
+                    {isSelected && <Check className="h-4 w-4 text-[#D4FF00]" />}
+                  </button>
+                );
+              })}
+
+              {/* Opción para seleccionar fechas específicas */}
+              <button
+                type="button"
+                onClick={() => setIsDatesOpen((prev) => !prev)}
+                className={cn(
+                  "flex w-full items-center justify-between rounded-2xl px-3.5 py-3 text-sm font-bold transition-all cursor-pointer",
+                  isCustomDateActive || isDatesOpen
+                    ? "bg-[#D4FF00]/15 text-[#D4FF00]"
+                    : "bg-white/[0.03] text-neutral-200 hover:bg-white/5 hover:text-white",
+                )}
+              >
+                <div className="flex flex-col text-left">
+                  <span>Seleccionar fechas</span>
+                  <span className="text-[11px] font-normal text-neutral-400">Elegir rango en el calendario</span>
+                </div>
+                <ChevronDown
+                  className={cn(
+                    "h-4 w-4 transition-transform duration-200",
+                    isDatesOpen && "rotate-180",
+                  )}
+                />
+              </button>
+
+              {isDatesOpen && (
+                <div className="mt-2 rounded-2xl border border-white/10 bg-[#0B0D10]/60 p-3.5 space-y-3 animate-fade-in">
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <label className="space-y-1 text-[10px] font-extrabold uppercase tracking-wider text-neutral-400">
+                      Desde
+                      <input
+                        type="date"
+                        value={draftFilters.startDate}
+                        onChange={(event) =>
+                          setDraftFilters((current) => ({ ...current, startDate: event.target.value }))
+                        }
+                        className="w-full rounded-xl border border-white/10 bg-[#14171F] px-3 py-2 text-xs text-white focus:border-[#D4FF00] focus:outline-none transition-colors"
+                      />
+                    </label>
+                    <label className="space-y-1 text-[10px] font-extrabold uppercase tracking-wider text-neutral-400">
+                      Hasta
+                      <input
+                        type="date"
+                        value={draftFilters.endDate}
+                        onChange={(event) =>
+                          setDraftFilters((current) => ({ ...current, endDate: event.target.value }))
+                        }
+                        className="w-full rounded-xl border border-white/10 bg-[#14171F] px-3 py-2 text-xs text-white focus:border-[#D4FF00] focus:outline-none transition-colors"
+                      />
+                    </label>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={applyCustomDates}
+                    className="w-full rounded-xl bg-[#D4FF00] py-2.5 text-xs font-black uppercase tracking-wider text-neutral-950 hover:bg-[#bce400] transition-colors cursor-pointer"
+                  >
+                    Aplicar fechas
+                  </button>
+                </div>
+              )}
+
+              {isDateActive && (
+                <button
+                  type="button"
+                  onClick={clearDateFilter}
+                  className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 py-2.5 text-xs font-bold text-neutral-300 hover:bg-white/10 hover:text-white transition-all cursor-pointer"
+                >
+                  <span>Limpiar filtro de fecha</span>
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              {genreOptions.map((opt) => {
+                const isSelected =
+                  opt.id === "all"
+                    ? !isGenreActive
+                    : appliedFilters.genre.toLowerCase() === opt.id.toLowerCase();
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => handleSelectGenre(opt.id)}
+                    className={cn(
+                      "flex w-full items-center justify-between rounded-2xl px-3.5 py-3 text-sm font-bold transition-all cursor-pointer",
+                      isSelected
+                        ? "bg-[#D4FF00]/15 text-[#D4FF00]"
+                        : "bg-white/[0.03] text-neutral-200 hover:bg-white/5 hover:text-white",
+                    )}
+                  >
+                    <span>{opt.label}</span>
+                    {isSelected && <Check className="h-4 w-4 text-[#D4FF00]" />}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
 
       <QuickActionMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
     </div>
