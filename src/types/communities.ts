@@ -124,4 +124,4 @@ export interface CommunityRoleState {
   isGuest: boolean;
 }
 
-export type CommunityTab = "channel" | "wall" | "events" | "members";
+export type CommunityTab = "channel" | "wall";

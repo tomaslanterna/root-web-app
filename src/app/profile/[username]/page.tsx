@@ -33,6 +33,12 @@ export default function UserProfilePage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const fromSearch = searchParams.get("from") === "search";
+  const fromCommunities = searchParams.get("from") === "communities";
+  const requestedReturnTo = searchParams.get("returnTo");
+  const communityReturnTo =
+    requestedReturnTo?.startsWith("/") && !requestedReturnTo.startsWith("//")
+      ? requestedReturnTo
+      : "/communities";
   const username = params.username as string;
   const { user: currentUser, isLoading: authLoading } = useAuth();
 
@@ -177,6 +183,14 @@ export default function UserProfilePage() {
     }
   };
 
+  const handleProfileBack = () => {
+    if (fromCommunities) {
+      router.replace(communityReturnTo);
+      return;
+    }
+    router.back();
+  };
+
   if (authLoading || isLoadingProfile) {
     return (
       <div className="flex items-center justify-center min-h-[100dvh] bg-[#0B0D10]">
@@ -200,12 +214,14 @@ export default function UserProfilePage() {
 
   return (
     <div className="profile-modern flex min-h-[100dvh] flex-col bg-[#0B0D10] pb-20 text-white">
-      {/* Fila superior para el botón de volver y el icono de ajustes */}
-      <header className="w-full max-w-5xl mx-auto px-4 pt-safe-header pb-2 flex items-center justify-between">
-        <div>
-          {fromSearch && (
+      {/* Header Fixed Transparente para el Perfil */}
+      <header className="fixed top-0 inset-x-0 z-50 mx-auto w-full max-w-md bg-transparent px-4 pb-3 pt-safe-header flex items-center justify-between pointer-events-none md:max-w-[1360px]">
+        <div className="flex items-center pointer-events-auto">
+          {(fromSearch || fromCommunities) && (
             <button
-              onClick={() => router.back()}
+              type="button"
+              onClick={handleProfileBack}
+              aria-label={fromCommunities ? "Volver a la comunidad" : "Volver"}
               className="p-2.5 rounded-full bg-black/40 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-colors active:scale-95"
             >
               <ChevronLeft className="w-5 h-5 text-white" />
