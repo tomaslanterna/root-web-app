@@ -5,11 +5,11 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Calendar,
-  Sparkles,
   Users,
   User,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { DancerIcon } from "@/components/ui/DancerIcon";
+import { cn, isValidImageUrl } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { QuickActionMenu } from "@/components/ui/QuickActionMenu";
 import { Avatar } from "@/components/ui/Avatar";
@@ -19,7 +19,7 @@ const subscribeMounted = () => () => {};
 
 const NAV_ITEMS = [
   { label: "Eventos", href: "/events", icon: Calendar },
-  { label: "Crews", href: "/match", icon: Sparkles },
+  { label: "Crews", href: "/match", icon: DancerIcon },
   { label: "Comunidades", href: "/communities", icon: Users },
   { label: "Perfil", href: "/profile", icon: User },
 ];
@@ -130,7 +130,7 @@ export function BottomNav() {
     { label: "Eventos", href: "/events", icon: Calendar },
     ...(user
       ? [
-          { label: "Crews", href: "/match", icon: Sparkles },
+          { label: "Crews", href: "/match", icon: DancerIcon },
           { label: "Comunidades", href: "/communities", icon: Users },
         ]
       : []),
@@ -341,7 +341,7 @@ export function BottomNav() {
 
                 {/* Si es el tab de Perfil y el usuario está logueado: mostrar miniatura tipo Instagram */}
                 {isProfileItem && user ? (
-                  user.avatarUrl ? (
+                  isValidImageUrl(user.avatarUrl) ? (
                     <div
                       className={cn(
                         "relative rounded-full overflow-hidden shrink-0 transition-all duration-200 group-active:scale-90",
@@ -352,7 +352,7 @@ export function BottomNav() {
                       )}
                     >
                       <img
-                        src={user.avatarUrl}
+                        src={user.avatarUrl.trim()}
                         alt={user.username || "Perfil"}
                         className="aspect-square h-full w-full object-cover"
                       />

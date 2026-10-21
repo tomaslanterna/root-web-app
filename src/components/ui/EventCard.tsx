@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CalendarIcon, CheckCircle2, MapPinIcon, Tag } from "lucide-react";
 import type { Event } from "@/types/events";
-import { cn } from "@/lib/utils";
+import { cn, isValidImageUrl } from "@/lib/utils";
 import { Card } from "./Card";
 
 interface EventCardProps {
@@ -35,7 +35,9 @@ export function EventCard({ event, variant = "swimlane", className }: EventCardP
 
   const isSwimlane = variant === "swimlane";
   const isList = variant === "list";
-  const image = event.cinematicBannerUrl?.trim() || fallbackBanner;
+  const image = isValidImageUrl(event.cinematicBannerUrl)
+    ? event.cinematicBannerUrl.trim()
+    : fallbackBanner;
   const priceLabel =
     event.price == null
       ? null

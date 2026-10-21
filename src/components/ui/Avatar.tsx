@@ -1,5 +1,5 @@
 import * as React from "react";
-import { cn } from "@/lib/utils";
+import { cn, isValidImageUrl } from "@/lib/utils";
 
 interface AvatarProps {
   src?: string;
@@ -9,11 +9,19 @@ interface AvatarProps {
 }
 
 export function Avatar({ src, fallback, className, size = "md" }: AvatarProps) {
+  const [hasError, setHasError] = React.useState(false);
+
+  React.useEffect(() => {
+    setHasError(false);
+  }, [src]);
+
   const sizes = {
     sm: "w-8 h-8 text-xs",
     md: "w-10 h-10 text-sm",
     lg: "w-16 h-16 text-xl",
   };
+
+  const validSrc = !hasError && isValidImageUrl(src) ? src.trim() : null;
 
   return (
     <div
@@ -23,8 +31,13 @@ export function Avatar({ src, fallback, className, size = "md" }: AvatarProps) {
         className
       )}
     >
-      {src ? (
-        <img src={src} alt={fallback} className="aspect-square h-full w-full object-cover" />
+      {validSrc ? (
+        <img
+          src={validSrc}
+          alt={fallback}
+          onError={() => setHasError(true)}
+          className="aspect-square h-full w-full object-cover"
+        />
       ) : (
         <span>{fallback.substring(0, 2)}</span>
       )}

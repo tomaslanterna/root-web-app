@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Heart, MessageCircle, Plus, Camera } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { CreatePhotoModal } from "@/components/profile/CreatePhotoModal";
+import { isValidImageUrl } from "@/lib/utils";
 import type { Post } from "@/types/posts";
 
 interface ProfilePostsGridProps {
@@ -55,9 +56,9 @@ export function ProfilePostsGrid({
               href={`/posts/${post.id}`}
               className="group relative aspect-square cursor-pointer overflow-hidden rounded-lg sm:rounded-xl bg-neutral-900 shadow-sm block"
             >
-              {post.headerImageUrl ? (
+              {isValidImageUrl(post.headerImageUrl) ? (
                 <img
-                  src={post.headerImageUrl}
+                  src={post.headerImageUrl.trim()}
                   alt={post.title || "Foto de perfil"}
                   className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                   loading="lazy"

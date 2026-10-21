@@ -1,23 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { ChevronLeft, Activity, Flame, Trophy, Zap, Loader2 } from "lucide-react";
+import { ChevronLeft, Activity, Trophy, Zap, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell, LabelList } from "recharts";
 import { api } from "@/lib/api";
-
-/**
- * Calcula las kilocalorías quemadas bailando.
- * Formula: kcal = MET × peso(kg) × tiempo(horas)
- * MET del baile electrónico/intenso ≈ 6.5
- * Pasos por minuto bailando ≈ 120
- */
-function calcKcal(steps: number, weightKg = 70): number {
-  const MET_DANCE = 6.5;
-  const STEPS_PER_MIN = 120;
-  const hours = steps / STEPS_PER_MIN / 60;
-  return MET_DANCE * weightKg * hours;
-}
 
 function stepsToKm(steps: number): number {
   return (steps * 0.75) / 1000;
@@ -139,7 +126,6 @@ export default function DanceRankerPage() {
   }
 
   const totalSteps = sessions.reduce((acc, s) => acc + s.stepsCount, 0);
-  const totalKcal = calcKcal(totalSteps);
   const totalKm = stepsToKm(totalSteps);
   const activeMins = Math.round(totalSteps / 120);
   const maxSteps = Math.max(...chartData.map(d => d.steps), 1);
@@ -154,7 +140,7 @@ export default function DanceRankerPage() {
           <ChevronLeft className="w-6 h-6" />
         </button>
         <h1 className="text-lg font-black uppercase tracking-widest flex items-center gap-2">
-          <Activity className="w-5 h-5 text-[#D4FF00]" /> Dance Stats
+          <Activity className="w-5 h-5 text-[#D4FF00]" /> Estadísticas de Baile
         </h1>
         <div className="w-10" />
       </header>
@@ -190,13 +176,7 @@ export default function DanceRankerPage() {
         </div>
 
         {/* Metrics grid */}
-        <div className="grid grid-cols-3 gap-3">
-          {/* Kcal */}
-          <div className="flex flex-col items-center justify-center bg-[#111114] border-0 rounded-2xl p-3 gap-1 shadow-sm">
-            <Flame className="w-5 h-5 text-[#D4FF00] stroke-[1.8] fill-none" />
-            <span className="num-display text-lg text-white">{totalKcal.toFixed(0)}</span>
-            <span className="tech-label text-[9px] text-neutral-400">kcal</span>
-          </div>
+        <div className="grid grid-cols-2 gap-3">
           {/* km */}
           <div className="flex flex-col items-center justify-center bg-[#111114] border-0 rounded-2xl p-3 gap-1 shadow-sm">
             <Activity className="w-5 h-5 text-neutral-400 stroke-[1.8]" />
@@ -210,11 +190,6 @@ export default function DanceRankerPage() {
             <span className="tech-label text-[9px] text-neutral-400">min activos</span>
           </div>
         </div>
-
-        {/* Formula note */}
-        <p className="text-center text-[10px] text-neutral-500 font-medium px-4">
-          kcal calculadas con MET 6.5 (baile electrónico intenso) × 70 kg estimados
-        </p>
 
         {/* Chart */}
         <div className="bg-[#D4FF00] border-0 rounded-3xl p-5 shadow-[0_12px_40px_rgba(212,255,0,0.16)]">

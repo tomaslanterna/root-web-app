@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { matchApi } from "@/services/match";
@@ -21,6 +20,7 @@ import {
   Loader2,
   Plus,
   Calendar,
+  X,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { cn } from "@/lib/utils";
@@ -46,11 +46,14 @@ interface CrewData {
   events?: any[];
 }
 
+const FALLBACK_EVENT_IMAGE =
+  "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=80&w=1200&auto=format&fit=crop";
+
 export default function CrewDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<"ranking" | "members">("ranking");
+  const [isMembersOpen, setIsMembersOpen] = useState(false);
   const [rankingType, setRankingType] = useState<"allTime" | "event">("allTime");
   const [selectedEventId, setSelectedEventId] = useState<string>("");
   const [copied, setCopied] = useState(false);
@@ -62,6 +65,27 @@ export default function CrewDetailPage() {
   const [isJoining, setIsJoining] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  const enrichCrewEventsImages = useCallback(async (eventsList: any[]) => {
+    return Promise.all(
+      eventsList.map(async (ev) => {
+        const rawUrl = typeof ev?.cinematicBannerUrl === "string" ? ev.cinematicBannerUrl.trim() : "";
+        if (rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) {
+          return ev;
+        }
+        if (!ev?.id) return ev;
+        try {
+          const { data: fullEvent } = await api.get(`/v1/events/${ev.id}`);
+          if (fullEvent?.cinematicBannerUrl) {
+            return { ...ev, cinematicBannerUrl: fullEvent.cinematicBannerUrl };
+          }
+        } catch {
+          // Fallback to default image if event fetch fails
+        }
+        return ev;
+      }),
+    );
+  }, []);
+
   const loadCrewData = useCallback(async () => {
     if (!id) return;
     try {
@@ -71,7 +95,8 @@ export default function CrewDetailPage() {
         api.get(`/v1/crews/${id}/events`),
       ]);
       const crewData: CrewData = crewRes.data;
-      const evList: any[] = eventsRes.data?.data || crewData.events || [];
+      const rawEvList: any[] = eventsRes.data?.data || crewData.events || [];
+      const evList = await enrichCrewEventsImages(rawEvList);
       setCrew(crewData);
       setCrewEvents(evList);
       setEventLeaderboard(
@@ -91,7 +116,7 @@ export default function CrewDetailPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [id]);
+  }, [id, enrichCrewEventsImages]);
 
   useEffect(() => {
     setIsLoading(true);
@@ -148,7 +173,8 @@ export default function CrewDetailPage() {
     if (!id) return;
     try {
       const updated = await matchApi.addCrewEvent(String(id), eventId);
-      setCrewEvents(updated);
+      const enriched = await enrichCrewEventsImages(updated);
+      setCrewEvents(enriched);
       setIsAddEventOpen(false);
       await handleSelectEventRanking(eventId);
     } catch (err) {
@@ -195,31 +221,28 @@ export default function CrewDetailPage() {
     <div className="min-h-[100dvh] bg-[#0B0D10] text-white flex flex-col pb-20">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-[#0B0D10]/95 backdrop-blur-md px-4 pb-3 pt-safe-header border-b border-white/5">
-        <div className="flex h-9 items-center">
-          <Link href="/events" className="flex items-center gap-2" aria-label="Ir a eventos de root">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#D4FF00] text-sm font-black italic tracking-tighter text-neutral-950 shadow-md shadow-[#D4FF00]/15">
-              r
-            </span>
-            <span className="text-xl font-black italic tracking-tighter text-white">root</span>
-          </Link>
-        </div>
-        <div className="mt-2 flex items-center justify-between gap-2">
+        <div className="flex items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
             <button
               onClick={() => router.back()}
-              className="shrink-0 rounded-full p-2 text-neutral-400 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
+              className="shrink-0 -ml-2 rounded-full p-2 text-neutral-400 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
             >
               <ChevronLeft className="h-6 w-6" />
             </button>
-            <div className="min-w-0">
-              <h1 className="truncate text-base font-black uppercase tracking-widest flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsMembersOpen(true)}
+              className="min-w-0 text-left rounded-xl px-2 py-1 -mx-1 transition-colors hover:bg-white/5 active:bg-white/10 cursor-pointer"
+              aria-label="Ver miembros de la crew"
+            >
+              <h1 className="truncate text-base font-black uppercase tracking-widest flex items-center gap-2 text-white">
                 <Flame className="h-4 w-4 shrink-0 text-[#D4FF00]" /> {crew.name}
               </h1>
-              <p className="text-[10px] text-neutral-400 font-bold">
+              <p className="text-[10px] text-neutral-400 font-bold truncate">
                 {crew.memberCount || allTimeMembers.length} miembros •{" "}
                 <span className="text-[#D4FF00]">{totalCrewSteps.toLocaleString()} pasos totales</span>
               </p>
-            </div>
+            </button>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {user && !isMember && (
@@ -266,37 +289,15 @@ export default function CrewDetailPage() {
           </button>
         )}
 
-        {/* Tab switcher */}
-        <div className="flex gap-1.5 bg-black/50 border-0 p-1 rounded-2xl">
-          {(["ranking", "members"] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={cn(
-                "flex-1 py-2 text-[11px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer",
-                activeTab === tab
-                  ? "bg-[#D4FF00] text-neutral-950 shadow-[0_4px_16px_rgba(212,255,0,0.16)]"
-                  : "text-neutral-400 hover:text-white",
-              )}
-            >
-              {tab === "ranking" ? (
-                <>
-                  <Trophy className="w-3.5 h-3.5 stroke-[2]" />
-                  Ranking de Pasos
-                </>
-              ) : (
-                <>
-                  <Users className="w-3.5 h-3.5 stroke-[2]" />
-                  Miembros ({allTimeMembers.length})
-                </>
-              )}
-            </button>
-          ))}
+        {/* Title: Ranking de pasos */}
+        <div className="flex items-center gap-2 pt-1">
+          <Trophy className="w-4 h-4 text-[#D4FF00] stroke-[2]" />
+          <h2 className="text-sm font-black uppercase tracking-widest text-white">
+            Ranking de pasos
+          </h2>
         </div>
 
-        {activeTab === "ranking" && (
-          <>
-            {/* Ranking type toggle */}
+        {/* Ranking type toggle */}
             <div className="flex gap-2">
               {(["allTime", "event"] as const).map((type) => (
                 <button
@@ -506,21 +507,33 @@ export default function CrewDetailPage() {
                         }).format(d)
                       : "";
 
+                    const rawBanner =
+                      typeof ev.cinematicBannerUrl === "string"
+                        ? ev.cinematicBannerUrl.trim()
+                        : "";
+                    const bannerSrc =
+                      rawBanner.startsWith("http://") || rawBanner.startsWith("https://")
+                        ? rawBanner
+                        : FALLBACK_EVENT_IMAGE;
+
                     return (
                       <div
                         key={ev.id}
                         onClick={() => router.push(`/events/${ev.id}`)}
                         className="flex items-center gap-3 p-3 rounded-2xl bg-[#111114] hover:bg-[#16171D] border-0 transition-all cursor-pointer group shadow-sm"
                       >
-                        <div
-                          className="w-12 h-12 aspect-square rounded-xl bg-neutral-900 shrink-0 bg-cover bg-center overflow-hidden border-0 shadow-sm"
-                          style={{
-                            backgroundImage: `url(${
-                              ev.cinematicBannerUrl ||
-                              "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=80&w=1200&auto=format&fit=crop"
-                            })`,
-                          }}
-                        />
+                        <div className="w-12 h-12 aspect-square rounded-xl bg-neutral-900 shrink-0 overflow-hidden border-0 shadow-sm">
+                          <img
+                            src={bannerSrc}
+                            alt={ev.title || "Evento"}
+                            onError={(e) => {
+                              if (e.currentTarget.src !== FALLBACK_EVENT_IMAGE) {
+                                e.currentTarget.src = FALLBACK_EVENT_IMAGE;
+                              }
+                            }}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
                         <div className="flex-1 min-w-0">
                           <h4 className="text-xs font-black uppercase tracking-wider text-white truncate group-hover:text-[#D4FF00] transition-colors">
                             {ev.title}
@@ -544,15 +557,63 @@ export default function CrewDetailPage() {
                 </div>
               )}
             </div>
-          </>
-        )}
+      </div>
 
-        {activeTab === "members" && (
-          <div className="space-y-2 pt-2">
+      {/* BottomSheet / Modal de Miembros (al tapear el nombre de la crew estilo WhatsApp) */}
+      <div
+        aria-hidden={!isMembersOpen}
+        className={cn(
+          "fixed inset-0 z-[70] flex flex-col justify-end sm:items-center sm:justify-center transition-all duration-300",
+          isMembersOpen ? "pointer-events-auto visible" : "pointer-events-none invisible",
+        )}
+      >
+        <div
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsMembersOpen(false);
+          }}
+          className={cn(
+            "absolute inset-0 bg-black/75 backdrop-blur-xs transition-opacity duration-300 ease-out",
+            isMembersOpen ? "opacity-100" : "opacity-0",
+          )}
+        />
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className={cn(
+            "relative z-10 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl border-t sm:border border-white/10 bg-[#12151E] p-5 pb-[calc(1.5rem+var(--root-safe-bottom))] sm:pb-5 shadow-[0_-20px_50px_rgba(0,0,0,0.85)] transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] max-h-[80dvh] flex flex-col",
+            isMembersOpen ? "translate-y-0 opacity-100" : "translate-y-full sm:translate-y-4 opacity-0",
+          )}
+        >
+          <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/20 sm:hidden shrink-0" />
+          <div className="flex items-center justify-between pb-3 border-b border-white/10 shrink-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <Users className="w-4 h-4 text-[#D4FF00] shrink-0" />
+              <h3 className="text-sm font-black uppercase tracking-widest text-white truncate">
+                Miembros de {crew.name} ({allTimeMembers.length})
+              </h3>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsMembersOpen(false)}
+              className="p-1.5 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              aria-label="Cerrar lista de miembros"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="space-y-2 pt-3 overflow-y-auto">
             {allTimeMembers.map((member) => (
               <div
                 key={member.userId}
-                className="flex items-center gap-3 p-3 rounded-2xl bg-[#111114] border-0 shadow-sm"
+                onClick={() => {
+                  setIsMembersOpen(false);
+                  if (member.username) {
+                    router.push(`/profile/${member.username}`);
+                  }
+                }}
+                className="flex items-center gap-3 p-3 rounded-2xl bg-[#161922] hover:bg-white/[0.06] border-0 shadow-sm cursor-pointer transition-colors"
               >
                 <Avatar
                   src={member.avatarUrl}
@@ -580,7 +641,7 @@ export default function CrewDetailPage() {
               </div>
             ))}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

@@ -17,6 +17,7 @@ import {
   Search,
   MapPin,
 } from "lucide-react";
+import { DancerIcon } from "@/components/ui/DancerIcon";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
 import { cn } from "@/lib/utils";
@@ -78,19 +79,10 @@ export default function MatchPage() {
   return (
     <div className="flex flex-col min-h-[100dvh] bg-[#0B0D10] text-white pb-20">
       {/* Sticky Obsidian Header (sin filtros) */}
-      <header className="sticky top-0 z-40 glass-header-obsidian px-4 pb-3 pt-safe-header flex items-center justify-between transition-all duration-300">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-full bg-[#D4FF00] text-neutral-950 flex items-center justify-center font-black italic text-sm tracking-tighter shadow-md shadow-[#D4FF00]/15">
-            <Flame className="w-4 h-4 fill-neutral-950" />
-          </div>
-          <div>
-            <h1 className="text-base font-black uppercase tracking-tight text-white flex items-center gap-1.5">
-              <span>Crews</span>
-            </h1>
-            <p className="text-[10px] text-neutral-400 font-extrabold uppercase tracking-wider">
-              Comunidad & Equipos en el País
-            </p>
-          </div>
+      <header className="glass-header-obsidian sticky top-0 z-40 flex items-center justify-between px-4 pb-3 pt-safe-header transition-all duration-300">
+        <div className="flex items-center gap-2">
+          <DancerIcon className="h-5 w-5 text-[#D4FF00]" />
+          <h1 className="text-lg font-black uppercase tracking-wider text-white">Crews</h1>
         </div>
       </header>
 
