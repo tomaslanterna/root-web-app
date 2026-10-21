@@ -116,7 +116,11 @@ export default function EventsLayout({
             offset: interactive ? "0px" : `calc(100% - ${motion.distance}px)`,
             onProgress: move,
             onCancel: () => setMotion(CLOSED),
-            onClose: () => setMotion({ ...CLOSED, returning: true }),
+            onClose: () => {
+              clearTimer();
+              setMotion({ ...CLOSED, returning: true });
+              timer.current = setTimeout(() => setMotion(CLOSED), 220);
+            },
           }}
         />
       )}

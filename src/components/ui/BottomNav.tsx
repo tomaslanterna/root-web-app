@@ -153,7 +153,7 @@ export function BottomNav() {
       <header
         className={cn(
           "hidden md:flex fixed top-4 inset-x-0 z-50 justify-center pointer-events-none px-4 sm:px-6 transition-all duration-300 ease-out",
-          isVisible
+          isVisible || pathname === "/events"
             ? "translate-y-0 opacity-100"
             : "-translate-y-24 opacity-0 pointer-events-none",
         )}
@@ -281,7 +281,7 @@ export function BottomNav() {
         inert={hideOnMobile}
         aria-hidden={hideOnMobile || undefined}
         className={cn(
-          "fixed left-1/2 -translate-x-1/2 z-50 w-full px-4 flex justify-center transition-all duration-300 ease-out md:hidden",
+          "fixed left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-7 flex justify-center transition-all duration-300 ease-out md:hidden",
           isIOS
             ? "bottom-[max(0.75rem,var(--root-safe-bottom))]"
             : "bottom-[var(--root-mobile-nav-bottom)]",
