@@ -4,6 +4,7 @@ import React from "react";
 import { Event, UserVibeProfile } from "@/lib/mocks";
 import { Calendar, MapPin, Users, Sparkles, Flame, Disc3 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { parseEventRealDate } from "@/hooks/useDanceSync";
 
 interface SwipeCardProps {
   event: Event;
@@ -18,7 +19,7 @@ export function SwipeCard({
   dragOffset = { x: 0, y: 0 },
   vibeProfile,
 }: SwipeCardProps) {
-  const dateObj = new Date(event.date);
+  const dateObj = parseEventRealDate(event.date);
   const formattedDate = !isNaN(dateObj.getTime())
     ? dateObj.toLocaleDateString("es-AR", { weekday: "short", day: "numeric", month: "short" })
     : event.date;

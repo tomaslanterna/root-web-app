@@ -3,6 +3,7 @@
 import { use, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { parseEventRealDate } from "@/hooks/useDanceSync";
 import {
   ArrowLeft,
   ArrowRight,
@@ -133,8 +134,10 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
   const generateGoogleCalendarUrl = () => {
     if (!event) return "#";
-    const start = new Date(event.date);
-    const end = new Date(start.getTime() + 6 * 60 * 60 * 1000);
+    const start = parseEventRealDate(event.date);
+    const end = event.endDate
+      ? parseEventRealDate(event.endDate)
+      : new Date(start.getTime() + 6 * 60 * 60 * 1000);
     const format = (d: Date) => d.toISOString().replace(/-|:|\.\d\d\d/g, "");
     return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(
       event.title,
@@ -214,13 +217,20 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     );
   }
 
-  const eventDate = new Date(event.date);
+  const eventDate = parseEventRealDate(event.date);
   const formattedDate = Number.isNaN(eventDate.getTime())
     ? event.date
     : new Intl.DateTimeFormat("es-AR", {
         weekday: "long",
         day: "numeric",
         month: "long",
+      }).format(eventDate);
+  const formattedHour = Number.isNaN(eventDate.getTime())
+    ? "23:00"
+    : new Intl.DateTimeFormat("es-AR", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
       }).format(eventDate);
 
   const priceLabel =
@@ -368,7 +378,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm font-semibold tracking-wide text-[#D4FF00]">
             <span className="capitalize">{formattedDate}</span>
             <span className="text-neutral-600">•</span>
-            <span className="text-neutral-300 font-medium">Apertura 23:00 hs</span>
+            <span className="text-neutral-300 font-medium">Apertura {formattedHour} hs</span>
           </div>
 
           <h1 className="text-3xl sm:text-4xl md:text-6xl font-black tracking-tight text-white leading-[1.05]">

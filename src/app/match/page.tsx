@@ -17,7 +17,7 @@ import {
   Search,
   MapPin,
 } from "lucide-react";
-import { DancerIcon } from "@/components/ui/DancerIcon";
+import { DiscoBallIcon } from "@/components/ui/DancerIcon";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
 import { cn } from "@/lib/utils";
@@ -81,7 +81,7 @@ export default function MatchPage() {
       {/* Sticky Obsidian Header (sin filtros) */}
       <header className="glass-header-obsidian sticky top-0 z-40 flex items-center justify-between px-4 pb-3 pt-safe-header transition-all duration-300">
         <div className="flex items-center gap-2">
-          <DancerIcon className="h-5 w-5 text-[#D4FF00]" />
+          <DiscoBallIcon className="h-5 w-5 text-[#D4FF00]" />
           <h1 className="text-lg font-black uppercase tracking-wider text-white">Crews</h1>
         </div>
       </header>

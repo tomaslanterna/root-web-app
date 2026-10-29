@@ -32,6 +32,7 @@ import { PullToRefresh } from "@/components/ui/PullToRefresh";
 import { SurveyCard } from "@/components/ui/SurveyCard";
 import { QuickActionMenu } from "@/components/ui/QuickActionMenu";
 import { LiveEventBanner } from "@/components/LiveEventBanner";
+import { parseEventRealDate } from "@/hooks/useDanceSync";
 import { EventCalendarView } from "@/components/events/EventCalendarView";
 import { useMutation } from "@/hooks/useMutation";
 import { useAuth } from "@/context/AuthContext";
@@ -178,7 +179,7 @@ function groupEventsChronologically(eventsList: Event[]): ChronologicalGroup[] {
   const groupsMap = new Map<string, ChronologicalGroup>();
 
   for (const event of eventsList) {
-    const eventDate = new Date(event.date);
+    const eventDate = parseEventRealDate(event.date);
     if (Number.isNaN(eventDate.getTime())) {
       const key = "nodate";
       if (!groupsMap.has(key)) {
@@ -265,8 +266,8 @@ export default function EventsPage() {
   );
 
   const isEventFinished = (ev: Event) => {
-    const startDate = new Date(ev.date).getTime();
-    const endDate = ev.endDate ? new Date(ev.endDate).getTime() : 0;
+    const startDate = parseEventRealDate(ev.date).getTime();
+    const endDate = ev.endDate ? parseEventRealDate(ev.endDate).getTime() : 0;
     const finishTime = endDate > startDate ? endDate : startDate + 4 * 60 * 60 * 1000;
     return Date.now() >= finishTime;
   };
@@ -1252,7 +1253,7 @@ export default function EventsPage() {
                       weekday: "short",
                       day: "numeric",
                       month: "short",
-                    }).format(new Date(featuredEvent.date))}
+                    }).format(parseEventRealDate(featuredEvent.date))}
                   </span>
                 </div>
                 {featuredEvent.location && (

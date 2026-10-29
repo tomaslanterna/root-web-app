@@ -10,6 +10,7 @@ import { EventBadgeArtwork } from "./EventBadgeArtwork";
 import { EventReviewForm, type ReviewFormState } from "./EventReviewForm";
 import { badgeLocation } from "@/lib/badgeLocation";
 import { useEventCheckout } from "@/hooks/useReviewReminder";
+import { parseEventRealDate } from "@/hooks/useDanceSync";
 
 export function BadgeDetail({ badge, isOwner, heroRef, moving, closing, lineup, lineupLoading, lineupError, onRetry, onSaved, onFormState }: {
   badge: EventBadge; isOwner: boolean; heroRef: RefObject<HTMLDivElement | null>; moving: boolean; closing: boolean;
@@ -19,7 +20,7 @@ export function BadgeDetail({ badge, isOwner, heroRef, moving, closing, lineup, 
   const { user, isLoading: authLoading } = useAuth();
   const checkout = useEventCheckout(badge.eventId);
   const [eventStarted,setEventStarted]=useState(false);
-  useEffect(()=>{queueMicrotask(()=>setEventStarted(Date.parse(badge.eventDate)<=Date.now()));},[badge.eventDate]);
+  useEffect(()=>{queueMicrotask(()=>setEventStarted(parseEventRealDate(badge.eventDate).getTime()<=Date.now()));},[badge.eventDate]);
   const artists = lineup?.artists.filter(entry => entry.artist) || [];
   const names = artists.length ? [] : lineup?.names || [];
   const lineupCard: ReactNode = <section aria-label="Lineup" className="rounded-2xl bg-[#14171F] p-4">

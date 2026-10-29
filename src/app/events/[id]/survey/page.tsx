@@ -17,6 +17,7 @@ import { badgeLocation } from "@/lib/badgeLocation";
 import { ConfirmModal } from "@/components/ui/Modal";
 
 import { DetailHeader } from "@/components/ui/DetailHeader";
+import { parseEventRealDate } from "@/hooks/useDanceSync";
 
 export default function SurveyPage() {
   const { id } = useParams() as { id: string };
@@ -179,10 +180,9 @@ export default function SurveyPage() {
 
   const isPartyOngoing = () => {
     if (!event) return false;
-    const start = new Date(event.date).getTime();
-    const end = event.endDate && new Date(event.endDate).getTime() > start
-      ? new Date(event.endDate).getTime()
-      : start + 4 * 60 * 60 * 1000;
+    const start = parseEventRealDate(event.date).getTime();
+    const parsedEnd = event.endDate ? parseEventRealDate(event.endDate).getTime() : 0;
+    const end = parsedEnd > start ? parsedEnd : start + 4 * 60 * 60 * 1000;
     return mountedAt < end;
   };
 

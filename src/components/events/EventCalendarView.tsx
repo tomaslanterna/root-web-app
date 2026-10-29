@@ -19,6 +19,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { Event } from "@/types/events";
 import { EventCard } from "@/components/ui/EventCard";
+import { parseEventRealDate } from "@/hooks/useDanceSync";
 
 interface EventCalendarViewProps {
   events: Event[];
@@ -37,7 +38,7 @@ function formatDayKey(date: Date): string {
 }
 
 function parseEventDate(dateString: string): Date | null {
-  const d = new Date(dateString);
+  const d = parseEventRealDate(dateString);
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
@@ -256,7 +257,7 @@ export function EventCalendarView({ events }: EventCalendarViewProps) {
                     ? "Gratis"
                     : `$${ev.price.toLocaleString("es-AR")}`;
 
-              const evDate = new Date(ev.date);
+              const evDate = parseEventRealDate(ev.date);
               const timeString = !Number.isNaN(evDate.getTime())
                 ? new Intl.DateTimeFormat("es-AR", {
                     hour: "2-digit",
