@@ -90,10 +90,30 @@ export function DanceProvider({ children }: { children: React.ReactNode }) {
       console.log("DANCE_CONTEXT: Respuesta live-status:", res.data);
 
       if (res.data?.isLive && res.data?.event) {
+        const ev = res.data.event;
+        const startMs = parseEventRealDate(ev.date).getTime();
+        const endMs = ev.endDate
+          ? parseEventRealDate(ev.endDate).getTime()
+          : startMs + 12 * 60 * 60 * 1000;
+
+        if (!Number.isNaN(endMs) && Date.now() > endMs) {
+          console.log(
+            "DANCE_CONTEXT: El evento ya finalizó según su hora de cierre.",
+          );
+          setLiveEvent(null);
+          setIsAtVenue(false);
+          setAttendanceConfirmed(false);
+          stopDanceSession();
+          if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === "ios") {
+            void NativePedometer.stopLiveActivity().catch(() => {});
+          }
+          return;
+        }
+
         const atVenue = Boolean(
           res.data.isAtVenue ?? res.data.attendanceConfirmed,
         );
-        setLiveEvent(res.data.event);
+        setLiveEvent(ev);
         setIsAtVenue(atVenue);
         setAttendanceConfirmed(Boolean(res.data?.attendanceConfirmed));
 
@@ -102,7 +122,7 @@ export function DanceProvider({ children }: { children: React.ReactNode }) {
             "DANCE_CONTEXT: ¡Usuario en la ubicación del evento! Activando startDanceSession...",
           );
           const existingSteps = res.data.userSteps || 0;
-          startDanceSession(res.data.event, existingSteps, { lat, lng });
+          startDanceSession(ev, existingSteps, { lat, lng });
         } else {
           stopDanceSession();
         }

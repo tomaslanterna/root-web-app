@@ -63,6 +63,16 @@ const genreOptions = [
   { id: "Otros", label: "Otros" },
 ];
 
+const citySuggestions = [
+  "Montevideo",
+  "Punta del Este",
+  "Maldonado",
+  "Buenos Aires",
+  "Canelones",
+  "Colonia",
+  "Rocha",
+];
+
 interface LoadVariables {
   filters: EventFilters;
   offset: number;
@@ -251,7 +261,8 @@ export default function EventsPage() {
   const [sortBy, setSortBy] = useState<"date" | "popular">("date");
   const [isWhenOpen, setIsWhenOpen] = useState(false);
   const [isGenreOpen, setIsGenreOpen] = useState(false);
-  const [activeSheetType, setActiveSheetType] = useState<"when" | "genre">("when");
+  const [activeSheetType, setActiveSheetType] = useState<"when" | "location">("when");
+  const [cityQuery, setCityQuery] = useState("");
   const [isDatesOpen, setIsDatesOpen] = useState(false);
   const filtersContainerRef = useRef<HTMLDivElement>(null);
   const bottomSheetRef = useRef<HTMLDivElement>(null);
@@ -566,26 +577,43 @@ export default function EventsPage() {
     return "¿Cuándo?";
   };
 
-  const isGenreActive =
-    appliedFilters.genre !== "all" && Boolean(appliedFilters.genre);
+  const isLocationActive = Boolean(appliedFilters.location.trim());
 
-  const getGenreLabel = () => {
-    if (isGenreActive) {
-      const match = genreOptions.find((opt) => opt.id === appliedFilters.genre);
-      return match ? match.label : appliedFilters.genre;
+  const getLocationLabel = () => {
+    if (isLocationActive) {
+      return appliedFilters.location.trim();
     }
-    return "Categorías";
+    return "Ubicación";
   };
 
-  const handleSelectGenre = (genreId: string) => {
+  const applyLocationFilter = (cityValue: string) => {
+    const trimmed = cityValue.trim();
+    const next = { ...appliedFilters, location: trimmed };
+    setDraftFilters(next);
+    setAppliedFilters(next);
+    setCityQuery(trimmed);
     setIsGenreOpen(false);
-    selectGenre(genreId);
+    void fetchEvents({ filters: next, offset: 0, append: false, query: debouncedQuery }).catch(
+      () => undefined,
+    );
   };
 
-  const clearGenreFilter = () => {
+  const clearLocationFilter = () => {
+    setCityQuery("");
+    const next = { ...appliedFilters, location: "" };
+    setDraftFilters(next);
+    setAppliedFilters(next);
     setIsGenreOpen(false);
-    selectGenre("all");
+    void fetchEvents({ filters: next, offset: 0, append: false, query: debouncedQuery }).catch(
+      () => undefined,
+    );
   };
+
+  const filteredCitySuggestions = useMemo(() => {
+    const q = cityQuery.trim().toLowerCase();
+    if (!q) return citySuggestions;
+    return citySuggestions.filter((c) => c.toLowerCase().includes(q));
+  }, [cityQuery]);
 
   const activeFilters =
     (appliedFilters.genre !== "all" ? 1 : 0) +
@@ -596,7 +624,6 @@ export default function EventsPage() {
     (sortBy === "popular" ? 1 : 0);
 
   const hasActiveChips =
-    !!appliedFilters.location ||
     appliedFilters.priceType !== "all" ||
     !!appliedFilters.minPrice ||
     !!appliedFilters.maxPrice ||
@@ -606,7 +633,7 @@ export default function EventsPage() {
   return (
     <div
       ref={swipeRef}
-      className="feed-swipe events-swipe flex min-h-screen flex-col bg-[#0B0D10] text-white"
+      className="feed-swipe events-swipe hide-scrollbar flex min-h-screen flex-col bg-[#0B0D10] text-white"
     >
       {/* Fixed Header + Filtros (Móvil y Desktop) */}
       <header
@@ -648,9 +675,9 @@ export default function EventsPage() {
             onClick={() => router.push("/search")}
             className="w-full h-9 md:h-10 bg-[#161922] border-0 rounded-full px-3.5 md:px-4 flex items-center gap-2 md:gap-3 text-neutral-400 hover:bg-[#1C202B] transition-colors cursor-text"
           >
-            <Sparkles className="w-3.5 h-3.5 md:w-4 md:h-4 text-[#D4FF00] shrink-0" />
+            <Search className="w-3.5 h-3.5 md:w-4 md:h-4 text-[#D4FF00] shrink-0" />
             <span className="text-xs md:text-sm font-semibold tracking-wide truncate">
-              Buscar eventos, artistas o clubes...
+              Buscar eventos, usuarios o comunidades...
             </span>
           </div>
         </div>
@@ -682,15 +709,15 @@ export default function EventsPage() {
                   }}
                   className={cn(
                     "h-full flex items-center gap-1.5 text-xs font-bold tracking-wide cursor-pointer",
-                    isDateActive ? "pl-3.5 pr-1.5" : "px-3.5",
+                    isDateActive ? "pl-3 pr-1" : "px-3.5",
                   )}
                 >
-                  <Calendar className={cn("h-3.5 w-3.5", isDateActive ? "text-[#D4FF00]" : "text-neutral-400")} />
-                  <span>{getDateLabel()}</span>
+                  <Calendar className={cn("h-3.5 w-3.5 shrink-0", isDateActive ? "text-[#D4FF00]" : "text-neutral-400")} />
+                  <span className="max-w-[95px] sm:max-w-none truncate">{getDateLabel()}</span>
                   {!isDateActive && (
                     <ChevronDown
                       className={cn(
-                        "h-3.5 w-3.5 text-neutral-400 transition-transform duration-200",
+                        "h-3.5 w-3.5 text-neutral-400 transition-transform duration-200 shrink-0",
                         isWhenOpen && "rotate-180",
                       )}
                     />
@@ -700,24 +727,27 @@ export default function EventsPage() {
                 {isDateActive && (
                   <button
                     type="button"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onTouchStart={(e) => e.stopPropagation()}
                     onClick={(e) => {
+                      e.preventDefault();
                       e.stopPropagation();
                       clearDateFilter();
                     }}
-                    className="h-full pr-3 pl-1 flex items-center text-[#D4FF00]/80 hover:text-white transition-colors cursor-pointer"
+                    className="relative z-20 mr-1 h-6 w-6 rounded-full flex items-center justify-center text-[#D4FF00] hover:bg-white/10 active:scale-90 transition-all cursor-pointer touch-manipulation"
                     title="Quitar filtro de fecha"
                     aria-label="Quitar filtro de fecha"
                   >
-                    <X className="h-3.5 w-3.5" />
+                    <X className="h-3.5 w-3.5 pointer-events-none" />
                   </button>
                 )}
               </div>
 
-              {/* Filtro 2: Categorías */}
+              {/* Filtro 2: Ubicación */}
               <div
                 className={cn(
                   "shrink-0 h-8 flex items-center rounded-full border transition-all select-none",
-                  isGenreActive
+                  isLocationActive
                     ? "border-[#D4FF00]/40 bg-[#D4FF00]/15 text-[#D4FF00] shadow-sm shadow-[#D4FF00]/10"
                     : "border-white/10 bg-[#14171F] text-neutral-300 hover:border-white/20 hover:text-white",
                 )}
@@ -725,40 +755,44 @@ export default function EventsPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    setActiveSheetType("genre");
+                    setActiveSheetType("location");
+                    setCityQuery(appliedFilters.location);
                     setIsGenreOpen((prev) => !prev);
                     setIsWhenOpen(false);
                     setIsDatesOpen(false);
                   }}
                   className={cn(
                     "h-full flex items-center gap-1.5 text-xs font-bold tracking-wide cursor-pointer",
-                    isGenreActive ? "pl-3.5 pr-1.5" : "px-3.5",
+                    isLocationActive ? "pl-3 pr-1" : "px-3.5",
                   )}
                 >
-                  <Music className={cn("h-3.5 w-3.5", isGenreActive ? "text-[#D4FF00]" : "text-neutral-400")} />
-                  <span>{getGenreLabel()}</span>
-                  {!isGenreActive && (
+                  <MapPin className={cn("h-3.5 w-3.5 shrink-0", isLocationActive ? "text-[#D4FF00]" : "text-neutral-400")} />
+                  <span className="max-w-[100px] sm:max-w-none truncate">{getLocationLabel()}</span>
+                  {!isLocationActive && (
                     <ChevronDown
                       className={cn(
-                        "h-3.5 w-3.5 text-neutral-400 transition-transform duration-200",
+                        "h-3.5 w-3.5 text-neutral-400 transition-transform duration-200 shrink-0",
                         isGenreOpen && "rotate-180",
                       )}
                     />
                   )}
                 </button>
 
-                {isGenreActive && (
+                {isLocationActive && (
                   <button
                     type="button"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onTouchStart={(e) => e.stopPropagation()}
                     onClick={(e) => {
+                      e.preventDefault();
                       e.stopPropagation();
-                      clearGenreFilter();
+                      clearLocationFilter();
                     }}
-                    className="h-full pr-3 pl-1 flex items-center text-[#D4FF00]/80 hover:text-white transition-colors cursor-pointer"
-                    title="Quitar filtro de categoría"
-                    aria-label="Quitar filtro de categoría"
+                    className="relative z-20 mr-1 h-6 w-6 rounded-full flex items-center justify-center text-[#D4FF00] hover:bg-white/10 active:scale-90 transition-all cursor-pointer touch-manipulation"
+                    title="Quitar filtro de ubicación"
+                    aria-label="Quitar filtro de ubicación"
                   >
-                    <X className="h-3.5 w-3.5" />
+                    <X className="h-3.5 w-3.5 pointer-events-none" />
                   </button>
                 )}
               </div>
@@ -873,26 +907,26 @@ export default function EventsPage() {
               {isDatesOpen && (
                 <div className="mt-1.5 border-t border-white/10 px-2 pt-2.5 pb-1.5 space-y-2.5 animate-in fade-in duration-150">
                   <div className="grid grid-cols-2 gap-2">
-                    <label className="space-y-1 text-[10px] font-extrabold uppercase tracking-wider text-neutral-400">
-                      Desde
+                    <label className="min-w-0 flex flex-col gap-1 text-[10px] font-extrabold uppercase tracking-wider text-neutral-400">
+                      <span>Desde</span>
                       <input
                         type="date"
                         value={draftFilters.startDate}
                         onChange={(event) =>
                           setDraftFilters((current) => ({ ...current, startDate: event.target.value }))
                         }
-                        className="w-full rounded-xl border border-white/10 bg-[#0B0D10] px-2.5 py-1.5 text-xs text-white focus:border-[#D4FF00] focus:outline-none transition-colors"
+                        className="block w-full max-w-[122px] min-w-0 box-border appearance-none rounded-xl border border-white/10 bg-[#0B0D10] px-2 py-1.5 text-[11px] text-white focus:border-[#D4FF00] focus:outline-none transition-colors"
                       />
                     </label>
-                    <label className="space-y-1 text-[10px] font-extrabold uppercase tracking-wider text-neutral-400">
-                      Hasta
+                    <label className="min-w-0 flex flex-col gap-1 text-[10px] font-extrabold uppercase tracking-wider text-neutral-400">
+                      <span>Hasta</span>
                       <input
                         type="date"
                         value={draftFilters.endDate}
                         onChange={(event) =>
                           setDraftFilters((current) => ({ ...current, endDate: event.target.value }))
                         }
-                        className="w-full rounded-xl border border-white/10 bg-[#0B0D10] px-2.5 py-1.5 text-xs text-white focus:border-[#D4FF00] focus:outline-none transition-colors"
+                        className="block w-full max-w-[122px] min-w-0 box-border appearance-none rounded-xl border border-white/10 bg-[#0B0D10] px-2 py-1.5 text-[11px] text-white focus:border-[#D4FF00] focus:outline-none transition-colors"
                       />
                     </label>
                   </div>
@@ -922,44 +956,90 @@ export default function EventsPage() {
             </div>
           )}
 
-          {/* Menú Desplegable flotante de Categorías (Solo Desktop) */}
+          {/* Menú Desplegable flotante de Ubicación (Solo Desktop) */}
           {isGenreOpen && (
-            <div className="hidden md:block absolute left-6 top-full mt-1.5 w-56 rounded-2xl border border-white/[0.08] border-t-white/[0.16] bg-[#14171F]/95 p-1.5 shadow-2xl shadow-black/80 z-50 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-xl">
-              <div className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-neutral-400">
-                Categoría
+            <div className="hidden md:block absolute left-6 top-full mt-1.5 w-72 rounded-2xl border border-white/[0.08] border-t-white/[0.16] bg-[#14171F]/95 p-3 shadow-2xl shadow-black/80 z-50 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-xl space-y-2.5">
+              <div className="px-1 text-[10px] font-black uppercase tracking-wider text-neutral-400">
+                Ubicación
               </div>
-              {genreOptions.map((opt) => {
-                const isSelected =
-                  opt.id === "all"
-                    ? !isGenreActive
-                    : appliedFilters.genre.toLowerCase() === opt.id.toLowerCase();
-                return (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  applyLocationFilter(cityQuery);
+                }}
+                className="flex items-center gap-2 rounded-xl bg-[#0B0D10] px-3 py-2 border border-white/10 focus-within:border-[#D4FF00]"
+              >
+                <Search className="h-3.5 w-3.5 text-[#D4FF00] shrink-0" />
+                <input
+                  type="text"
+                  value={cityQuery}
+                  onChange={(e) => setCityQuery(e.target.value)}
+                  placeholder="Buscar ciudad..."
+                  className="w-full bg-transparent text-xs text-white placeholder-neutral-500 focus:outline-none"
+                />
+                {cityQuery && (
                   <button
-                    key={opt.id}
                     type="button"
-                    onClick={() => handleSelectGenre(opt.id)}
-                    className={cn(
-                      "flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-xs font-bold transition-all cursor-pointer",
-                      isSelected
-                        ? "bg-[#D4FF00]/15 text-[#D4FF00]"
-                        : "text-neutral-300 hover:bg-white/5 hover:text-white",
-                    )}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      clearLocationFilter();
+                    }}
+                    className="p-0.5 text-neutral-400 hover:text-white cursor-pointer"
+                    aria-label="Limpiar ubicación"
                   >
-                    <span>{opt.label}</span>
-                    {isSelected && <Check className="h-3.5 w-3.5 text-[#D4FF00]" />}
+                    <X className="h-3.5 w-3.5 pointer-events-none" />
                   </button>
-                );
-              })}
+                )}
+              </form>
+              <div className="max-h-48 overflow-y-auto space-y-1 hide-scrollbar">
+                {filteredCitySuggestions.map((city) => {
+                  const isSelected =
+                    appliedFilters.location.toLowerCase() === city.toLowerCase();
+                  return (
+                    <button
+                      key={city}
+                      type="button"
+                      onClick={() => applyLocationFilter(city)}
+                      className={cn(
+                        "flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-xs font-bold transition-all cursor-pointer",
+                        isSelected
+                          ? "bg-[#D4FF00]/15 text-[#D4FF00]"
+                          : "text-neutral-300 hover:bg-white/5 hover:text-white",
+                      )}
+                    >
+                      <span className="flex items-center gap-2">
+                        <MapPin className="h-3.5 w-3.5 text-neutral-400" />
+                        {city}
+                      </span>
+                      {isSelected && <Check className="h-3.5 w-3.5 text-[#D4FF00]" />}
+                    </button>
+                  );
+                })}
+                {cityQuery.trim() &&
+                  !filteredCitySuggestions.some(
+                    (c) => c.toLowerCase() === cityQuery.trim().toLowerCase(),
+                  ) && (
+                    <button
+                      type="button"
+                      onClick={() => applyLocationFilter(cityQuery)}
+                      className="flex w-full items-center justify-between rounded-xl bg-[#D4FF00]/15 px-2.5 py-2 text-xs font-bold text-[#D4FF00] cursor-pointer"
+                    >
+                      <span>Buscar "{cityQuery.trim()}"</span>
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+              </div>
 
-              {isGenreActive && (
+              {isLocationActive && (
                 <>
                   <div className="my-1 border-t border-white/[0.06]" />
                   <button
                     type="button"
-                    onClick={clearGenreFilter}
+                    onClick={clearLocationFilter}
                     className="flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-[11px] font-semibold text-neutral-400 hover:bg-white/5 hover:text-white transition-all cursor-pointer"
                   >
-                    <span>Todas las categorías</span>
+                    <span>Todas las ubicaciones</span>
                     <X className="h-3 w-3" />
                   </button>
                 </>
@@ -1122,27 +1202,27 @@ export default function EventsPage() {
                     </label>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <label className="space-y-1.5 text-[11px] font-extrabold uppercase tracking-wider text-neutral-400">
-                      Desde
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <label className="min-w-0 flex flex-col gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-neutral-400">
+                      <span>Desde</span>
                       <input
                         type="date"
                         value={draftFilters.startDate}
                         onChange={(event) =>
                           setDraftFilters((current) => ({ ...current, startDate: event.target.value }))
                         }
-                        className="w-full rounded-2xl border border-white/[0.08] border-t-white/[0.14] bg-[#14171F] px-3 py-2 text-xs text-white focus:border-[#D4FF00] focus:outline-none transition-colors"
+                        className="block w-full max-w-[136px] sm:max-w-full min-w-0 box-border appearance-none rounded-2xl border border-white/[0.08] border-t-white/[0.14] bg-[#14171F] px-2.5 py-2 text-[11px] text-white focus:border-[#D4FF00] focus:outline-none transition-colors"
                       />
                     </label>
-                    <label className="space-y-1.5 text-[11px] font-extrabold uppercase tracking-wider text-neutral-400">
-                      Hasta
+                    <label className="min-w-0 flex flex-col gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-neutral-400">
+                      <span>Hasta</span>
                       <input
                         type="date"
                         value={draftFilters.endDate}
                         onChange={(event) =>
                           setDraftFilters((current) => ({ ...current, endDate: event.target.value }))
                         }
-                        className="w-full rounded-2xl border border-white/[0.08] border-t-white/[0.14] bg-[#14171F] px-3 py-2 text-xs text-white focus:border-[#D4FF00] focus:outline-none transition-colors"
+                        className="block w-full max-w-[136px] sm:max-w-full min-w-0 box-border appearance-none rounded-2xl border border-white/[0.08] border-t-white/[0.14] bg-[#14171F] px-2.5 py-2 text-[11px] text-white focus:border-[#D4FF00] focus:outline-none transition-colors"
                       />
                     </label>
                   </div>
@@ -1193,7 +1273,7 @@ export default function EventsPage() {
         )}
 
         {/* Hero Banner: Evento Destacado con Enfoque en Artwork y Guía en la Lectura (Solo Desktop) */}
-        {!hasActiveChips && !debouncedQuery && !isDateActive && !isGenreActive && featuredEvent && (
+        {!hasActiveChips && !debouncedQuery && !isDateActive && !isLocationActive && featuredEvent && (
           <Link
             href={`/events/${featuredEvent.id}?origin=/events`}
             className="group relative hidden md:block w-full rounded-3xl overflow-hidden border border-white/[0.08] border-t-white/[0.2] shadow-[0_20px_50px_rgba(0,0,0,0.7)] bg-neutral-950 transition-all duration-300 hover:border-white/[0.16] hover:border-t-[#D4FF00]/60 cursor-pointer animate-in fade-in"
@@ -1545,7 +1625,7 @@ export default function EventsPage() {
         role="dialog"
         aria-modal={isWhenOpen || isGenreOpen}
         aria-hidden={!(isWhenOpen || isGenreOpen)}
-        aria-label={activeSheetType === "when" ? "Filtrar por fecha" : "Filtrar por categoría"}
+        aria-label={activeSheetType === "when" ? "Filtrar por fecha" : "Filtrar por ubicación"}
         className={cn(
           "md:hidden fixed inset-0 z-[70] flex flex-col justify-end transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
           isWhenOpen || isGenreOpen ? "pointer-events-auto" : "pointer-events-none",
@@ -1586,8 +1666,8 @@ export default function EventsPage() {
                 </>
               ) : (
                 <>
-                  <Music className="h-4 w-4" />
-                  Categorías
+                  <MapPin className="h-4 w-4" />
+                  Ubicación
                 </>
               )}
             </span>
@@ -1661,28 +1741,28 @@ export default function EventsPage() {
               </button>
 
               {isDatesOpen && (
-                <div className="mt-2 rounded-2xl border border-white/10 bg-[#0B0D10]/60 p-3.5 space-y-3 animate-fade-in">
-                  <div className="grid grid-cols-2 gap-2.5">
-                    <label className="space-y-1 text-[10px] font-extrabold uppercase tracking-wider text-neutral-400">
-                      Desde
+                <div className="mt-2 rounded-2xl border border-white/10 bg-[#0B0D10]/60 p-3 space-y-3 animate-fade-in">
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="min-w-0 flex flex-col gap-1 text-[10px] font-extrabold uppercase tracking-wider text-neutral-400">
+                      <span>Desde</span>
                       <input
                         type="date"
                         value={draftFilters.startDate}
                         onChange={(event) =>
                           setDraftFilters((current) => ({ ...current, startDate: event.target.value }))
                         }
-                        className="w-full rounded-xl border border-white/10 bg-[#14171F] px-3 py-2 text-xs text-white focus:border-[#D4FF00] focus:outline-none transition-colors"
+                        className="block w-full max-w-[136px] sm:max-w-full min-w-0 box-border appearance-none rounded-xl border border-white/10 bg-[#14171F] px-2.5 py-2 text-[11px] text-white focus:border-[#D4FF00] focus:outline-none transition-colors"
                       />
                     </label>
-                    <label className="space-y-1 text-[10px] font-extrabold uppercase tracking-wider text-neutral-400">
-                      Hasta
+                    <label className="min-w-0 flex flex-col gap-1 text-[10px] font-extrabold uppercase tracking-wider text-neutral-400">
+                      <span>Hasta</span>
                       <input
                         type="date"
                         value={draftFilters.endDate}
                         onChange={(event) =>
                           setDraftFilters((current) => ({ ...current, endDate: event.target.value }))
                         }
-                        className="w-full rounded-xl border border-white/10 bg-[#14171F] px-3 py-2 text-xs text-white focus:border-[#D4FF00] focus:outline-none transition-colors"
+                        className="block w-full max-w-[136px] sm:max-w-full min-w-0 box-border appearance-none rounded-xl border border-white/10 bg-[#14171F] px-2.5 py-2 text-[11px] text-white focus:border-[#D4FF00] focus:outline-none transition-colors"
                       />
                     </label>
                   </div>
@@ -1708,29 +1788,95 @@ export default function EventsPage() {
               )}
             </div>
           ) : (
-            <div className="space-y-1.5">
-              {genreOptions.map((opt) => {
-                const isSelected =
-                  opt.id === "all"
-                    ? !isGenreActive
-                    : appliedFilters.genre.toLowerCase() === opt.id.toLowerCase();
-                return (
+            <div className="space-y-3">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  applyLocationFilter(cityQuery);
+                }}
+                className="flex items-center gap-2.5 rounded-2xl bg-[#0B0D10] px-4 py-3 border border-white/10 focus-within:border-[#D4FF00] transition-colors"
+              >
+                <Search className="h-4 w-4 text-[#D4FF00] shrink-0" />
+                <input
+                  type="text"
+                  value={cityQuery}
+                  onChange={(e) => setCityQuery(e.target.value)}
+                  placeholder="Buscar ciudad (ej. Montevideo, Punta del Este)..."
+                  className="w-full bg-transparent text-sm font-medium text-white placeholder-neutral-500 focus:outline-none"
+                />
+                {cityQuery && (
                   <button
-                    key={opt.id}
                     type="button"
-                    onClick={() => handleSelectGenre(opt.id)}
-                    className={cn(
-                      "flex w-full items-center justify-between rounded-2xl px-3.5 py-3 text-sm font-bold transition-all cursor-pointer",
-                      isSelected
-                        ? "bg-[#D4FF00]/15 text-[#D4FF00]"
-                        : "bg-white/[0.03] text-neutral-200 hover:bg-white/5 hover:text-white",
-                    )}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setCityQuery("");
+                      if (isLocationActive) {
+                        const next = { ...appliedFilters, location: "" };
+                        setDraftFilters(next);
+                        setAppliedFilters(next);
+                        void fetchEvents({
+                          filters: next,
+                          offset: 0,
+                          append: false,
+                          query: debouncedQuery,
+                        }).catch(() => undefined);
+                      }
+                    }}
+                    className="p-1 text-neutral-400 hover:text-white cursor-pointer touch-manipulation"
+                    aria-label="Limpiar ubicación"
                   >
-                    <span>{opt.label}</span>
-                    {isSelected && <Check className="h-4 w-4 text-[#D4FF00]" />}
+                    <X className="h-4 w-4 pointer-events-none" />
                   </button>
-                );
-              })}
+                )}
+              </form>
+
+              <div className="max-h-56 overflow-y-auto space-y-1.5 hide-scrollbar">
+                {filteredCitySuggestions.map((city) => {
+                  const isSelected =
+                    appliedFilters.location.toLowerCase() === city.toLowerCase();
+                  return (
+                    <button
+                      key={city}
+                      type="button"
+                      onClick={() => applyLocationFilter(city)}
+                      className={cn(
+                        "flex w-full items-center justify-between rounded-2xl px-3.5 py-3 text-sm font-bold transition-all cursor-pointer",
+                        isSelected
+                          ? "bg-[#D4FF00]/15 text-[#D4FF00]"
+                          : "bg-white/[0.03] text-neutral-200 hover:bg-white/5 hover:text-white",
+                      )}
+                    >
+                      <span className="flex items-center gap-2.5">
+                        <MapPin className={cn("h-4 w-4", isSelected ? "text-[#D4FF00]" : "text-neutral-400")} />
+                        {city}
+                      </span>
+                      {isSelected && <Check className="h-4 w-4 text-[#D4FF00]" />}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {cityQuery.trim() && (
+                <button
+                  type="button"
+                  onClick={() => applyLocationFilter(cityQuery)}
+                  className="w-full rounded-2xl bg-[#D4FF00] py-3 text-xs font-black uppercase tracking-wider text-neutral-950 hover:bg-[#bce400] transition-colors cursor-pointer"
+                >
+                  Buscar en "{cityQuery.trim()}"
+                </button>
+              )}
+
+              {isLocationActive && (
+                <button
+                  type="button"
+                  onClick={clearLocationFilter}
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 py-2.5 text-xs font-bold text-neutral-300 hover:bg-white/10 hover:text-white transition-all cursor-pointer"
+                >
+                  <span>Limpiar filtro de ubicación</span>
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
             </div>
           )}
         </div>

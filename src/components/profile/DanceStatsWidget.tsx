@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Flame, Loader2, Activity } from "lucide-react";
 import { BarChart, Bar, ResponsiveContainer, Cell, XAxis, LabelList } from "recharts";
@@ -18,33 +18,52 @@ export function DanceStatsWidget() {
   const router = useRouter();
   const [sessions, setSessions] = useState<DanceSession[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const pointerStartXRef = useRef<number | null>(null);
+  const didDragRef = useRef(false);
 
   useEffect(() => {
     api.get("/v1/dance/sessions")
-      
       .then((res) => {
         const rawSessions = res.data?.data || [];
         // Agrupar los pasos por eventId
         const aggregatedMap = new Map<string, DanceSession>();
-        
+
         rawSessions.forEach((session: DanceSession) => {
           if (aggregatedMap.has(session.eventId)) {
             const existing = aggregatedMap.get(session.eventId)!;
             existing.stepsCount += session.stepsCount;
-            // Opcional: mantener el StartTime más antiguo
           } else {
             aggregatedMap.set(session.eventId, { ...session });
           }
         });
-        
+
         const aggregatedSessions = Array.from(aggregatedMap.values());
-        
-        // Tomar los últimos 4 eventos únicos para el widget
-        setSessions(aggregatedSessions.slice(0, 4).reverse());
+
+        // Mostrar todas las fiestas en orden cronológico (las últimas 4 quedan a la derecha)
+        setSessions(aggregatedSessions.reverse());
       })
       .catch((err) => console.error("Error fetching sessions for widget:", err))
       .finally(() => setIsLoading(false));
   }, []);
+
+  // Posicionar el scroll horizontal al final (derecha) para que se vean las últimas 4 fiestas inicialmente
+  useEffect(() => {
+    if (isLoading || sessions.length <= 4) return;
+    const scrollToEnd = () => {
+      const container = scrollContainerRef.current;
+      if (container) {
+        container.scrollLeft = container.scrollWidth;
+      }
+    };
+    scrollToEnd();
+    const rafId = requestAnimationFrame(scrollToEnd);
+    const timerId = window.setTimeout(scrollToEnd, 60);
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.clearTimeout(timerId);
+    };
+  }, [isLoading, sessions.length]);
 
   if (isLoading) {
     return (
@@ -85,7 +104,22 @@ export function DanceStatsWidget() {
 
   return (
     <div 
-      onClick={() => router.push("/dance-ranker")}
+      onPointerDown={(e) => {
+        pointerStartXRef.current = e.clientX;
+        didDragRef.current = false;
+      }}
+      onPointerMove={(e) => {
+        if (pointerStartXRef.current !== null && Math.abs(e.clientX - pointerStartXRef.current) > 8) {
+          didDragRef.current = true;
+        }
+      }}
+      onClick={() => {
+        if (didDragRef.current) {
+          didDragRef.current = false;
+          return;
+        }
+        router.push("/dance-ranker");
+      }}
       className="relative w-full overflow-hidden bg-[#D4FF00] hover:brightness-105 border-0 transition-all rounded-3xl p-4 sm:p-5 cursor-pointer group shadow-[0_12px_40px_rgba(212,255,0,0.16)]"
     >
       <div className="flex justify-between items-start mb-4">
@@ -103,34 +137,52 @@ export function DanceStatsWidget() {
         </div>
       </div>
 
-      <div className="h-24 w-full mt-2">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "#000000", fontSize: 10, fontWeight: 900 }} dy={8} />
-            <Bar dataKey="steps" radius={[8, 8, 8, 8]} maxBarSize={64}>
-              <LabelList 
-                dataKey="steps" 
-                position="insideTop" 
-                fill="#D4FF00" 
-                fontSize={9} 
-                offset={6}
-                style={{ fontWeight: 900, fontStyle: 'italic', letterSpacing: '-0.05em' }}
-                formatter={(val: unknown): string => {
-                  if (typeof val === "number") {
-                    return val >= 1000 ? (val / 1000).toFixed(1) + 'k' : val.toString();
-                  }
-                  return typeof val === "string" ? val : "";
-                }}
+      <div
+        ref={scrollContainerRef}
+        className="h-24 w-full mt-2 overflow-x-auto hide-scrollbar touch-pan-x overscroll-x-contain"
+      >
+        <div
+          style={{
+            width: chartData.length > 4 ? `${(chartData.length / 4) * 100}%` : "100%",
+            minWidth: "100%",
+            height: "100%",
+          }}
+        >
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+              <XAxis
+                dataKey="name"
+                interval={0}
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: "#000000", fontSize: 10, fontWeight: 900 }}
+                dy={8}
               />
-              {chartData.map((entry, index) => (
-                <Cell 
-                  key={`cell-${index}`} 
-                  fill={entry.steps > maxSteps * 0.7 ? "#000000" : "rgba(0,0,0,0.15)"} 
+              <Bar dataKey="steps" radius={[8, 8, 8, 8]} maxBarSize={64}>
+                <LabelList 
+                  dataKey="steps" 
+                  position="insideTop" 
+                  fill="#D4FF00" 
+                  fontSize={9} 
+                  offset={6}
+                  style={{ fontWeight: 900, fontStyle: 'italic', letterSpacing: '-0.05em' }}
+                  formatter={(val: unknown): string => {
+                    if (typeof val === "number") {
+                      return val >= 1000 ? (val / 1000).toFixed(1) + 'k' : val.toString();
+                    }
+                    return typeof val === "string" ? val : "";
+                  }}
                 />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+                {chartData.map((entry, index) => (
+                  <Cell 
+                    key={`cell-${index}`} 
+                    fill={entry.steps > maxSteps * 0.7 ? "#000000" : "rgba(0,0,0,0.15)"} 
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </div>
     </div>
   );

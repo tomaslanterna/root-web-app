@@ -30,6 +30,16 @@
 				<string>com.googleusercontent.apps.964994558509-uve6a7u3l3cbon7s5inio497ajdm06j8</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.emnetwork.root</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>root</string>
+			</array>
+		</dict>
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>

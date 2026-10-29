@@ -91,7 +91,7 @@ export default function EventsLayout({
   return (
     <EventsInboxContext value={{ open, move, cancel }}>
       <div
-        className="feed-inbox-content events-inbox-content"
+        className="feed-inbox-content events-inbox-content hide-scrollbar"
         inert={interactive}
         aria-hidden={interactive || undefined}
         style={{

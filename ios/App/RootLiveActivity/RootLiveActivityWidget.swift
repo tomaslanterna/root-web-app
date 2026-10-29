@@ -45,24 +45,31 @@ struct RootLiveEventLockScreenView: View {
                     .font(.system(size: 12, weight: .black))
                     .foregroundColor(.white)
                     .lineLimit(1)
+                    .layoutPriority(1)
 
                 Spacer(minLength: 4)
 
                 // Badge amarillo ácido (#D4FF00)
                 Group {
                     if state.mode == "before_start" && startDate > Date() {
-                        HStack(spacing: 4) {
+                        HStack(spacing: 3) {
                             Text("ARRANCA EN")
                                 .font(.system(size: 10, weight: .black))
+                                .fixedSize()
                             Text(timerInterval: Date()...startDate, countsDown: true)
                                 .font(.system(size: 10, weight: .black).monospacedDigit())
+                                .multilineTextAlignment(.leading)
+                                .frame(width: 46, alignment: .leading)
                         }
+                        .fixedSize()
                     } else if state.mode == "dancing" {
                         Text("\(formattedSteps) PASOS")
                             .font(.system(size: 10, weight: .black))
+                            .fixedSize()
                     } else {
                         Text("¡NO TE OLVIDES DE IR!")
                             .font(.system(size: 10, weight: .black))
+                            .fixedSize()
                     }
                 }
                 .foregroundColor(Color(red: 0.04, green: 0.04, blue: 0.04))
@@ -71,12 +78,12 @@ struct RootLiveEventLockScreenView: View {
                 .background(limeAcid)
                 .clipShape(Capsule())
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 14)
             .padding(.top, 12)
             .padding(.bottom, 6)
 
             // 2. Cuerpo central con flyer cuadrado e info
-            HStack(alignment: .center, spacing: 14) {
+            HStack(alignment: .center, spacing: 12) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
                         .fill(obsidianBg)
@@ -131,7 +138,7 @@ struct RootLiveEventLockScreenView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 14)
             .padding(.vertical, 6)
 
             // 3. Barra inferior de acción
@@ -145,7 +152,7 @@ struct RootLiveEventLockScreenView: View {
                     .foregroundColor(.white)
                 Spacer()
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 14)
             .padding(.top, 4)
             .padding(.bottom, 12)
         }
@@ -173,6 +180,7 @@ struct RootLiveActivityWidget: Widget {
                 attributes: context.attributes,
                 state: context.state
             )
+            .widgetURL(URL(string: "root://events/\(context.attributes.eventId)"))
             .activityBackgroundTint(cardBg)
             .activitySystemActionForegroundColor(limeAcid)
         } dynamicIsland: { context in
@@ -195,8 +203,7 @@ struct RootLiveActivityWidget: Widget {
                         .font(.system(size: 10, weight: .black))
                         .foregroundColor(.white)
                         .lineLimit(1)
-                        .padding(.leading, 10)
-                        .padding(.top, 4)
+                        .padding(.leading, 4)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
                     Group {
@@ -204,15 +211,21 @@ struct RootLiveActivityWidget: Widget {
                             HStack(spacing: 3) {
                                 Text("ARRANCA EN")
                                     .font(.system(size: 9, weight: .black))
+                                    .fixedSize()
                                 Text(timerInterval: Date()...startDate, countsDown: true)
                                     .font(.system(size: 9, weight: .black).monospacedDigit())
+                                    .multilineTextAlignment(.leading)
+                                    .frame(width: 42, alignment: .leading)
                             }
+                            .fixedSize()
                         } else if context.state.mode == "dancing" {
                             Text("\(formattedSteps) PASOS")
                                 .font(.system(size: 9, weight: .black))
+                                .fixedSize()
                         } else {
                             Text("¡NO TE OLVIDES DE IR!")
                                 .font(.system(size: 9, weight: .black))
+                                .fixedSize()
                         }
                     }
                     .foregroundColor(Color(red: 0.04, green: 0.04, blue: 0.04))
@@ -220,8 +233,7 @@ struct RootLiveActivityWidget: Widget {
                     .padding(.vertical, 3.5)
                     .background(limeAcid)
                     .clipShape(Capsule())
-                    .padding(.trailing, 10)
-                    .padding(.top, 4)
+                    .padding(.trailing, 4)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
                     VStack(alignment: .leading, spacing: 6) {
@@ -290,9 +302,9 @@ struct RootLiveActivityWidget: Widget {
                             Spacer()
                         }
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.top, 4)
-                    .padding(.bottom, 8)
+                    .padding(.horizontal, 4)
+                    .padding(.top, 2)
+                    .padding(.bottom, 4)
                 }
             } compactLeading: {
                 if let uiImage = thumb {
@@ -331,6 +343,7 @@ struct RootLiveActivityWidget: Widget {
                         .foregroundColor(limeAcid)
                 }
             }
+            .widgetURL(URL(string: "root://events/\(context.attributes.eventId)"))
             .keylineTint(limeAcid)
         }
     }

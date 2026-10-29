@@ -1,13 +1,22 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Share2, Bookmark, Search, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface DetailHeaderProps {
   onBack?: () => void;
+  backAriaLabel?: string;
+  icon?: React.ReactNode;
+  title?: React.ReactNode;
+  subtitle?: React.ReactNode;
+  titleTrailing?: React.ReactNode;
+  onContentClick?: () => void;
+  contentAriaLabel?: string;
+  children?: React.ReactNode;
+  rightActions?: React.ReactNode;
+  position?: "fixed" | "sticky";
   onShare?: () => void;
   onSave?: () => void;
   isSaved?: boolean;
@@ -23,21 +32,30 @@ interface DetailHeaderProps {
   showBrand?: boolean;
 }
 
-export function DetailHeader({ 
-  onBack, 
-  onShare, 
-  onSave, 
+export function DetailHeader({
+  onBack,
+  backAriaLabel = "Volver",
+  icon,
+  title,
+  subtitle,
+  titleTrailing,
+  onContentClick,
+  contentAriaLabel,
+  children,
+  rightActions,
+  position = "fixed",
+  onShare,
+  onSave,
   isSaved = false,
   isCopied = false,
-  showSave = true, 
+  showSave = true,
   showShare = true,
   isSearch = false,
   searchValue = "",
   onSearchChange,
   onClearSearch,
   searchInputRef,
-  showBrand = false,
-  className 
+  className,
 }: DetailHeaderProps) {
   const router = useRouter();
 
@@ -51,9 +69,10 @@ export function DetailHeader({
 
   const backButton = (
     <button
+      type="button"
       onClick={handleBack}
       className="w-10 h-10 shrink-0 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors pointer-events-auto cursor-pointer"
-      aria-label="Volver"
+      aria-label={backAriaLabel}
     >
       <ArrowLeft className="w-5 h-5 text-white" />
     </button>
@@ -66,13 +85,17 @@ export function DetailHeader({
         <input
           ref={searchInputRef}
           type="text"
-          placeholder="Buscar..."
+          placeholder="Buscar eventos, usuarios o comunidades..."
           className="bg-transparent border-none outline-none w-full text-sm font-semibold text-white placeholder-neutral-500"
           value={searchValue}
           onChange={(e) => onSearchChange?.(e.target.value)}
         />
         {searchValue && (
-          <button onClick={onClearSearch} className="p-1 rounded-full hover:bg-white/10 ml-1 shrink-0">
+          <button
+            type="button"
+            onClick={onClearSearch}
+            className="p-1 rounded-full hover:bg-white/10 ml-1 shrink-0"
+          >
             <span className="text-[10px] text-neutral-400 font-bold uppercase">Limpiar</span>
           </button>
         )}
@@ -80,10 +103,50 @@ export function DetailHeader({
     </div>
   );
 
-  const actions = (
-    <div className="flex gap-2 pointer-events-auto ml-auto">
+  const titleInner = title ? (
+    <div className="min-w-0 flex flex-col justify-center text-left">
+      <div className="flex items-center gap-2 min-w-0">
+        {icon && <span className="shrink-0 flex items-center">{icon}</span>}
+        <h1 className="truncate text-sm sm:text-base font-black uppercase tracking-wider text-white">
+          {title}
+        </h1>
+        {titleTrailing && <span className="shrink-0 flex items-center">{titleTrailing}</span>}
+      </div>
+      {subtitle && (
+        <p className="text-[10px] text-neutral-400 font-bold truncate mt-0.5">
+          {subtitle}
+        </p>
+      )}
+    </div>
+  ) : null;
+
+  const centerContent = isSearch ? (
+    search
+  ) : children ? (
+    <div className="min-w-0 flex-1 pointer-events-auto">{children}</div>
+  ) : titleInner ? (
+    onContentClick ? (
+      <button
+        type="button"
+        onClick={onContentClick}
+        aria-label={contentAriaLabel}
+        className="pointer-events-auto min-w-0 flex-1 rounded-2xl px-2 py-1 -mx-1 text-left transition-colors hover:bg-white/5 active:bg-white/10 cursor-pointer"
+      >
+        {titleInner}
+      </button>
+    ) : (
+      <div className="min-w-0 flex-1 pointer-events-auto">{titleInner}</div>
+    )
+  ) : null;
+
+  const hasActions = Boolean(rightActions || showSave || showShare);
+
+  const actions = hasActions ? (
+    <div className="flex items-center gap-2 pointer-events-auto ml-auto shrink-0">
+      {rightActions}
       {showSave && (
         <button
+          type="button"
           onClick={onSave}
           className={cn(
             "w-10 h-10 rounded-full backdrop-blur-md border flex items-center justify-center transition-colors cursor-pointer",
@@ -99,6 +162,7 @@ export function DetailHeader({
 
       {showShare && (
         <button
+          type="button"
           onClick={onShare}
           className={cn(
             "w-10 h-10 rounded-full backdrop-blur-md border flex items-center justify-center transition-colors cursor-pointer",
@@ -116,31 +180,20 @@ export function DetailHeader({
         </button>
       )}
     </div>
-  );
-
-  if (showBrand) {
-    return (
-      <header className={cn("fixed top-0 inset-x-0 z-50 mx-auto w-full max-w-md bg-gradient-to-b from-black/90 via-black/60 to-transparent px-4 pb-4 pt-safe-header pointer-events-none md:max-w-[1360px]", className)}>
-        <div className="flex h-9 items-center">
-          <Link href="/events" className="pointer-events-auto flex items-center gap-2" aria-label="Ir a eventos de root">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#D4FF00] text-sm font-black italic tracking-tighter text-neutral-950 shadow-md shadow-[#D4FF00]/15">
-              r
-            </span>
-            <span className="text-xl font-black italic tracking-tighter text-white">root</span>
-          </Link>
-        </div>
-        <div className="mt-2 flex items-center gap-3">
-          {backButton}
-          {isSearch ? search : actions}
-        </div>
-      </header>
-    );
-  }
+  ) : null;
 
   return (
-    <header className={cn("fixed top-0 inset-x-0 z-50 mx-auto w-full max-w-md bg-gradient-to-b from-black/80 to-transparent pb-4 pt-safe-1 px-4 flex items-center gap-3 pointer-events-none md:max-w-[1360px]", className)}>
+    <header
+      className={cn(
+        position === "sticky"
+          ? "sticky top-0 inset-x-0 z-40 mx-auto w-full max-w-md bg-[#0B0D10]/95 backdrop-blur-xl px-4 pb-3 pt-safe-header flex items-center gap-3 pointer-events-none md:max-w-[1360px]"
+          : "fixed top-0 inset-x-0 z-50 mx-auto w-full max-w-md bg-gradient-to-b from-black/85 via-black/45 to-transparent px-4 pb-3 pt-safe-header flex items-center gap-3 pointer-events-none md:max-w-[1360px]",
+        className
+      )}
+    >
       {backButton}
-      {isSearch ? search : actions}
+      {centerContent}
+      {!isSearch && actions}
     </header>
   );
 }

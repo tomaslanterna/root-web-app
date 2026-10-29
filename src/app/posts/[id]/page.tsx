@@ -20,7 +20,7 @@ import { usePostDetail } from "@/hooks/usePostDetail";
 import { postsApi } from "@/services/posts";
 import { useAuth } from "@/context/AuthContext";
 import { ReportContentAction } from "@/components/communities/ReportContentAction";
-import { cn } from "@/lib/utils";
+import { cn, copyTextToClipboard } from "@/lib/utils";
 
 export default function PostDetailPage({
   params,
@@ -118,7 +118,7 @@ export default function PostDetailPage({
 
   const handleShare = () => {
     if (typeof window !== "undefined") {
-      navigator.clipboard.writeText(window.location.href);
+      void copyTextToClipboard(window.location.href);
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2000);
     }
