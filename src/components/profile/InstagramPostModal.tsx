@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { CommentSection } from "@/components/ui/CommentSection";
-import { cn } from "@/lib/utils";
+import { cn, copyTextToClipboard } from "@/lib/utils";
 import type { Post } from "@/types/posts";
 
 interface InstagramPostModalProps {
@@ -62,7 +62,7 @@ export function InstagramPostModal({
 
   const handleShare = () => {
     if (typeof window !== "undefined") {
-      navigator.clipboard.writeText(`${window.location.origin}/posts/${post.id}`);
+      void copyTextToClipboard(`${window.location.origin}/posts/${post.id}`);
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2000);
     }

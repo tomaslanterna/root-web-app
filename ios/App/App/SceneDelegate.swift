@@ -16,6 +16,13 @@ public class NativePedometerPlugin: CAPPlugin, CAPBridgedPlugin, CLLocationManag
         CAPPluginMethod(name: "stopLiveActivity", returnType: CAPPluginReturnPromise)
     ]
 
+    override public func load() {
+        DispatchQueue.main.async { [weak self] in
+            self?.bridge?.webView?.scrollView.showsVerticalScrollIndicator = false
+            self?.bridge?.webView?.scrollView.showsHorizontalScrollIndicator = false
+        }
+    }
+
     private let pedometer = CMPedometer()
     private var bgLocationManager: CLLocationManager?
     private var nativeWidgetStepTimer: Timer?
@@ -359,9 +366,44 @@ public class NativePedometerPlugin: CAPPlugin, CAPBridgedPlugin, CLLocationManag
 }
 
 class RootBridgeViewController: CAPBridgeViewController {
+    private var verticalIndicatorObservation: NSKeyValueObservation?
+    private var horizontalIndicatorObservation: NSKeyValueObservation?
+
+    private func hideNativeScrollIndicators() {
+        guard let scrollView = webView?.scrollView else { return }
+        scrollView.showsVerticalScrollIndicator = false
+        scrollView.showsHorizontalScrollIndicator = false
+
+        if verticalIndicatorObservation == nil {
+            verticalIndicatorObservation = scrollView.observe(\.showsVerticalScrollIndicator, options: [.new]) { sv, _ in
+                if sv.showsVerticalScrollIndicator {
+                    sv.showsVerticalScrollIndicator = false
+                }
+            }
+        }
+        if horizontalIndicatorObservation == nil {
+            horizontalIndicatorObservation = scrollView.observe(\.showsHorizontalScrollIndicator, options: [.new]) { sv, _ in
+                if sv.showsHorizontalScrollIndicator {
+                    sv.showsHorizontalScrollIndicator = false
+                }
+            }
+        }
+    }
+
     override open func capacitorDidLoad() {
         super.capacitorDidLoad()
         bridge?.registerPluginInstance(NativePedometerPlugin())
+        hideNativeScrollIndicators()
+    }
+
+    override open func viewDidLoad() {
+        super.viewDidLoad()
+        hideNativeScrollIndicators()
+    }
+
+    override open func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        hideNativeScrollIndicators()
     }
 }
 

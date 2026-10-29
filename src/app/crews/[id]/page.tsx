@@ -13,8 +13,6 @@ import {
   UserPlus,
   Activity,
   Users,
-  Copy,
-  Check,
   Flame,
   Crown,
   Loader2,
@@ -23,8 +21,10 @@ import {
   X,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
+import { DetailHeader } from "@/components/ui/DetailHeader";
 import { cn } from "@/lib/utils";
 import { parseEventRealDate } from "@/hooks/useDanceSync";
+import { AddCrewMembersModal, type FriendToInvite } from "@/components/match/AddCrewMembersModal";
 
 interface LeaderboardEntry {
   userId: string;
@@ -55,15 +55,14 @@ export default function CrewDetailPage() {
   const router = useRouter();
   const { user } = useAuth();
   const [isMembersOpen, setIsMembersOpen] = useState(false);
+  const [isAddMembersOpen, setIsAddMembersOpen] = useState(false);
   const [rankingType, setRankingType] = useState<"allTime" | "event">("allTime");
   const [selectedEventId, setSelectedEventId] = useState<string>("");
-  const [copied, setCopied] = useState(false);
   const [crew, setCrew] = useState<CrewData | null>(null);
   const [eventLeaderboard, setEventLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [crewEvents, setCrewEvents] = useState<any[]>([]);
   const [availableEvents, setAvailableEvents] = useState<any[]>([]);
   const [isAddEventOpen, setIsAddEventOpen] = useState(false);
-  const [isJoining, setIsJoining] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   const enrichCrewEventsImages = useCallback(async (eventsList: any[]) => {
@@ -138,23 +137,40 @@ export default function CrewDetailPage() {
     }
   };
 
-  const handleCopyInvite = async () => {
-    const code = crew?.inviteCode || "";
-    await navigator.clipboard.writeText(`Unite a mi Crew en root! Codigo: ${code}`);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+  const handleAddMembers = async (friends: FriendToInvite[]) => {
+    if (!id || friends.length === 0) return;
 
-  const handleJoinCrew = async () => {
-    if (!id || isJoining) return;
-    setIsJoining(true);
+    const newEntries: LeaderboardEntry[] = friends.map((f) => ({
+      userId: f.id,
+      name: f.name,
+      username: f.username,
+      avatarUrl: f.avatarUrl,
+      role: "member",
+      steps: 0,
+    }));
+
+    // Optimistic update so new members appear immediately
+    setCrew((prev) => {
+      if (!prev) return prev;
+      const existing = prev.leaderboardAllTime || prev.members || [];
+      const toAdd = newEntries.filter((ne) => !existing.some((m) => m.userId === ne.userId));
+      const updatedList = [...existing, ...toAdd];
+      return {
+        ...prev,
+        memberCount: updatedList.length,
+        members: updatedList,
+        leaderboardAllTime: updatedList,
+      };
+    });
+
     try {
-      await matchApi.joinPermanentCrew(crew?.inviteCode || String(id));
+      await matchApi.addCrewMembers(
+        String(id),
+        friends.map((f) => f.id),
+      );
       await loadCrewData();
     } catch (err) {
-      console.error("Error joining crew:", err);
-    } finally {
-      setIsJoining(false);
+      console.warn("Endpoint /members fallback local:", err);
     }
   };
 
@@ -221,72 +237,70 @@ export default function CrewDetailPage() {
   return (
     <div className="min-h-[100dvh] bg-[#0B0D10] text-white flex flex-col pb-20">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-[#0B0D10]/95 backdrop-blur-md px-4 pb-3 pt-safe-header border-b border-white/5">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex min-w-0 items-center gap-2">
-            <button
-              onClick={() => router.back()}
-              className="shrink-0 -ml-2 rounded-full p-2 text-neutral-400 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
-            >
-              <ChevronLeft className="h-6 w-6" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsMembersOpen(true)}
-              className="min-w-0 text-left rounded-xl px-2 py-1 -mx-1 transition-colors hover:bg-white/5 active:bg-white/10 cursor-pointer"
-              aria-label="Ver miembros de la crew"
-            >
-              <h1 className="truncate text-base font-black uppercase tracking-widest flex items-center gap-2 text-white">
-                <Flame className="h-4 w-4 shrink-0 text-[#D4FF00]" /> {crew.name}
-              </h1>
-              <p className="text-[10px] text-neutral-400 font-bold truncate">
-                {crew.memberCount || allTimeMembers.length} miembros •{" "}
-                <span className="text-[#D4FF00]">{totalCrewSteps.toLocaleString()} pasos totales</span>
-              </p>
-            </button>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {user && !isMember && (
+      <DetailHeader
+        position="sticky"
+        onBack={() => router.back()}
+        icon={<Flame className="h-4 w-4 text-[#D4FF00]" />}
+        title={crew.name}
+        subtitle={
+          <>
+            {crew.memberCount || allTimeMembers.length} miembros •{" "}
+            <span className="text-[#D4FF00]">{totalCrewSteps.toLocaleString()} pasos totales</span>
+          </>
+        }
+        onContentClick={() => setIsMembersOpen(true)}
+        contentAriaLabel="Ver miembros de la crew"
+        showSave={false}
+        showShare={false}
+        rightActions={
+          <>
+            {isMember && (
               <button
-                onClick={handleJoinCrew}
-                disabled={isJoining}
-                className="px-3 py-1.5 rounded-full bg-[#D4FF00] text-neutral-950 text-[10px] font-black uppercase tracking-wider cursor-pointer"
+                type="button"
+                onClick={() => setIsAddMembersOpen(true)}
+                className="w-10 h-10 shrink-0 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white transition-colors hover:bg-white/10 hover:text-[#D4FF00] cursor-pointer"
+                aria-label="Agregar amigo a la crew"
               >
-                {isJoining ? "Uniéndote..." : "Unirme"}
+                <UserPlus className="h-4 w-4" />
               </button>
             )}
             <button
+              type="button"
               onClick={() => router.push(`/chat/squad/${id}`)}
-              className="shrink-0 rounded-full p-2 text-neutral-400 transition-colors hover:bg-white/10 hover:text-[#D4FF00] cursor-pointer"
+              className="w-10 h-10 shrink-0 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white transition-colors hover:bg-white/10 hover:text-[#D4FF00] cursor-pointer"
               aria-label="Abrir chat de la crew"
             >
-              <MessageSquare className="h-5 w-5" />
+              <MessageSquare className="h-4 w-4" />
             </button>
-          </div>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <div className="p-4 space-y-4 animate-fade-in">
-        {/* Invite Banner */}
-        {crew.inviteCode && (
+        {/* Botón para agregar amigos a la Crew */}
+        {isMember && (
           <button
-            onClick={handleCopyInvite}
-            className="w-full flex items-center justify-between bg-[#111114] hover:bg-[#16171D] border-0 rounded-2xl p-4 transition-all group shadow-[0_4px_20px_rgba(0,0,0,0.5)] cursor-pointer"
+            type="button"
+            onClick={() => setIsAddMembersOpen(true)}
+            className="w-full flex items-center justify-between gap-2 bg-[#111114] hover:bg-[#16171D] border-0 rounded-2xl p-3.5 transition-all shadow-[0_4px_20px_rgba(0,0,0,0.5)] cursor-pointer group"
           >
-            <div className="flex items-center gap-3 text-left">
-              <div className="w-10 h-10 aspect-square rounded-xl bg-[#D4FF00]/10 flex items-center justify-center shrink-0">
+            <div className="flex items-center gap-3 text-left flex-1 min-w-0">
+              <div className="w-10 h-10 aspect-square rounded-xl bg-[#D4FF00]/10 flex items-center justify-center shrink-0 group-hover:bg-[#D4FF00]/20 transition-colors">
                 <UserPlus className="w-5 h-5 text-[#D4FF00] stroke-[1.8]" />
               </div>
-              <div>
-                <p className="text-xs font-black uppercase tracking-widest text-white">Invitar amigos</p>
-                <p className="text-[10px] font-mono text-[#D4FF00] tracking-widest">{crew.inviteCode}</p>
+              <div className="min-w-0">
+                <p className="text-xs font-black uppercase tracking-widest text-white group-hover:text-[#D4FF00] transition-colors">
+                  Agregar amigos a la Crew
+                </p>
+                <p className="text-[10px] font-bold text-neutral-400 truncate">
+                  Buscá amigos por nombre o @usuario para sumarlos
+                </p>
               </div>
             </div>
-            {copied ? (
-              <Check className="w-5 h-5 text-[#D4FF00]" />
-            ) : (
-              <Copy className="w-4 h-4 text-neutral-400 group-hover:text-[#D4FF00] transition-colors" />
-            )}
+
+            <span className="px-3.5 py-2 rounded-full bg-[#D4FF00] group-hover:bg-[#c2eb00] active:scale-95 text-neutral-950 text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-[0_4px_16px_rgba(212,255,0,0.16)] transition-all shrink-0">
+              <Plus className="w-3.5 h-3.5 stroke-[3]" /> Agregar
+            </span>
           </button>
         )}
 
@@ -582,26 +596,40 @@ export default function CrewDetailPage() {
         <div
           onClick={(e) => e.stopPropagation()}
           className={cn(
-            "relative z-10 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl border-t sm:border border-white/10 bg-[#12151E] p-5 pb-[calc(1.5rem+var(--root-safe-bottom))] sm:pb-5 shadow-[0_-20px_50px_rgba(0,0,0,0.85)] transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] max-h-[80dvh] flex flex-col",
+            "relative z-10 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl border-0 bg-[#12151E] p-5 pb-[calc(1.5rem+var(--root-safe-bottom))] sm:pb-5 shadow-[0_-20px_50px_rgba(0,0,0,0.85)] transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] max-h-[80dvh] flex flex-col",
             isMembersOpen ? "translate-y-0 opacity-100" : "translate-y-full sm:translate-y-4 opacity-0",
           )}
         >
           <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/20 sm:hidden shrink-0" />
-          <div className="flex items-center justify-between pb-3 border-b border-white/10 shrink-0">
+          <div className="flex items-center justify-between pb-2 border-0 shrink-0">
             <div className="flex items-center gap-2 min-w-0">
               <Users className="w-4 h-4 text-[#D4FF00] shrink-0" />
               <h3 className="text-sm font-black uppercase tracking-widest text-white truncate">
                 Miembros de {crew.name} ({allTimeMembers.length})
               </h3>
             </div>
-            <button
-              type="button"
-              onClick={() => setIsMembersOpen(false)}
-              className="p-1.5 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-              aria-label="Cerrar lista de miembros"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-1.5 shrink-0">
+              {isMember && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMembersOpen(false);
+                    setIsAddMembersOpen(true);
+                  }}
+                  className="px-2.5 py-1 rounded-full bg-[#D4FF00]/15 hover:bg-[#D4FF00]/25 text-[#D4FF00] text-[10px] font-black uppercase tracking-wider flex items-center gap-1 transition-colors cursor-pointer"
+                >
+                  <UserPlus className="w-3 h-3" /> Agregar
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setIsMembersOpen(false)}
+                className="p-1.5 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                aria-label="Cerrar lista de miembros"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
           <div className="space-y-2 pt-3 overflow-y-auto">
@@ -644,6 +672,15 @@ export default function CrewDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Modal para buscar y agregar amigos a la crew */}
+      <AddCrewMembersModal
+        isOpen={isAddMembersOpen}
+        onClose={() => setIsAddMembersOpen(false)}
+        crewName={crew.name}
+        existingMemberIds={allTimeMembers.map((m) => m.userId)}
+        onSubmit={handleAddMembers}
+      />
     </div>
   );
 }

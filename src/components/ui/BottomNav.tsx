@@ -110,6 +110,8 @@ export function BottomNav() {
     pathname.startsWith("/posts/") ||
     pathname.startsWith("/events/") ||
     pathname.startsWith("/communities/") ||
+    pathname.startsWith("/crews/") ||
+    pathname.startsWith("/dance-ranker") ||
     pathname.startsWith("/chat/") ||
     searchParams.get("from") === "search";
 

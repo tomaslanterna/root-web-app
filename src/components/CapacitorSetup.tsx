@@ -1,14 +1,29 @@
 "use client";
 
 import { useEffect } from "react";
-import { Capacitor } from "@capacitor/core";
+import { useRouter } from "next/navigation";
+import { Capacitor, type PluginListenerHandle } from "@capacitor/core";
+import { App } from "@capacitor/app";
 import { StatusBar, Style } from "@capacitor/status-bar";
 import { ConfirmModal } from "@/components/ui/Modal";
 import { useNativeBack } from "@/hooks/useNativeBack";
+import { resolveDeepLinkPath } from "@/lib/deepLinks";
 
 export function CapacitorSetup() {
+  const router = useRouter();
   const { confirmExit, cancelExit, exit } = useNativeBack();
   useEffect(() => {
+    let urlListener: PluginListenerHandle | undefined;
+    let disposed = false;
+
+    const handleIncomingUrl = (url?: string) => {
+      if (!url) return;
+      const targetPath = resolveDeepLinkPath(url);
+      if (targetPath) {
+        router.push(targetPath);
+      }
+    };
+
     const setupCapacitor = async () => {
       if (typeof window !== "undefined") {
         const platform = Capacitor.getPlatform();
@@ -35,11 +50,34 @@ export function CapacitorSetup() {
         } catch (e) {
           console.error("Error setting up StatusBar", e);
         }
+
+        try {
+          const handle = await App.addListener("appUrlOpen", (event) => {
+            handleIncomingUrl(event.url);
+          });
+          if (disposed) {
+            void handle.remove();
+          } else {
+            urlListener = handle;
+          }
+
+          const launchUrl = await App.getLaunchUrl();
+          if (launchUrl?.url) {
+            handleIncomingUrl(launchUrl.url);
+          }
+        } catch (e) {
+          console.error("Error setting up deep links", e);
+        }
       }
     };
 
-    setupCapacitor();
-  }, []);
+    void setupCapacitor();
+
+    return () => {
+      disposed = true;
+      void urlListener?.remove();
+    };
+  }, [router]);
 
   return <ConfirmModal isOpen={confirmExit} onClose={cancelExit} onConfirm={exit}
     title="¿Salir de Root?" message="¿Querés salir de la aplicación?"

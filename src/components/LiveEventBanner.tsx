@@ -118,6 +118,14 @@ export function LiveEventBanner() {
   if (!liveEvent) return null;
 
   const eventStart = parseEventRealDate(liveEvent.date);
+  const eventEnd = liveEvent.endDate
+    ? parseEventRealDate(liveEvent.endDate)
+    : new Date(eventStart.getTime() + 12 * 60 * 60 * 1000);
+
+  if (!Number.isNaN(eventEnd.getTime()) && nowMs > eventEnd.getTime()) {
+    return null;
+  }
+
   const msUntilStart = !Number.isNaN(eventStart.getTime())
     ? eventStart.getTime() - nowMs
     : 0;

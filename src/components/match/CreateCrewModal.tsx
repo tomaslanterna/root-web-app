@@ -136,11 +136,11 @@ export function CreateCrewModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
       <div
-        className="w-full max-w-lg bg-[#12151D] border border-white/[0.08] border-t-white/[0.18] rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+        className="w-full max-w-lg bg-[#12151D] border-0 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-white/[0.06]">
+        <div className="flex items-center justify-between p-5 pb-2 border-0">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-full bg-[#D4FF00] text-neutral-950 flex items-center justify-center font-black">
               <Flame className="w-4 h-4 fill-neutral-950" />
@@ -356,7 +356,7 @@ export function CreateCrewModal({
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-5 py-2.5 rounded-full border border-white/[0.08] border-t-white/[0.14] bg-white/[0.04] text-neutral-300 hover:bg-white/[0.08] hover:text-white text-xs font-black uppercase tracking-wider transition-colors cursor-pointer"
+              className="px-5 py-2.5 rounded-full border-0 bg-white/[0.06] text-neutral-300 hover:bg-white/[0.1] hover:text-white text-xs font-black uppercase tracking-wider transition-colors cursor-pointer"
             >
               Cancelar
             </button>

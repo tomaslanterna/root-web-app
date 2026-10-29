@@ -4,12 +4,15 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Check, CheckCheck, ChevronLeft, Send, Loader2, Clock3 } from "lucide-react";
 import Link from "next/link";
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useChat, useVisibleMessageReceipts, type ChatMessage } from "@/hooks/useChat";
 import { useChatInfo } from "@/hooks/useChatDirectory";
+import { resolveDeepLinkPath } from "@/lib/deepLinks";
 
 export function ChatConversation({ chatId }: { chatId: string }) {
+  const router = useRouter();
 
   const { user: currentUser } = useAuth();
   const { chatInfo, isLoadingInfo } = useChatInfo(chatId);
@@ -158,7 +161,31 @@ export function ChatConversation({ chatId }: { chatId: string }) {
                   {!isMe && chatInfo.type === "CREWS" && !hasPreviousFromSameSender && (
                     <p className="mb-1 text-[10px] font-bold text-[#D4FF00]">{chatInfo.participants?.find((p) => p.id === msg.sender_id)?.name || "Integrante"}</p>
                   )}
-                  <span className="whitespace-pre-wrap break-words">{msg.content}</span>
+                  <span className="whitespace-pre-wrap break-words">
+                    {msg.content.split(/((?:https?:\/\/|root:\/\/)[^\s]+)/gi).map((part, idx) => {
+                      if (/^(?:https?:\/\/|root:\/\/)/i.test(part)) {
+                        const internalRoute = resolveDeepLinkPath(part);
+                        return (
+                          <a
+                            key={idx}
+                            href={part}
+                            onClick={(e) => {
+                              if (internalRoute) {
+                                e.preventDefault();
+                                router.push(internalRoute);
+                              }
+                            }}
+                            className={`underline font-bold break-all ${
+                              isMe ? "text-black decoration-black/70" : "text-[#D4FF00] decoration-[#D4FF00]/70"
+                            }`}
+                          >
+                            {part}
+                          </a>
+                        );
+                      }
+                      return <React.Fragment key={idx}>{part}</React.Fragment>;
+                    })}
+                  </span>
                 </div>
                 {msg.status === "failed" && <button onClick={() => void retryMessage(msg.id).catch(() => undefined)} className="mt-1 text-[10px] text-red-300">No se envió. Reintentar</button>}
                 {!hasNextFromSameSender && (

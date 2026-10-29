@@ -31,13 +31,14 @@ import {
 } from "lucide-react";
 import { DetailHeader } from "@/components/ui/DetailHeader";
 import { FollowedAttendeesModal } from "@/components/events/FollowedAttendeesModal";
+import { EventLiveRankingCard } from "@/components/events/EventLiveRankingModal";
 import { CommentSection } from "@/components/ui/CommentSection";
 import { EventAttendanceVote } from "@/components/ui/EventAttendanceVote";
 import { Button } from "@/components/ui/Button";
 import { useMutation } from "@/hooks/useMutation";
 import { eventsApi } from "@/services/events";
 import type { Event, RSVPResponse } from "@/types/events";
-import { cn } from "@/lib/utils";
+import { cn, copyTextToClipboard } from "@/lib/utils";
 
 const fallbackBanner =
   "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=80&w=1200&auto=format&fit=crop";
@@ -123,12 +124,10 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         // Fallback to clipboard
       }
     }
-    try {
-      await navigator.clipboard.writeText(url);
+    const copied = await copyTextToClipboard(url);
+    if (copied) {
       setCopiedShare(true);
       setTimeout(() => setCopiedShare(false), 2500);
-    } catch {
-      // Ignored
     }
   };
 
@@ -268,7 +267,6 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       {/* Header Superior Móvil */}
       <DetailHeader
         className="md:hidden"
-        showBrand
         onBack={() => router.push(origin || "/events")}
         onShare={handleShare}
         onSave={() => setIsSaved(!isSaved)}
@@ -279,7 +277,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       />
 
       {/* Contenedor Principal: Columna Central Editorial (Estilo Resident Advisor / DICE / Boiler Room) */}
-      <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 md:px-8 pt-28 md:pt-6 space-y-8 sm:space-y-10">
+      <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 md:px-8 pt-20 md:pt-6 space-y-8 sm:space-y-10">
         {/* Barra Superior Desktop: Navegación Limpia y Botones Táctiles en Liquid Glass */}
         <div className="hidden md:flex items-center justify-between text-xs text-neutral-400 border-b border-white/5 pb-4">
           <Link
@@ -411,7 +409,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         </div>
 
         {/* 2. Radar de Asistencia en Pista (Liquid Glass Hub) */}
-        <div className="pt-2">
+        <div className="pt-2 space-y-4">
           {/* Tarjeta Radar de la Pista */}
           <div className="relative rounded-3xl border-0 bg-[#111114] p-6 sm:p-7 shadow-[0_16px_40px_rgba(0,0,0,0.6)] space-y-5 flex flex-col justify-between overflow-hidden">
             <div className="space-y-3.5 relative z-10">
@@ -457,6 +455,13 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
               </Link>
             </div>
           </div>
+
+          {/* Card Compacta de Ranking de Pasos en Vivo del Evento (solo visible si el usuario está en el evento) */}
+          <EventLiveRankingCard
+            eventId={event.id}
+            eventTitle={event.title}
+            eventLocation={event.location}
+          />
         </div>
 
         {/* 3. Pestañas de Contenido Progresivo en Liquid Glass */}
@@ -830,32 +835,22 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
               })
             )}
           </div>
+
+          <div className="pt-2 relative z-10">
+            <button
+              type="button"
+              onClick={() => handleBuyTicket()}
+              className="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-[#D4FF00] hover:brightness-105 text-neutral-950 font-black text-xs sm:text-sm uppercase tracking-wider shadow-[0_8px_30px_rgba(212,255,0,0.16)] active:scale-[0.99] transition-all cursor-pointer border-0"
+            >
+              <span>Conseguir Ticket ↗</span>
+            </button>
+          </div>
         </section>
 
         {/* 5. Muro & Comunidad */}
         <section className="pt-6 border-t border-white/10">
           <CommentSection targetId={event.id} title="Muro & Comunidad" />
         </section>
-      </div>
-
-      {/* Mobile Sticky Checkout Bar */}
-      <div className="md:hidden fixed bottom-0 inset-x-0 z-40 mx-auto w-full max-w-md liquid-glass-bar px-4 pt-3 pb-[calc(0.75rem+var(--root-safe-bottom,env(safe-area-inset-bottom,0px)))] shadow-[0_-15px_40px_rgba(0,0,0,0.8)] flex items-center justify-between gap-3 overflow-hidden">
-        <div className="liquid-glass-specular" />
-        <div className="min-w-0 relative z-10">
-          <span className="tech-label block text-neutral-300 truncate">
-            {currentTierObj?.name || "General Access"}
-          </span>
-          <span className="num-display text-xl text-[#D4FF00] tracking-tight">
-            {currentTierObj?.priceLabel || priceLabel}
-          </span>
-        </div>
-        <button
-          type="button"
-          onClick={() => handleBuyTicket()}
-          className="relative z-10 flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#D4FF00] hover:brightness-105 text-neutral-950 font-black text-xs uppercase tracking-wider shadow-[0_8px_30px_rgba(212,255,0,0.16)] active:scale-95 transition-all cursor-pointer shrink-0 border-0"
-        >
-          <span>Conseguir Ticket ↗</span>
-        </button>
       </div>
 
       <FollowedAttendeesModal

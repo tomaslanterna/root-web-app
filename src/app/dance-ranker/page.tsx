@@ -1,10 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { ChevronLeft, Activity, Trophy, Zap, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell, LabelList } from "recharts";
 import { api } from "@/lib/api";
+import { useDanceContext } from "@/context/DanceContext";
+import { EventLiveRankingCard } from "@/components/events/EventLiveRankingModal";
+import { DetailHeader } from "@/components/ui/DetailHeader";
 
 function stepsToKm(steps: number): number {
   return (steps * 0.75) / 1000;
@@ -35,10 +38,13 @@ interface CrewData {
 
 export default function DanceRankerPage() {
   const router = useRouter();
+  const { liveEvent, isAtVenue, attendanceConfirmed } = useDanceContext();
+  const isAtLiveEvent = Boolean(liveEvent && (isAtVenue || attendanceConfirmed));
   const [activeTab, setActiveTab] = useState<"fiestas" | "week" | "month">("fiestas");
   const [sessions, setSessions] = useState<DanceSession[]>([]);
   const [crews, setCrews] = useState<CrewData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const chartScrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -73,8 +79,7 @@ export default function DanceRankerPage() {
   let chartData: ChartPoint[] = [];
 
   if (activeTab === "fiestas") {
-    // Show last 4 sessions as they are
-    const filtered = sessions.slice(0, 4).reverse();
+    const filtered = [...sessions].reverse();
     chartData = filtered.map((s) => ({
       time: s.eventTitle.replace("Noche de ", "").replace(" en ", " ").substring(0, 12),
       steps: s.stepsCount,
@@ -132,18 +137,34 @@ export default function DanceRankerPage() {
 
   const lastPartySteps = sessions.length > 0 ? sessions[0].stepsCount : 0;
 
+  useEffect(() => {
+    if (isLoading || activeTab !== "fiestas" || chartData.length <= 4) return;
+    const scrollToEnd = () => {
+      const container = chartScrollRef.current;
+      if (container) {
+        container.scrollLeft = container.scrollWidth;
+      }
+    };
+    scrollToEnd();
+    const rafId = requestAnimationFrame(scrollToEnd);
+    const timerId = window.setTimeout(scrollToEnd, 60);
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.clearTimeout(timerId);
+    };
+  }, [isLoading, activeTab, chartData.length]);
+
   return (
     <div className="min-h-[100dvh] bg-[#0B0D10] text-white flex flex-col pb-20">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-[#0B0D10]/90 backdrop-blur-md px-4 pb-3 pt-safe-header flex items-center justify-between border-b border-white/5">
-        <button onClick={() => router.back()} className="p-2 -ml-2 text-neutral-400 hover:text-white transition-colors">
-          <ChevronLeft className="w-6 h-6" />
-        </button>
-        <h1 className="text-lg font-black uppercase tracking-widest flex items-center gap-2">
-          <Activity className="w-5 h-5 text-[#D4FF00]" /> Estadísticas de Baile
-        </h1>
-        <div className="w-10" />
-      </header>
+      <DetailHeader
+        position="sticky"
+        onBack={() => router.back()}
+        icon={<Activity className="w-4 h-4 text-[#D4FF00]" />}
+        title="Estadísticas de Baile"
+        showSave={false}
+        showShare={false}
+      />
 
       <div className="p-4 space-y-6 animate-fade-in">
         {isLoading ? (
@@ -153,6 +174,14 @@ export default function DanceRankerPage() {
           </div>
         ) : (
           <>
+        {/* Punto de acceso al Ranking en Vivo del Evento (solo visible si el usuario está en el evento) */}
+        {isAtLiveEvent && liveEvent && (
+          <EventLiveRankingCard
+            eventId={liveEvent.id}
+            eventTitle={liveEvent.title}
+            eventLocation={liveEvent.location}
+          />
+        )}
 
         {/* Hero: steps comparison */}
         <div className="grid grid-cols-2 gap-3 pt-2 pb-2">
@@ -208,7 +237,10 @@ export default function DanceRankerPage() {
             </div>
           </div>
           
-          <div className="h-48 w-full relative">
+          <div
+            ref={chartScrollRef}
+            className="h-48 w-full relative overflow-x-auto hide-scrollbar touch-pan-x overscroll-x-contain"
+          >
             {chartData.length === 0 ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
                 <Activity className="w-8 h-8 text-black/20 mb-2 stroke-[1.8]" />
@@ -216,38 +248,57 @@ export default function DanceRankerPage() {
                 <p className="text-[10px] text-black/50 font-medium max-w-[200px] mt-1">No hay fiestas registradas en este período de tiempo.</p>
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-                  <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fill: "#000", fontSize: 10, fontWeight: 700 }} dy={10} minTickGap={10} interval="preserveStartEnd" />
-                  <Tooltip 
-                    cursor={{ fill: "rgba(0,0,0,0.05)" }}
-                    contentStyle={{ backgroundColor: "#000", border: "none", borderRadius: "12px", boxShadow: "0 8px 30px rgba(0,0,0,0.5)" }}
-                    itemStyle={{ color: "#D4FF00", fontWeight: "bold" }}
-                    labelStyle={{ color: "#888", marginBottom: "4px" }}
-                  />
-                  <Bar dataKey="steps" radius={[8, 8, 8, 8]} maxBarSize={64}>
-                    {activeTab === "fiestas" && (
-                      <LabelList 
-                        dataKey="steps" 
-                        position="insideTop" 
-                        fill="#D4FF00" 
-                        fontSize={11} 
-                        offset={8}
-                        style={{ fontWeight: 900, fontStyle: 'italic', letterSpacing: '-0.05em' }}
-                        formatter={(val: any) => {
-                          if (typeof val === "number") {
-                            return val >= 1000 ? (val / 1000).toFixed(1) + 'k' : val.toString();
-                          }
-                          return val;
-                        }}
-                      />
-                    )}
-                    {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.steps > maxSteps * 0.7 ? "#000000" : "rgba(0,0,0,0.15)"} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+              <div
+                style={{
+                  width:
+                    activeTab === "fiestas" && chartData.length > 4
+                      ? `${(chartData.length / 4) * 100}%`
+                      : "100%",
+                  minWidth: "100%",
+                  height: "100%",
+                }}
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+                    <XAxis
+                      dataKey="time"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: "#000", fontSize: 10, fontWeight: 700 }}
+                      dy={10}
+                      minTickGap={10}
+                      interval={activeTab === "fiestas" ? 0 : "preserveStartEnd"}
+                    />
+                    <Tooltip 
+                      cursor={{ fill: "rgba(0,0,0,0.05)" }}
+                      contentStyle={{ backgroundColor: "#000", border: "none", borderRadius: "12px", boxShadow: "0 8px 30px rgba(0,0,0,0.5)" }}
+                      itemStyle={{ color: "#D4FF00", fontWeight: "bold" }}
+                      labelStyle={{ color: "#888", marginBottom: "4px" }}
+                    />
+                    <Bar dataKey="steps" radius={[8, 8, 8, 8]} maxBarSize={64}>
+                      {activeTab === "fiestas" && (
+                        <LabelList 
+                          dataKey="steps" 
+                          position="insideTop" 
+                          fill="#D4FF00" 
+                          fontSize={11} 
+                          offset={8}
+                          style={{ fontWeight: 900, fontStyle: 'italic', letterSpacing: '-0.05em' }}
+                          formatter={(val: any) => {
+                            if (typeof val === "number") {
+                              return val >= 1000 ? (val / 1000).toFixed(1) + 'k' : val.toString();
+                            }
+                            return val;
+                          }}
+                        />
+                      )}
+                      {chartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.steps > maxSteps * 0.7 ? "#000000" : "rgba(0,0,0,0.15)"} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             )}
           </div>
         </div>

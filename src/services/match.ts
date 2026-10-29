@@ -70,6 +70,13 @@ export const matchApi = {
     );
     return data.crew;
   },
+  addCrewMembers: async (crewId: string, memberIds: string[]): Promise<PermanentCrew> => {
+    const { data } = await api.post<{ crew: PermanentCrew }>(`/v1/crews/${crewId}/members`, {
+      member_ids: memberIds,
+      memberIds,
+    });
+    return data.crew;
+  },
   addCrewEvent: async (crewId: string, eventId: string): Promise<any[]> => {
     const { data } = await api.post<{ data: any[] }>(`/v1/crews/${crewId}/events`, {
       eventId,

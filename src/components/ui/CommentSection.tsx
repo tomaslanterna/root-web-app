@@ -23,6 +23,23 @@ interface CommentSectionProps {
 }
 
 
+const RIOPLATENSE_INSULT_REGEX =
+  /\b(mierda+s?|pelotud[oa]s?|pelotudeces|bolud[oa]s?|forr[oa]s?|orti[bv]as?|mogolic[oa]s?|garcas?|soretes?|hdp|hij[oa]s?\s+de\s+(mil\s+|re\s*mil\s+)?putas?|concha\s+de\s+(tu|su|la)\s+(madre|hermana|lora)|conchud[oa]s?|put[oa]s?|trol[oa]s?|chupapijas?|pijas?|porongas?|vergas?|chot[oa]s?|cagada|cagar(\s+a\s+(palos|trompadas|piñas|tiros))?|hacer\s+mierda|manga\s+de\s+(giles|ladrones|chorros|forros|garcas|pelotudos)|gil(es)?\s+de\s+mierda|una\s+bosta|estafadores?|chorr[oa]s?|cornud[oa]s?|tarad[oa]s?|imbecil(es)?|idiotas?|estupid[oa]s?|negr[oa]s?\s+de\s+mierda|ojala\s+se\s+mueran|matar(los|las|te)?)\b/i;
+
+function containsRioplatenseProfanity(input: string): boolean {
+  const normalized = input
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[0]/g, "o")
+    .replace(/[1]/g, "i")
+    .replace(/[3]/g, "e")
+    .replace(/[4@]/g, "a")
+    .replace(/[$]/g, "s")
+    .replace(/([a-bd-km-qtu-z])\1+/g, "$1");
+  return RIOPLATENSE_INSULT_REGEX.test(normalized);
+}
+
 export function CommentSection({
   targetId,
   title = "Comentarios",
@@ -59,6 +76,12 @@ export function CommentSection({
     if (trimmed && trimmed.length <= 1000 && !isPostingComment) {
       setPolicyError(null);
       setGeneralError(null);
+
+      if (containsRioplatenseProfanity(trimmed)) {
+        setPolicyError("Este comentario está fuera de lugar.");
+        return;
+      }
+
       void postComment(trimmed)
         .then(() => {
           setContent("");
@@ -67,18 +90,21 @@ export function CommentSection({
           commentsTopRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
         })
         .catch((err: any) => {
+          const status = err?.response?.status;
           const errMsg =
             err?.response?.data?.message ||
             err?.response?.data?.error ||
             err?.message ||
             "";
           if (
-            typeof errMsg === "string" &&
-            (errMsg.toLowerCase().includes("políticas de violencia") ||
-              errMsg.toLowerCase().includes("politicas de violencia") ||
-              errMsg.toLowerCase().includes("violencia"))
+            status === 422 ||
+            (typeof errMsg === "string" &&
+              (errMsg.toLowerCase().includes("políticas de violencia") ||
+                errMsg.toLowerCase().includes("politicas de violencia") ||
+                errMsg.toLowerCase().includes("fuera de lugar") ||
+                errMsg.toLowerCase().includes("violencia")))
           ) {
-            setPolicyError("este mensaje infringe nuestras politicas de violencia");
+            setPolicyError("Este comentario está fuera de lugar.");
           } else {
             setGeneralError("No pudimos publicar el comentario. Intentá nuevamente.");
           }
