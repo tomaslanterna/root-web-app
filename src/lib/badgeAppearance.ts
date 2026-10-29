@@ -42,7 +42,8 @@ export function badgeProducer(badge: Pick<EventBadge, "producerName" | "title">)
   return "ROOT";
 }
 export function badgeRingDate(value: string) {
-  const date = new Date(value);
+  const normalized = typeof value === "string" ? value.trim().replace(/(?:Z|[+-]00(?::?00)?)$/i, "-03:00") : value;
+  const date = new Date(normalized);
   if (!Number.isFinite(date.getTime())) return "FECHA PENDIENTE";
   return new Intl.DateTimeFormat("es-UY", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: badgeCalendarTimeZone }).format(date).replaceAll("/", ".");
 }

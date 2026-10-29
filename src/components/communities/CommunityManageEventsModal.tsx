@@ -16,6 +16,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import type { Event } from "@/types/events";
 import { cn } from "@/lib/utils";
+import { parseEventRealDate } from "@/hooks/useDanceSync";
 
 interface CommunityManageEventsModalProps {
   isOpen: boolean;
@@ -168,7 +169,7 @@ export function CommunityManageEventsModal({
                     <div className="flex flex-wrap items-center gap-2 mt-0.5 text-[10px] text-neutral-400">
                       <span className="flex items-center gap-1">
                         <CalendarDays className="h-3 w-3 text-neutral-500" />
-                        {new Date(evt.date).toLocaleDateString("es-AR", {
+                        {parseEventRealDate(evt.date).toLocaleDateString("es-AR", {
                           day: "numeric",
                           month: "short",
                         })}

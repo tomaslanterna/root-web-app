@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { CalendarIcon, CheckCircle2, MapPinIcon, Tag } from "lucide-react";
 import type { Event } from "@/types/events";
 import { cn, isValidImageUrl } from "@/lib/utils";
+import { parseEventRealDate } from "@/hooks/useDanceSync";
 import { Card } from "./Card";
 
 interface EventCardProps {
@@ -19,7 +20,7 @@ const fallbackBanner =
 
 export function EventCard({ event, variant = "swimlane", className }: EventCardProps) {
   const pathname = usePathname();
-  const date = new Date(event.date);
+  const date = parseEventRealDate(event.date);
   const isValidDate = !Number.isNaN(date.getTime());
   const formattedDate = isValidDate
     ? new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "short" }).format(date)

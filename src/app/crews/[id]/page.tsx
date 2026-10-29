@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { cn } from "@/lib/utils";
+import { parseEventRealDate } from "@/hooks/useDanceSync";
 
 interface LeaderboardEntry {
   userId: string;
@@ -498,7 +499,7 @@ export default function CrewDetailPage() {
               ) : (
                 <div className="space-y-2">
                   {crewEvents.map((ev) => {
-                    const d = new Date(ev.date);
+                    const d = parseEventRealDate(ev.date);
                     const isDateValid = !Number.isNaN(d.getTime());
                     const shortDate = isDateValid
                       ? new Intl.DateTimeFormat("es-AR", {

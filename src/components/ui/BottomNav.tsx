@@ -8,7 +8,7 @@ import {
   Users,
   User,
 } from "lucide-react";
-import { DancerIcon } from "@/components/ui/DancerIcon";
+import { DiscoBallIcon } from "@/components/ui/DancerIcon";
 import { cn, isValidImageUrl } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { QuickActionMenu } from "@/components/ui/QuickActionMenu";
@@ -19,7 +19,7 @@ const subscribeMounted = () => () => {};
 
 const NAV_ITEMS = [
   { label: "Eventos", href: "/events", icon: Calendar },
-  { label: "Crews", href: "/match", icon: DancerIcon },
+  { label: "Crews", href: "/match", icon: DiscoBallIcon },
   { label: "Comunidades", href: "/communities", icon: Users },
   { label: "Perfil", href: "/profile", icon: User },
 ];
@@ -130,7 +130,7 @@ export function BottomNav() {
     { label: "Eventos", href: "/events", icon: Calendar },
     ...(user
       ? [
-          { label: "Crews", href: "/match", icon: DancerIcon },
+          { label: "Crews", href: "/match", icon: DiscoBallIcon },
           { label: "Comunidades", href: "/communities", icon: Users },
         ]
       : []),

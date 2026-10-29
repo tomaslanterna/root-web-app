@@ -19,6 +19,7 @@ import {
 import { Button } from "@/components/ui/Button";
 import { CommunityManageEventsModal } from "./CommunityManageEventsModal";
 import { useCommunityPromotedEvents } from "@/hooks/useCommunities";
+import { parseEventRealDate } from "@/hooks/useDanceSync";
 import type { Event } from "@/types/events";
 
 interface PromotedEventsProps {
@@ -128,7 +129,7 @@ export function PromotedEvents({
       ) : (
         <div className="grid gap-3.5 sm:gap-4 md:grid-cols-2">
           {promotedEvents.map((event) => {
-            const eventDate = new Date(event.date);
+            const eventDate = parseEventRealDate(event.date);
             const isValidDate = !Number.isNaN(eventDate.getTime());
             const formattedDay = isValidDate ? eventDate.getDate() : "--";
             const formattedMonth = isValidDate
