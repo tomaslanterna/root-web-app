@@ -1,60 +1,58 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import { Star } from "lucide-react";
+import Link from "next/link";
 import type { Event } from "@/types/events";
-import { cn } from "@/lib/utils";
+import { cn, isValidImageUrl } from "@/lib/utils";
+import { parseEventRealDate } from "@/hooks/useDanceSync";
 
 interface SurveyCardProps {
   surveyEvent: Event;
+  className?: string;
 }
 
-export function SurveyCard({ surveyEvent }: SurveyCardProps) {
-  const router = useRouter();
-  const cardRef = useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = useState(true);
+const dateFormat = new Intl.DateTimeFormat("es-AR", {
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+  timeZone: "America/Montevideo",
+});
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsVisible(entry.isIntersecting);
-      },
-      { threshold: 0.15 }
-    );
-    if (cardRef.current) {
-      observer.observe(cardRef.current);
-    }
-    return () => observer.disconnect();
-  }, []);
+export function SurveyCard({ surveyEvent, className }: SurveyCardProps) {
+  const date = parseEventRealDate(surveyEvent.date);
+  const dateLabel = Number.isNaN(date.getTime())
+    ? ""
+    : dateFormat.format(date).replace(/\./g, "").replace(/^\w/, (c) => c.toUpperCase());
+  const initials = surveyEvent.title.replace(/[^\p{L}\p{N}]/gu, "").slice(0, 3);
+  const hasImage = isValidImageUrl(surveyEvent.cinematicBannerUrl);
 
   return (
-    <div 
-      ref={cardRef}
-      onClick={() => router.push(`/events/${surveyEvent.id}/survey`)}
+    <div
       className={cn(
-        "relative overflow-hidden w-full shrink-0 snap-center rounded-3xl bg-gradient-to-r from-indigo-900 via-purple-900 to-[#14171F] border border-purple-500/30 p-5 md:p-6 cursor-pointer hover:scale-[1.01] active:scale-[0.98] transition-all duration-[600ms] ease-[cubic-bezier(0.23,1,0.32,1)] group shadow-xl shadow-purple-900/20",
-        isVisible ? "opacity-100" : "opacity-0"
+        "w-[300px] shrink-0 snap-start p-3.5 rounded-card bg-surface border border-line flex flex-col gap-3",
+        className,
       )}
     >
-      <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-purple-500/30 transition-colors" />
-      <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="space-y-1.5 flex-1">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 mb-1 w-fit">
-            <Star className="w-3.5 h-3.5 text-[#D4FF00] fill-[#D4FF00]" />
-            <span className="tech-label text-[10px] text-[#D4FF00]">Feedback</span>
-          </div>
-          <h3 className="text-lg md:text-xl font-black italic tracking-tight text-white leading-tight">
-            Queremos saber tu opinión
-          </h3>
-          <p className="text-sm text-neutral-300 font-medium w-full">
-            ¿Cómo te fue en <span className="font-bold text-white">{surveyEvent.title}</span>? Tu reseña ayuda a la comunidad.
-          </p>
+      <div className="flex items-center gap-3">
+        <div
+          aria-hidden="true"
+          className="font-display size-12 shrink-0 rounded-thumb bg-[#2B2F36] bg-cover bg-center text-ink text-[11px] flex items-center justify-center"
+          style={hasImage ? { backgroundImage: `url(${surveyEvent.cinematicBannerUrl.trim()})` } : undefined}
+        >
+          {!hasImage && initials}
         </div>
-        <button className="whitespace-nowrap w-full md:w-auto px-6 py-2.5 rounded-full bg-white text-black tech-label text-xs shadow-lg hover:bg-neutral-200 transition-colors">
-          Evaluar
-        </button>
+        <div className="min-w-0 flex flex-col gap-[3px]">
+          <span className="text-[15px] font-semibold truncate">{surveyEvent.title}</span>
+          <span className="text-[13px] text-ink-2">
+            {dateLabel ? `${dateLabel} · ` : ""}Calificá sonido, lugar y lineup
+          </span>
+        </div>
       </div>
+      <Link
+        href={`/events/${surveyEvent.id}/survey`}
+        className="h-11 rounded-xl bg-surface-2 border border-white/10 text-ink text-sm font-semibold flex items-center justify-center transition-colors hover:bg-[#23272D] active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-accent"
+      >
+        Responder · 1 min
+      </Link>
     </div>
   );
 }

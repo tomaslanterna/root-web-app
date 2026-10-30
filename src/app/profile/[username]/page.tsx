@@ -6,18 +6,10 @@ import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button";
-import {
-  Settings,
-  ShieldAlert,
-  Loader2,
-  ChevronLeft,
-  BadgeCheck,
-  Grid3X3,
-  Award,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Settings, ShieldCheck } from "lucide-react";
 import { MOCK_POSTS } from "@/lib/mocks";
 import { DanceStatsWidget } from "@/components/profile/DanceStatsWidget";
-import { cn, isValidImageUrl } from "@/lib/utils";
+import { cn, copyTextToClipboard, isValidImageUrl } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { usersApi } from "@/services/users";
 import { useMutation } from "@/hooks/useMutation";
@@ -47,6 +39,7 @@ export default function UserProfilePage() {
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("Posts");
+  const [shareCopied, setShareCopied] = useState(false);
 
   const [userPosts, setUserPosts] = useState<Post[]>([]);
 
@@ -193,207 +186,206 @@ export default function UserProfilePage() {
 
   if (authLoading || isLoadingProfile) {
     return (
-      <div className="flex items-center justify-center min-h-[100dvh] bg-[#0B0D10]">
-        <Loader2 className="w-8 h-8 animate-spin text-[#D4FF00]" />
+      <div className="flex items-center justify-center min-h-[100dvh] bg-bg">
+        <Loader2 className="size-8 animate-spin text-accent" aria-label="Cargando perfil" />
       </div>
     );
   }
 
   if (error || !profileUser) {
     return (
-      <div className="flex items-center justify-center min-h-[100dvh] bg-[#0B0D10] text-white">
-        <h2>{error || "Perfil no encontrado"}</h2>
+      <div className="flex flex-col items-center justify-center gap-3 min-h-[100dvh] bg-bg text-ink p-6 text-center">
+        <h2 className="m-0 text-lg font-semibold">{error || "Perfil no encontrado"}</h2>
+        <Button variant="secondary" onClick={() => router.back()}>Volver</Button>
       </div>
     );
   }
 
   const tabs = [
-    { id: "Posts", icon: Grid3X3, label: "Publicaciones" },
-    { id: "Insignias", icon: Award, label: "Insignias" },
+    { id: "Posts", label: "Posts" },
+    { id: "Insignias", label: "Insignias" },
   ];
 
+  const roleLabel = profileUser.role === "USER" ? "Raver" : profileUser.role;
+  const squareButton =
+    "size-11 shrink-0 rounded-control bg-surface border border-line flex items-center justify-center hover:bg-surface-2 transition-colors focus-visible:outline-2 focus-visible:outline-accent";
+  const actionButton =
+    "h-11 rounded-xl bg-surface-2 border border-line-strong text-sm font-semibold flex items-center justify-center gap-1.5 hover:bg-[#23272D] transition-colors focus-visible:outline-2 focus-visible:outline-accent";
+
+  const shareProfile = async () => {
+    const url = window.location.href;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: `@${profileUser.username} en root`, url });
+        return;
+      } catch {
+        // Si se cancela, se copia el enlace.
+      }
+    }
+    if (await copyTextToClipboard(url)) {
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    }
+  };
+
   return (
-    <div className="profile-modern flex min-h-[100dvh] flex-col bg-[#0B0D10] pb-20 text-white">
-      {/* Fila superior para el botón de volver y el icono de ajustes (en flujo normal para no superponerse con la info) */}
-      <header className="w-full max-w-5xl mx-auto px-4 pt-safe-header pb-2 flex items-center justify-between">
-        <div className="flex items-center">
-          {(fromSearch || fromCommunities) && (
-            <button
-              type="button"
-              onClick={handleProfileBack}
-              aria-label={fromCommunities ? "Volver a la comunidad" : "Volver"}
-              className="p-2.5 rounded-full bg-black/40 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-colors active:scale-95"
-            >
-              <ChevronLeft className="w-5 h-5 text-white" />
-            </button>
-          )}
-        </div>
-        <div className="flex items-center">
-          {isMyProfile && (
-            <Link
-              href="/settings"
-              className="p-2.5 rounded-full bg-black/40 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-colors active:scale-95 block"
-            >
-              <Settings className="w-5 h-5 text-white" />
-            </Link>
-          )}
-        </div>
+    <div className="flex min-h-[100dvh] flex-col bg-bg pb-[calc(var(--root-mobile-nav-clearance)+1rem)] text-ink md:pb-16">
+      <header className="w-full max-w-3xl mx-auto px-4 pt-[calc(0.75rem+var(--root-safe-top))] md:pt-6 flex items-center gap-3">
+        {(fromSearch || fromCommunities) && (
+          <button
+            type="button"
+            onClick={handleProfileBack}
+            aria-label={fromCommunities ? "Volver a la comunidad" : "Volver"}
+            className={squareButton}
+          >
+            <ChevronLeft className="size-[22px]" aria-hidden="true" />
+          </button>
+        )}
+        <span className="flex-1 min-w-0 text-[17px] font-semibold truncate">@{profileUser.username}</span>
+        {isMyProfile && (
+          <Link href="/settings" aria-label="Configuración" className={squareButton}>
+            <Settings className="size-5" aria-hidden="true" />
+          </Link>
+        )}
       </header>
 
-      {/* Información de perfil en la fila de abajo (símil Instagram, sin cover ni recuadro) */}
-      <div className="px-4 pt-1 pb-2 relative z-10 w-full max-w-5xl mx-auto">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4 sm:gap-5 min-w-0">
-            {/* Avatar a la izquierda */}
-            <div className="relative shrink-0">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden ring-2 ring-white/10 relative bg-neutral-800">
-                {isValidImageUrl(profileUser.avatarUrl) ? (
-                  <Image
-                    src={profileUser.avatarUrl.trim()}
-                    alt={profileUser.name}
-                    fill
-                    unoptimized
-                    sizes="(min-width: 768px) 96px, 80px"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-neutral-700 flex items-center justify-center text-xl sm:text-2xl font-bold">
-                    {profileUser.name?.charAt(0)}
-                  </div>
-                )}
-              </div>
-              {profileUser.isKycVerified ? (
-                <div className="absolute -bottom-0.5 -right-0.5 bg-[#0B0D10] rounded-full p-0.5 shadow">
-                  <BadgeCheck className="w-4 h-4 sm:w-5 sm:h-5 text-[#0B0D10] fill-[#D4FF00]" />
-                </div>
-              ) : (
-                <div className="absolute -bottom-0.5 -right-0.5 p-1 bg-amber-500 rounded-full border-2 border-[#0B0D10] shadow">
-                  <ShieldAlert className="w-3 h-3 text-black" />
-                </div>
-              )}
-            </div>
-
-            {/* A la derecha: nombre, alias y rol debajo, y seguidores/seguidos debajo de eso */}
-            <div className="flex-1 min-w-0 space-y-1">
-              <h1 className="text-base sm:text-xl md:text-2xl font-semibold tracking-[-.03em] text-white truncate">
-                {profileUser.name}
-              </h1>
-              <p className="tech-label text-neutral-400 text-xs truncate">
-                @{profileUser.username}{" "}
-                <span className="text-neutral-600">•</span>{" "}
-                {profileUser.role === "USER" ? "RAVER" : profileUser.role}
-              </p>
-
-              {/* Seguidores y Seguidos debajo */}
-              <div className="flex items-center gap-5 pt-1">
-                <div className="flex items-baseline gap-1.5">
-                  <span className="num-display text-sm sm:text-base text-white">
-                    {profileUser.followers?.length || 0}
-                  </span>
-                  <span className="tech-label text-neutral-400 text-[11px] sm:text-xs">
-                    Seguidores
-                  </span>
-                </div>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="num-display text-sm sm:text-base text-white">
-                    {profileUser.following?.length || 0}
-                  </span>
-                  <span className="tech-label text-neutral-400 text-[11px] sm:text-xs">
-                    Seguidos
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Botones de acción si no es mi perfil */}
-          {!isMyProfile && (
-            <div className="flex sm:flex-col md:flex-row gap-2 shrink-0 w-full sm:w-auto pt-1 sm:pt-0">
-              <Button
-                onClick={toggleFollow}
-                disabled={isFollowingLoading || isUnfollowingLoading}
-                variant={isFollowing ? "outline" : "primary"}
-                className="flex-1 sm:flex-none rounded-full px-5 py-2 text-xs font-semibold tracking-wide"
-              >
-                {isFollowing ? "Siguiendo" : "Seguir"}
-              </Button>
-              <Button
-                onClick={async () => {
-                  try {
-                    const data = await usersApi.createDirectChat(
-                      profileUser.id,
-                    );
-                    router.push(`/chat/${data.id}`);
-                  } catch (err) {
-                    console.error("Error creating chat", err);
-                  }
-                }}
-                variant="outline"
-                className="flex-1 sm:flex-none rounded-full border-white/20 px-5 py-2 text-xs font-semibold tracking-wide"
-              >
-                Mensaje
-              </Button>
-            </div>
+      <div className="w-full max-w-3xl mx-auto px-4 pt-5 flex items-center gap-[18px]">
+        <div
+          className={cn(
+            "relative size-[88px] shrink-0 rounded-full overflow-hidden bg-surface-2",
+            isMyProfile && "ring-2 ring-accent ring-offset-[3px] ring-offset-bg",
           )}
+        >
+          {isValidImageUrl(profileUser.avatarUrl) ? (
+            <Image
+              src={profileUser.avatarUrl.trim()}
+              alt=""
+              fill
+              unoptimized
+              sizes="88px"
+              className="object-cover"
+            />
+          ) : (
+            <span className="size-full flex items-center justify-center text-2xl font-semibold">
+              {profileUser.name?.charAt(0)}
+            </span>
+          )}
+        </div>
+
+        <div className="min-w-0 flex flex-col gap-2">
+          <div className="flex flex-col gap-1">
+            <h1 className="m-0 text-[22px] font-bold truncate">{profileUser.name}</h1>
+            <span className="flex flex-wrap gap-1.5">
+              <span className="label-mono px-2 py-1 rounded-full bg-surface-2 text-ink-2">{roleLabel}</span>
+              {profileUser.isKycVerified ? (
+                <span className="label-mono px-2 py-1 rounded-full bg-info/12 text-info">Verificado</span>
+              ) : (
+                <span className="label-mono px-2 py-1 rounded-full bg-surface-2 text-ink-3">Sin verificar</span>
+              )}
+            </span>
+          </div>
+          <div className="flex gap-[18px] text-sm text-ink-2">
+            <span>
+              <span className="num-mono text-base font-semibold text-ink">{profileUser.followers?.length || 0}</span> seguidores
+            </span>
+            <span>
+              <span className="num-mono text-base font-semibold text-ink">{profileUser.following?.length || 0}</span> seguidos
+            </span>
+          </div>
         </div>
       </div>
 
+      <div className="w-full max-w-3xl mx-auto px-4 pt-4 grid grid-cols-2 gap-2">
+        {isMyProfile ? (
+          <>
+            <Link href="/settings" className={actionButton}>Configuración</Link>
+            <button type="button" onClick={() => void shareProfile()} className={actionButton}>
+              {shareCopied ? "Enlace copiado" : "Compartir perfil"}
+            </button>
+          </>
+        ) : (
+          <>
+            <Button
+              onClick={toggleFollow}
+              disabled={isFollowingLoading || isUnfollowingLoading}
+              variant={isFollowing ? "secondary" : "primary"}
+              aria-pressed={isFollowing}
+              className="h-11 rounded-xl text-sm"
+            >
+              {isFollowing ? "Siguiendo" : "Seguir"}
+            </Button>
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  const data = await usersApi.createDirectChat(profileUser.id);
+                  router.push(`/chat/${data.id}`);
+                } catch (err) {
+                  console.error("Error creating chat", err);
+                }
+              }}
+              className={actionButton}
+            >
+              Mensaje
+            </button>
+          </>
+        )}
+      </div>
+
       {isMyProfile && !profileUser.isKycVerified && (
-        <div className="px-4 pt-3 w-full max-w-5xl mx-auto">
-          <Button
-            onClick={() => router.push("/kyc")}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-amber-500/40 bg-amber-500/5 py-3 text-xs font-semibold tracking-wide text-amber-400 transition-colors hover:border-amber-500 hover:bg-amber-500/10"
+        <div className="w-full max-w-3xl mx-auto px-4 pt-3">
+          <Link
+            href="/kyc"
+            className="p-3.5 rounded-card bg-surface border border-dashed border-info/45 flex items-center gap-3 hover:bg-surface-2 transition-colors"
           >
-            <ShieldAlert className="w-4 h-4" />
-            Comenzar Validación de Identidad
-          </Button>
+            <span className="size-10 shrink-0 rounded-xl bg-info/12 text-info flex items-center justify-center">
+              <ShieldCheck className="size-5" aria-hidden="true" />
+            </span>
+            <span className="flex-1 min-w-0 flex flex-col gap-0.5">
+              <span className="text-[15px] font-semibold">Verificá tu identidad</span>
+              <span className="text-[13px] text-ink-2">Necesario para entrar a crews verificadas</span>
+            </span>
+            <ChevronRight className="size-5 text-ink-2 shrink-0" aria-hidden="true" />
+          </Link>
         </div>
       )}
 
-      {/* Dance Stats Widget */}
       {isMyProfile && (
-        <div className="px-4 pt-3 w-full max-w-5xl mx-auto">
+        <div className="w-full max-w-3xl mx-auto px-4 pt-5">
           <DanceStatsWidget />
         </div>
       )}
 
-      {/* Tab Navigation estilo Instagram: solo iconos, sin contenedor visible, con línea horizontal inferior */}
-      <div className="mt-4 w-full max-w-5xl mx-auto">
-        <div className="flex w-full items-center justify-around" role="tablist">
+      <div className="mt-6 w-full max-w-3xl mx-auto">
+        <div role="tablist" aria-label="Contenido del perfil" className="flex border-b border-line">
           {tabs.map((tab) => {
-            const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
+                type="button"
                 role="tab"
                 aria-selected={isActive}
                 aria-controls={`profile-tab-${tab.id}`}
-                aria-label={tab.label}
-                title={tab.label}
                 onClick={() => setActiveTab(tab.id)}
-                className="relative flex-1 flex flex-col items-center justify-center py-3.5 sm:py-4 transition-colors group select-none cursor-pointer"
-              >
-                <Icon
-                  className={cn(
-                    "w-6 h-6 sm:w-7 sm:h-7 transition-all duration-200",
-                    isActive
-                      ? "text-[#D4FF00] scale-105"
-                      : "text-neutral-500 group-hover:text-neutral-300",
-                  )}
-                  strokeWidth={isActive ? 2.25 : 1.75}
-                />
-                {isActive && (
-                  <span className="absolute bottom-0 inset-x-0 h-[2.5px] bg-[#D4FF00]" />
+                className={cn(
+                  "flex-1 h-[52px] text-[13px] font-semibold transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent",
+                  isActive ? "text-ink shadow-[inset_0_-2px_0_var(--color-accent)]" : "text-ink-3 hover:text-ink-2",
                 )}
+              >
+                {tab.label}
               </button>
             );
           })}
         </div>
       </div>
 
-      <div id={`profile-tab-${activeTab}`} role="tabpanel" aria-label={activeTab} className="p-4 md:py-8 space-y-4 w-full max-w-5xl mx-auto">
-        {activeTab === "Insignias" && <BadgeCollection key={`${username}:${currentUser?.id || "guest"}`} username={username} isOwner={isMyProfile} />}
+      <div id={`profile-tab-${activeTab}`} role="tabpanel" aria-label={activeTab} className="w-full max-w-3xl mx-auto pt-0.5 md:px-4 md:pt-4">
+        {activeTab === "Insignias" && (
+          <div className="px-4 pt-5 md:px-0">
+            <BadgeCollection key={`${username}:${currentUser?.id || "guest"}`} username={username} isOwner={isMyProfile} />
+          </div>
+        )}
         {activeTab === "Posts" && (
           <ProfilePostsGrid
             posts={userPosts}

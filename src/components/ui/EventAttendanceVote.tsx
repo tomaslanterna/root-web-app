@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, LogIn, XCircle } from "lucide-react";
+import { Check, LogIn } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useDanceContext } from "@/context/DanceContext";
 import { useMutation } from "@/hooks/useMutation";
@@ -68,56 +68,52 @@ export function EventAttendanceVote({
   };
 
   return (
-    <div className={cn("space-y-3.5", className)}>
-      {/* Botones Simples y Directos: VOY / NO VOY */}
-      <div className="grid grid-cols-2 gap-3">
+    <div className={cn("space-y-3", className)}>
+      <div role="group" aria-label="¿Vas a ir?" className="grid grid-cols-2 gap-2">
         <button
           type="button"
+          aria-pressed={status === "going"}
           onClick={() => selectStatus("going")}
           disabled={rsvp.isLoading}
           className={cn(
-            "relative flex items-center justify-center gap-2 rounded-2xl border-0 py-3 px-4 text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-pointer active:scale-95",
+            "h-12 rounded-xl flex items-center justify-center gap-2 text-[15px] font-semibold transition-colors duration-200 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-accent",
             status === "going"
-              ? "bg-[#D4FF00] text-neutral-950 shadow-[0_8px_30px_rgba(212,255,0,0.16)]"
-              : "bg-[#14171F] text-neutral-200 hover:bg-[#1B202B] hover:text-white shadow-sm"
+              ? "bg-accent text-on-accent"
+              : "bg-surface-2 text-ink border border-line-strong hover:bg-[#23272D]",
           )}
         >
-          <CheckCircle2 className={cn("h-4 w-4 shrink-0 stroke-[2]", status === "going" ? "text-neutral-950" : "text-[#D4FF00]")} />
-          <span>Voy</span>
+          <Check className="size-[18px]" strokeWidth={2.4} aria-hidden="true" />
+          Voy
         </button>
-
         <button
           type="button"
+          aria-pressed={status === "not_going"}
           onClick={() => selectStatus("not_going")}
           disabled={rsvp.isLoading}
           className={cn(
-            "relative flex items-center justify-center gap-2 rounded-2xl border-0 py-3 px-4 text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-pointer active:scale-95",
+            "h-12 rounded-xl text-[15px] font-semibold transition-colors duration-200 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-accent",
             status === "not_going"
-              ? "bg-rose-500 text-white shadow-[0_8px_30px_rgba(244,63,94,0.2)]"
-              : "bg-[#14171F] text-neutral-300 hover:bg-[#1B202B] hover:text-white shadow-sm"
+              ? "bg-ink text-bg"
+              : "bg-surface-2 text-ink border border-line-strong hover:bg-[#23272D]",
           )}
         >
-          <XCircle className={cn("h-4 w-4 shrink-0 stroke-[2]", status === "not_going" ? "text-white" : "text-rose-400")} />
-          <span>No voy</span>
+          No voy
         </button>
       </div>
 
-      {/* Pulso en Vivo y Porcentaje Comunitario */}
       {showMetrics && totalVotes > 0 && (
-        <div className="space-y-1.5 rounded-2xl bg-[#111114] border-0 p-3 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <span className="num-display text-xs text-[#D4FF00]">{goingPercentage}%</span>{" "}
-              <span className="tech-label text-[9px] text-[#D4FF00]/80">confirmaron</span>
-            </div>
-            <div>
-              <span className="num-display text-xs text-white">{goingCount}</span>{" "}
-              <span className="tech-label text-[9px] text-neutral-400">en pista</span>
-            </div>
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between text-[13px]">
+            <span className="text-ink-2">
+              <span className="num-mono font-semibold text-accent">{goingPercentage}%</span> confirmaron
+            </span>
+            <span className="text-ink-2">
+              <span className="num-mono font-semibold text-ink">{goingCount}</span> en pista
+            </span>
           </div>
-          <div className="h-1.5 w-full bg-neutral-800 rounded-full overflow-hidden">
+          <div className="h-1.5 w-full bg-surface-2 rounded-full overflow-hidden">
             <div
-              className="h-full bg-[#D4FF00] transition-all duration-500 rounded-full shadow-[0_0_12px_rgba(212,255,0,0.2)]"
+              className="h-full bg-accent rounded-full transition-[width] duration-500"
               style={{ width: `${goingPercentage}%` }}
             />
           </div>
@@ -128,14 +124,14 @@ export function EventAttendanceVote({
         <button
           type="button"
           onClick={() => router.push("/login")}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl border border-[#D4FF00]/40 bg-[#D4FF00]/10 px-3 py-2 text-[11px] font-black uppercase tracking-wider text-[#D4FF00] hover:bg-[#D4FF00]/20 transition-colors cursor-pointer"
+          className="flex w-full h-11 items-center justify-center gap-2 rounded-xl border border-accent/40 bg-accent/10 text-sm font-semibold text-accent hover:bg-accent/20 transition-colors"
         >
-          <LogIn className="h-3.5 w-3.5" /> Iniciá sesión para votar
+          <LogIn className="size-4" aria-hidden="true" /> Iniciá sesión para votar
         </button>
       )}
 
       {rsvp.error && (
-        <p className="text-center text-[11px] font-semibold text-rose-400">
+        <p role="alert" className="text-center text-[13px] text-danger">
           No pudimos guardar tu respuesta. Intentá nuevamente.
         </p>
       )}

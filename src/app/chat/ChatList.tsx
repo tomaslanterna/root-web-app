@@ -2,16 +2,9 @@
 
 import { useMatch } from "@/context/MatchContext";
 import { Avatar } from "@/components/ui/Avatar";
-import {
-  MessageSquare,
-  Search,
-  Sparkles,
-  Users,
-  Plus,
-  X,
-  Loader2,
-  ArrowLeft,
-} from "lucide-react";
+import { ChevronLeft, Loader2, Plus, Search, X } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { CrewMonogram } from "@/components/match/CrewMonogram";
 import Link from "next/link";
 import { useState } from "react";
 import {
@@ -22,7 +15,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useNativeBackHandler } from "@/hooks/useNativeBack";
 
-export function ChatList({ className, embedded = false, onBack, backButtonRef }: { className?: string; embedded?: boolean; onBack?: () => void; backButtonRef?: React.Ref<HTMLButtonElement> }) {
+export function ChatList({ className, onBack, backButtonRef }: { className?: string; embedded?: boolean; onBack?: () => void; backButtonRef?: React.Ref<HTMLButtonElement> }) {
   const { squads } = useMatch();
   const { user: currentUser } = useAuth();
   const router = useRouter();
@@ -41,6 +34,7 @@ export function ChatList({ className, embedded = false, onBack, backButtonRef }:
   useNativeBackHandler(isSearchModalOpen, () => setIsSearchModalOpen(false));
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<ChatSearchUser[]>([]);
+  const [inboxFilter, setInboxFilter] = useState("");
 
   const userSquads = squads.filter(
     (s) =>
@@ -69,211 +63,187 @@ export function ChatList({ className, embedded = false, onBack, backButtonRef }:
     }
   };
 
+  const query = inboxFilter.trim().toLowerCase();
+  const visibleChats = chats
+    .filter((chat) => chat.type !== "TRANSFER")
+    .map((chat) => {
+      const otherUser =
+        chat.participants?.find((p) => p.id !== currentUser?.id) || chat.participants?.[0];
+      const title =
+        chat.type === "CREWS"
+          ? chat.name || `Crew · ${chat.participants?.length ?? 0} integrantes`
+          : otherUser?.name || "Usuario";
+      return { chat, otherUser, title };
+    })
+    .filter(({ title, otherUser }) =>
+      !query ||
+      title.toLowerCase().includes(query) ||
+      (otherUser?.username ?? "").toLowerCase().includes(query),
+    );
+  const visibleSquads = userSquads.filter(
+    (sq) => !query || sq.name.toLowerCase().includes(query) || (sq.eventTitle ?? "").toLowerCase().includes(query),
+  );
+
+  const rowClass = "flex items-center gap-3 px-4 py-3 hover:bg-surface transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent";
+
   return (
-    <div
-      className={`flex flex-col h-full bg-[#0B0D10] text-white ${
-        className || ""
-      }`}
-    >
-      <header className={`${embedded ? "sticky" : "fixed"} top-0 inset-x-0 z-40 mx-auto w-full ${embedded ? "max-w-none" : "max-w-md"} glass-header-obsidian px-4 pb-3 pt-safe-header flex items-center justify-between md:static md:max-w-none`}>
-        <div className="flex items-center gap-2">
-          {onBack && <button ref={backButtonRef} type="button" onClick={onBack} aria-label="Volver al Feed" className="rounded-full p-2 hover:bg-white/10"><ArrowLeft className="h-5 w-5" /></button>}
-          <MessageSquare className="w-5 h-5 text-[#D4FF00]" />
-          <h1 className="text-lg font-black uppercase tracking-wider text-white">
-            Mensajes
-          </h1>
-        </div>
+    <div className={`flex flex-col h-full bg-bg text-ink ${className || ""}`}>
+      <header className="px-4 pt-[calc(0.75rem+var(--root-safe-top))] md:pt-6 flex items-center gap-3">
+        {onBack && (
+          <button
+            ref={backButtonRef}
+            type="button"
+            onClick={onBack}
+            aria-label="Volver"
+            className="size-11 shrink-0 rounded-control bg-surface border border-line flex items-center justify-center hover:bg-surface-2 transition-colors focus-visible:outline-2 focus-visible:outline-accent"
+          >
+            <ChevronLeft className="size-[22px]" aria-hidden="true" />
+          </button>
+        )}
+        <h1 className="font-display text-[26px] m-0 flex-1">Mensajes</h1>
         <button
+          type="button"
           onClick={() => setIsSearchModalOpen(true)}
-          className="p-2 rounded-full bg-[#D4FF00]/10 text-[#D4FF00] hover:bg-[#D4FF00]/20 transition-colors flex items-center gap-1.5"
+          aria-label="Nuevo chat"
+          className="size-11 shrink-0 rounded-control bg-accent text-on-accent flex items-center justify-center hover:bg-accent-hover transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
-          <Plus className="w-4 h-4" />
-          <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:inline">
-            Nuevo Chat
-          </span>
+          <Plus className="size-5" strokeWidth={2.4} aria-hidden="true" />
         </button>
       </header>
 
-      {/* Espaciador para compensar el header fixed */}
-      {!embedded && <div className="pt-safe-header opacity-0 pointer-events-none pb-3 md:hidden">
-        <div className="h-10"></div>
-      </div>}
-
-      <div className="p-4 space-y-6">
-        {/* 1. Crews de Eventos Section */}
-        {userSquads.length > 0 && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xs font-black uppercase tracking-widest text-neutral-400 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-[#D4FF00]" /> Crews de
-                Eventos
-              </h2>
-            </div>
-            <div className="space-y-2.5">
-              {/* Squad items unchanged for brevity, reusing old render */}
-              {userSquads.map((sq) => {
-                return (
-                  <Link
-                    key={sq.id}
-                    href={`/chat/squad/${sq.id}`}
-                    className="p-3.5 rounded-3xl bg-[#111114] hover:bg-[#16171D] border-0 flex items-center gap-3.5 transition-all shadow-[0_4px_20px_rgba(0,0,0,0.5)]"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-black uppercase text-white tracking-wider truncate">
-                        {sq.name}
-                      </p>
-                      <p className="text-[10px] text-neutral-400 font-semibold truncate">
-                        {sq.eventTitle}
-                      </p>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* 2. Direct Messages Section */}
-        <div className="space-y-3">
-          {error && (
-            <button
-              onClick={() => void refresh()}
-              className="text-xs text-red-300"
-            >
-              {error} Reintentar
-            </button>
-          )}
-          <h2 className="text-xs font-black uppercase tracking-widest text-neutral-400 flex items-center gap-1.5">
-            <Users className="w-3.5 h-3.5 text-neutral-400" /> Conversaciones
-          </h2>
-
-          <div className="space-y-2.5">
-            {isLoading ? (
-              <div className="flex justify-center p-4">
-                <Loader2 className="w-6 h-6 animate-spin text-[#D4FF00]" />
-              </div>
-            ) : chats.length === 0 ? (
-              <p className="text-xs text-neutral-500 text-center py-4 uppercase font-bold tracking-wider">
-                No tienes chats aún.
-              </p>
-            ) : (
-              chats
-                .filter((chat) => chat.type !== "TRANSFER")
-                .map((chat) => {
-                  // Find the other participant
-                  const otherUser =
-                    chat.participants?.find((p) => p.id !== currentUser?.id) ||
-                    chat.participants?.[0];
-                  return (
-                    <Link
-                      key={chat.id}
-                      href={`/chat/${chat.id}`}
-                      className="p-3.5 rounded-3xl bg-[#111114] hover:bg-[#16171D] border-0 flex items-center gap-4 transition-all shadow-[0_4px_20px_rgba(0,0,0,0.5)]"
-                    >
-                      <div className="relative shrink-0 aspect-square">
-                        <Avatar
-                          src={otherUser?.avatarUrl}
-                          fallback={otherUser?.name || "U"}
-                          className="ring-2 ring-[#D4FF00]/40 aspect-square"
-                        />
-                      </div>
-                      <div className="flex-1 overflow-hidden">
-                        <div className="flex justify-between items-center mb-0.5">
-                          <p className="text-xs font-black uppercase tracking-wider text-white">
-                            {chat.type === "CREWS"
-                              ? chat.name ||
-                                `Crew · ${
-                                  chat.participants?.length ?? 0
-                                } integrantes`
-                              : otherUser?.name || "Usuario"}
-                          </p>
-                          <span className="tech-mono text-[10px] text-neutral-400">
-                            {new Date(chat.updated_at).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </span>
-                        </div>
-                        <p className="text-xs text-neutral-400 truncate font-medium">
-                          {chat.last_message ||
-                            "Haz clic para iniciar la conversación"}
-                        </p>
-                        {!!chat.unread_count && (
-                          <span className="mt-1 inline-flex rounded-full bg-[#D4FF00] px-2 py-0.5 num-display text-[10px] text-black shadow-[0_2px_8px_rgba(212,255,0,0.2)]">
-                            {chat.unread_count}
-                          </span>
-                        )}
-                      </div>
-                    </Link>
-                  );
-                })
-            )}
-          </div>
-        </div>
+      <div className="mx-4 mt-4 h-12 px-3.5 flex items-center gap-2.5 rounded-control bg-surface border border-white/10 text-ink-3 focus-within:border-accent">
+        <Search className="size-5 shrink-0" aria-hidden="true" />
+        <input
+          type="search"
+          aria-label="Buscar conversaciones"
+          placeholder="Buscar por nombre o @usuario"
+          value={inboxFilter}
+          onChange={(e) => setInboxFilter(e.target.value)}
+          className="flex-1 min-w-0 bg-transparent border-0 outline-none text-ink text-[15px] placeholder:text-ink-3"
+        />
       </div>
 
-      {/* New Chat Search Modal */}
+      {error && (
+        <button type="button" onClick={() => void refresh()} className="mx-4 mt-3 min-h-11 text-left text-sm text-danger">
+          {error} Reintentar
+        </button>
+      )}
+
+      {visibleSquads.length > 0 && (
+        <section aria-labelledby="inbox-squads" className="mt-6">
+          <h2 id="inbox-squads" className="label-mono text-ink-2 mx-4 mb-1.5">Crews de eventos</h2>
+          {visibleSquads.map((sq) => (
+            <Link key={sq.id} href={`/chat/squad/${sq.id}`} className={rowClass}>
+              <CrewMonogram
+                name={sq.eventTitle || sq.name}
+                imageUrl={sq.eventImage || undefined}
+                className="size-[52px] rounded-control text-[11px]"
+              />
+              <span className="flex-1 min-w-0 flex flex-col gap-[3px]">
+                <span className="text-base font-semibold truncate">{sq.name}</span>
+                <span className="text-sm text-ink-2 truncate">{sq.eventTitle}</span>
+              </span>
+            </Link>
+          ))}
+          <div className="h-px mx-4 mt-3 bg-line" />
+        </section>
+      )}
+
+      <section aria-labelledby="inbox-direct" className="mt-6">
+        <h2 id="inbox-direct" className="label-mono text-ink-2 mx-4 mb-1.5">Conversaciones</h2>
+        {isLoading ? (
+          <div className="flex justify-center p-6">
+            <Loader2 className="size-6 animate-spin text-accent" aria-label="Cargando conversaciones" />
+          </div>
+        ) : visibleChats.length === 0 ? (
+          <p className="mx-4 py-6 text-center text-[15px] text-ink-2">
+            {query ? "No hay conversaciones con ese nombre." : "Todavía no tenés conversaciones."}
+          </p>
+        ) : (
+          visibleChats.map(({ chat, otherUser, title }) => {
+            const unread = chat.unread_count ?? 0;
+            return (
+              <Link key={chat.id} href={`/chat/${chat.id}`} className={rowClass}>
+                <Avatar
+                  src={otherUser?.avatarUrl}
+                  fallback={otherUser?.name || "U"}
+                  className="size-[52px] rounded-full shrink-0"
+                />
+                <span className="flex-1 min-w-0 flex flex-col gap-[3px]">
+                  <span className="flex justify-between items-baseline gap-2">
+                    <span className="text-base font-semibold truncate">
+                      {title}
+                      {chat.type !== "CREWS" && otherUser?.username && (
+                        <span className="font-normal text-ink-3"> @{otherUser.username}</span>
+                      )}
+                    </span>
+                    <span className={`num-mono text-xs shrink-0 ${unread ? "text-accent" : "text-ink-3"}`}>
+                      {formatChatTime(chat.updated_at)}
+                    </span>
+                  </span>
+                  <span className="flex justify-between items-center gap-2">
+                    <span className={`text-sm truncate ${unread ? "text-ink font-medium" : "text-ink-2"}`}>
+                      {chat.last_message || "Todavía no hay mensajes"}
+                    </span>
+                    {!!unread && (
+                      <span
+                        aria-label={`${unread} sin leer`}
+                        className="num-mono min-w-[22px] h-[22px] px-1.5 shrink-0 rounded-full bg-accent text-on-accent text-xs font-semibold flex items-center justify-center"
+                      >
+                        {unread}
+                      </span>
+                    )}
+                  </span>
+                </span>
+              </Link>
+            );
+          })
+        )}
+      </section>
+
       {isSearchModalOpen && (
-        <div role="dialog" aria-modal="true" aria-label="Nuevo chat" className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-[#111114] rounded-3xl border-0 shadow-[0_16px_50px_rgba(0,0,0,0.8)] w-full max-w-sm p-4 space-y-4">
+        <div role="dialog" aria-modal="true" aria-labelledby="new-chat-title" className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center sm:p-4 bg-black/75">
+          <div className="w-full sm:max-w-sm p-4 pb-[calc(1rem+var(--root-safe-bottom))] rounded-t-hero sm:rounded-hero bg-surface border border-line flex flex-col gap-4 animate-fade-in">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-black uppercase tracking-wider text-white">
-                Nuevo Chat
-              </h3>
+              <h3 id="new-chat-title" className="m-0 text-[17px] font-semibold">Nuevo chat</h3>
               <button
+                type="button"
                 onClick={() => setIsSearchModalOpen(false)}
-                className="p-1 rounded-full hover:bg-white/10"
+                aria-label="Cerrar"
+                className="size-11 rounded-full flex items-center justify-center text-ink-2 hover:bg-white/10 hover:text-ink"
               >
-                <X className="w-5 h-5 text-neutral-400" />
+                <X className="size-5" aria-hidden="true" />
               </button>
             </div>
 
-            <form onSubmit={handleSearchUsers} className="relative">
+            <form onSubmit={handleSearchUsers} className="flex gap-2">
+              <label htmlFor="new-chat-search" className="sr-only">Buscar persona</label>
               <input
-                type="text"
-                placeholder="Buscar por nombre o @usuario..."
+                id="new-chat-search"
+                type="search"
+                autoFocus
+                placeholder="Nombre o @usuario"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-black/40 border-0 rounded-xl px-4 py-2.5 text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:ring-1 focus:ring-[#D4FF00]/50"
+                className="flex-1 min-w-0 h-12 px-3.5 rounded-control bg-bg border border-line-strong text-[15px] text-ink placeholder:text-ink-3 focus:outline-none focus:border-accent"
               />
-              <button
-                type="submit"
-                className="absolute right-2 top-2 p-1 text-[#D4FF00]"
-              >
-                {isSearching ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Search className="w-4 h-4" />
-                )}
-              </button>
+              <Button type="submit" variant="secondary" size="icon" className="size-12" aria-label="Buscar">
+                {isSearching ? <Loader2 className="size-5 animate-spin" aria-hidden="true" /> : <Search className="size-5" aria-hidden="true" />}
+              </Button>
             </form>
 
-            <div className="space-y-2 max-h-[40vh] overflow-y-auto">
+            <div className="flex flex-col max-h-[40vh] overflow-y-auto -mx-2">
               {searchResults.length === 0 && !isSearching && searchQuery && (
-                <p className="text-xs text-center text-neutral-500 py-4">
-                  No se encontraron usuarios
-                </p>
+                <p className="py-4 text-center text-sm text-ink-2">No encontramos a nadie con ese nombre.</p>
               )}
               {searchResults.map((u) => (
-                <div
-                  key={u.id}
-                  className="flex items-center justify-between p-2 rounded-xl hover:bg-white/5"
-                >
-                  <div className="flex items-center gap-3">
-                    <Avatar src={u.avatarUrl} fallback={u.name} size="sm" className="aspect-square" />
-                    <div>
-                      <p className="text-xs font-bold text-white">{u.name}</p>
-                      <p className="text-[10px] text-neutral-400">
-                        @{u.username}
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => handleStartChat(u.id)}
-                    className="px-3.5 py-1.5 rounded-full bg-[#D4FF00] text-black text-[10px] font-black uppercase shadow-[0_4px_16px_rgba(212,255,0,0.16)]"
-                  >
-                    Chatear
-                  </button>
+                <div key={u.id} className="flex items-center gap-3 p-2 rounded-xl">
+                  <Avatar src={u.avatarUrl} fallback={u.name} className="size-10 rounded-full" />
+                  <span className="flex-1 min-w-0 flex flex-col">
+                    <span className="text-[15px] font-semibold truncate">{u.name}</span>
+                    <span className="text-[13px] text-ink-2 truncate">@{u.username}</span>
+                  </span>
+                  <Button size="sm" onClick={() => handleStartChat(u.id)}>Escribir</Button>
                 </div>
               ))}
             </div>
@@ -282,4 +252,24 @@ export function ChatList({ className, embedded = false, onBack, backButtonRef }:
       )}
     </div>
   );
+}
+
+const chatTimeZone = "America/Montevideo";
+
+// "21:14" hoy, "Ayer", día de la semana en los últimos 7 días, si no "20 oct".
+function formatChatTime(raw: string) {
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return "";
+  const dayKey = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: chatTimeZone }).format(d);
+  const today = new Date();
+  const yesterday = new Date(today.getTime() - 86_400_000);
+  if (dayKey(date) === dayKey(today)) {
+    return new Intl.DateTimeFormat("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: chatTimeZone }).format(date);
+  }
+  if (dayKey(date) === dayKey(yesterday)) return "Ayer";
+  const clean = (value: string) => value.replace(/\./g, "").replace(/^\w/, (c) => c.toUpperCase());
+  if (today.getTime() - date.getTime() < 7 * 86_400_000) {
+    return clean(new Intl.DateTimeFormat("es-AR", { weekday: "short", timeZone: chatTimeZone }).format(date));
+  }
+  return new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "short", timeZone: chatTimeZone }).format(date).replace(/\./g, "");
 }

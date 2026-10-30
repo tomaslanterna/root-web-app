@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { PasswordInput } from "@/components/ui/PasswordInput";
-import { Loader2, Mail, ChevronRight } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
 import { useLogin } from "@/hooks/useLogin";
 import Image from "next/image";
@@ -48,7 +48,7 @@ function GoogleAuthWrapper({ onSuccess, onError, handleGoogleSuccess }: GoogleAu
         variant="outline"
         size="full"
         onClick={handleNativeLogin}
-        className="w-full max-w-[340px] flex items-center justify-center gap-3 bg-white hover:bg-neutral-100 text-black border-transparent py-6 rounded-md font-medium"
+        className="h-[52px] gap-2.5 bg-ink hover:bg-white text-bg border-transparent text-base"
       >
         <svg
           width="20"
@@ -56,6 +56,7 @@ function GoogleAuthWrapper({ onSuccess, onError, handleGoogleSuccess }: GoogleAu
           viewBox="0 0 24 24"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
         >
           <path
             d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -85,9 +86,9 @@ function GoogleAuthWrapper({ onSuccess, onError, handleGoogleSuccess }: GoogleAu
       onError={onError}
       useOneTap={false}
       shape="rectangular"
-      theme="filled_black"
+      theme="outline"
       size="large"
-      text="signin_with"
+      text="continue_with"
       width="340"
     />
   );
@@ -127,122 +128,40 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex flex-col md:flex-row min-h-[100dvh] bg-obsidian text-white relative overflow-hidden">
-      {/* Left Column (Image) - Desktop Only */}
+    <div className="flex flex-col md:flex-row min-h-[100dvh] bg-bg text-ink relative overflow-hidden">
+      {/* Columna de imagen: solo desktop */}
       <div className="hidden md:block md:w-1/2 relative bg-black">
         <Image
           fill
           unoptimized
           src="https://images.unsplash.com/photo-1574169208507-84376144848b?q=80&w=2079&auto=format&fit=crop"
-          alt="Root Web App"
+          alt=""
           className="w-full h-full object-cover opacity-60"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent to-[#0B0D10]" />
-
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent to-bg" />
         <div className="absolute bottom-12 left-12 right-12 z-20">
-          <h2 className="text-4xl font-black uppercase tracking-tight text-white mb-2">
-            La escena <span className="text-[#D4FF00]">electrónica</span> en tus
-            manos.
+          <h2 className="font-display text-5xl text-ink mb-3">
+            La escena <span className="text-accent">electrónica</span> en tus manos
           </h2>
-          <p className="text-neutral-300 font-medium max-w-md">
-            Conectá con tu crew, descubrí los mejores eventos y encontrá tu
-            próxima fiesta.
+          <p className="text-ink-2 text-base max-w-md">
+            Conectá con tu crew, descubrí los mejores eventos y encontrá tu próxima fiesta.
           </p>
         </div>
       </div>
 
-      {/* Right Column (Form) */}
-      <div className="flex-1 md:w-1/2 flex flex-col justify-center px-6 md:px-12 z-10 animate-fade-in relative max-w-md mx-auto w-full">
-        {/* Background cinematic elements (mobile only) */}
-        <div className="md:hidden absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-[#D4FF00]/10 to-transparent pointer-events-none opacity-50 blur-3xl" />
-        <div className="md:hidden absolute bottom-0 right-0 w-3/4 h-3/4 bg-gradient-to-tl from-[#D4FF00]/5 to-transparent pointer-events-none opacity-30 blur-2xl rounded-full" />
-
-        <div className="mb-10 text-center">
-          <h1 className="text-4xl font-black tracking-tighter mb-2 text-white drop-shadow-md">
-            root<span className="text-acid-lime">.</span>
-          </h1>
-          <p className="text-neutral-400 text-sm font-medium tracking-wide">
-            Enter the Electronic Music Network
+      {/* Formulario */}
+      <div className="flex-1 md:w-1/2 flex flex-col justify-center px-6 md:px-12 pt-[calc(5.5rem+var(--root-safe-top))] md:pt-0 pb-[var(--root-mobile-nav-clearance)] md:pb-0 animate-fade-in max-w-md mx-auto w-full">
+        <div className="flex flex-col gap-3.5">
+          <span aria-hidden="true" className="font-display size-14 rounded-card bg-accent text-on-accent flex items-center justify-center text-3xl">
+            r
+          </span>
+          <h1 className="font-display text-[44px] m-0">root</h1>
+          <p className="text-base leading-normal text-ink-2">
+            La red de la música electrónica. Encontrá la fiesta, armá tu crew, salí.
           </p>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div className="space-y-1">
-            <div className="relative group">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-neutral-500 group-focus-within:text-acid-lime transition-colors">
-                <Mail size={18} />
-              </div>
-              <input
-                id="login-email"
-                name="email"
-                aria-label="Email"
-                autoComplete="username"
-                required
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-[#14171F]/80 backdrop-blur-md border border-white/10 rounded-2xl py-3.5 pl-11 pr-4 text-white placeholder:text-neutral-500 focus:outline-none focus:border-acid-lime/50 focus:ring-1 focus:ring-acid-lime/50 transition-all font-medium text-sm"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <PasswordInput
-              id="login-password"
-              name="password"
-              aria-label="Contraseña"
-              autoComplete="current-password"
-              required
-              placeholder="Contraseña"
-              value={password}
-              onChange={event => setPassword(event.target.value)}
-            />
-          </div>
-          <div className="text-right">
-            <Link href="/forgot-password" className="inline-block py-2 text-xs font-semibold text-acid-lime hover:underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-acid-lime rounded">
-              He olvidado mi contraseña
-            </Link>
-          </div>
-
-          {error && (
-            <div role="alert" className="text-red-400 text-xs font-semibold px-2 text-center animate-fade-in">
-              {error}
-            </div>
-          )}
-
-          <div className="pt-4">
-            <Button
-              type="submit"
-              variant="primary"
-              size="full"
-              disabled={isLoading}
-              className="group py-4 rounded-2xl flex items-center justify-center gap-2 relative overflow-hidden"
-            >
-              {isLoading ? (
-                <Loader2 size={20} className="animate-spin text-neutral-950" />
-              ) : (
-                <>
-                  <span className="relative z-10 text-neutral-950 font-black">
-                    ENTRAR
-                  </span>
-                  <ChevronRight
-                    size={18}
-                    className="relative z-10 text-neutral-950/80 group-hover:translate-x-1 transition-transform"
-                  />
-                </>
-              )}
-            </Button>
-          </div>
-        </form>
-
-        <div className="my-6 flex items-center gap-4 before:flex-1 before:border-t before:border-white/10 after:flex-1 after:border-t after:border-white/10">
-          <span className="text-xs font-bold text-neutral-500 uppercase tracking-widest">
-            o
-          </span>
-        </div>
-
-        <div className="flex justify-center [&>div]:w-full [&>div>div]:!w-full [&>div>div]:!flex [&>div>div]:!justify-center [&>div>div>iframe]:!max-w-full">
+        <div className="mt-8 flex flex-col [&>div]:w-full [&>div>div]:!w-full [&>div>div]:!flex [&>div>div]:!justify-center [&>div>div>iframe]:!max-w-full">
           <GoogleAuthWrapper
             onSuccess={googleAuthMutate}
             onError={handleGoogleError}
@@ -250,17 +169,82 @@ export default function LoginPage() {
           />
         </div>
 
-        <div className="mt-8 text-center">
-          <p className="text-neutral-500 text-xs font-medium">
-            ¿No tienes cuenta?{" "}
-            <Link
-              href="/register"
-              className="text-acid-lime font-bold hover:underline underline-offset-4"
-            >
-              Regístrate
-            </Link>
-          </p>
+        <div className="my-6 flex items-center gap-3">
+          <span className="flex-1 h-px bg-white/10" />
+          <span className="label-mono text-ink-3">o con tu email</span>
+          <span className="flex-1 h-px bg-white/10" />
         </div>
+
+        <form onSubmit={handleLogin} className="flex flex-col gap-4" noValidate>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="login-email" className="text-sm font-semibold">
+              Email
+            </label>
+            <input
+              id="login-email"
+              name="email"
+              autoComplete="username"
+              required
+              type="email"
+              placeholder="vos@ejemplo.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="h-[52px] px-3.5 rounded-control bg-surface border border-line-strong text-base text-ink placeholder:text-ink-3 focus:outline-none focus:border-accent focus:border-[1.5px] transition-colors"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <div className="flex justify-between items-baseline">
+              <label htmlFor="login-password" className="text-sm font-semibold">
+                Contraseña
+              </label>
+              <Link
+                href="/forgot-password"
+                className="text-sm font-medium text-accent hover:text-accent-hover focus-visible:outline-2 focus-visible:outline-accent rounded"
+              >
+                ¿La olvidaste?
+              </Link>
+            </div>
+            <PasswordInput
+              id="login-password"
+              name="password"
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={event => setPassword(event.target.value)}
+            />
+          </div>
+
+          {error && (
+            <p role="alert" className="text-danger text-sm animate-fade-in">
+              {error}
+            </p>
+          )}
+
+          <Button
+            type="submit"
+            variant="primary"
+            size="full"
+            disabled={isLoading}
+            className="mt-2 h-[52px] text-base"
+          >
+            {isLoading ? (
+              <Loader2 size={20} className="animate-spin" aria-label="Ingresando" />
+            ) : (
+              "Iniciar sesión"
+            )}
+          </Button>
+        </form>
+
+        <p className="mt-5 text-center text-[15px] text-ink-2">
+          ¿No tenés cuenta?{" "}
+          <Link
+            href="/register"
+            className="font-semibold text-accent hover:text-accent-hover"
+          >
+            Creá una
+          </Link>
+        </p>
       </div>
     </div>
   );

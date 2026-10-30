@@ -3,11 +3,7 @@
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  Loader2,
-  Megaphone,
-  Radio,
-} from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { BroadcastChannel } from "@/components/communities/BroadcastChannel";
 import { CommunityHeader } from "@/components/communities/CommunityHeader";
 import { CommunityInfoPanel } from "@/components/communities/CommunityInfoPanel";
@@ -27,9 +23,9 @@ interface CommunityDetailPageProps {
   params: Promise<{ id: string }>;
 }
 
-const TABS: { id: CommunityTab; label: string; icon: React.ComponentType<{ className?: string; strokeWidth?: number }> }[] = [
-  { id: "channel", label: "Canal", icon: Radio },
-  { id: "wall", label: "Muro", icon: Megaphone },
+const TABS: { id: CommunityTab; label: string }[] = [
+  { id: "wall", label: "Muro" },
+  { id: "channel", label: "Canal" },
 ];
 
 export default function CommunityDetailPage({ params }: CommunityDetailPageProps) {
@@ -81,20 +77,17 @@ export default function CommunityDetailPage({ params }: CommunityDetailPageProps
 
   if (isLoading && !community) {
     return (
-      <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-[#0B0D10] text-white">
-        <Loader2 className="mb-3 h-8 w-8 animate-spin text-[#D4FF00]" />
-        <p className="text-xs font-black uppercase tracking-widest text-neutral-400">
-          Cargando comunidad
-        </p>
+      <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-3 bg-bg text-ink">
+        <Loader2 className="size-8 animate-spin text-accent" aria-hidden="true" />
+        <p className="label-mono text-ink-2">Cargando comunidad</p>
       </div>
     );
   }
 
   if (!community) {
     return (
-      <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-[#0B0D10] p-6 text-center text-white">
-        <Radio className="mb-4 h-10 w-10 text-neutral-600" />
-        <p className="text-sm font-bold uppercase text-neutral-300">
+      <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-bg p-6 text-center text-ink">
+        <p className="text-lg font-semibold">
           {error
             ? "No pudimos cargar esta comunidad"
             : "Comunidad no encontrada"}
@@ -108,10 +101,11 @@ export default function CommunityDetailPage({ params }: CommunityDetailPageProps
               Reintentar
             </Button>
           )}
-          <Link href="/communities">
-            <Button variant="outline" size="sm">
-              Volver
-            </Button>
+          <Link
+            href="/communities"
+            className="h-11 px-4 rounded-control bg-surface-2 border border-line-strong text-sm font-semibold flex items-center"
+          >
+            Volver
           </Link>
         </div>
       </div>
@@ -121,29 +115,26 @@ export default function CommunityDetailPage({ params }: CommunityDetailPageProps
   return (
     <div
       className={cn(
-        "min-h-[100dvh] w-full overflow-x-hidden bg-[#0B0D10] text-white",
+        "min-h-[100dvh] w-full overflow-x-hidden bg-bg text-ink",
         activeTab === "channel" && !isGuest
           ? "-mb-24 md:-mb-16"
           : "pb-6 sm:pb-10",
       )}
     >
       <CommunityHeader
-        name={community.name}
+        community={community}
         onBack={() => router.push(origin || "/communities")}
         onOpenInfo={() => setIsInfoOpen(true)}
         isInfoOpen={isInfoOpen}
+        onJoin={changeMembership}
+        isJoining={isChangingMembership}
       />
 
-      <div className="sticky top-[calc(4.25rem+var(--root-safe-top,env(safe-area-inset-top,0px)))] z-20 w-full border-b border-white/[0.06] bg-[#0B0D10]/95 backdrop-blur-md md:top-[4.25rem]">
-        <nav
-          aria-label="Navegación de la comunidad"
-          className="mx-auto w-full max-w-4xl"
-        >
-          <div className="flex w-full items-center justify-around" role="tablist">
+      <div className="sticky top-[var(--root-safe-top)] md:top-20 z-20 bg-bg/95 backdrop-blur-md">
+        <nav aria-label="Navegación de la comunidad" className="mx-auto w-full max-w-4xl px-4 py-3 sm:px-6">
+          <div role="tablist" className="flex p-[3px] rounded-xl bg-surface border border-line">
             {TABS.map((tab) => {
-              const Icon = tab.icon;
               const isActive = activeTab === tab.id;
-
               return (
                 <button
                   key={tab.id}
@@ -151,23 +142,13 @@ export default function CommunityDetailPage({ params }: CommunityDetailPageProps
                   type="button"
                   aria-selected={isActive}
                   aria-controls={`community-tab-${tab.id}`}
-                  aria-label={tab.label}
-                  title={tab.label}
                   onClick={() => setActiveTab(tab.id)}
-                  className="group relative flex min-h-11 flex-1 cursor-pointer select-none flex-col items-center justify-center py-3.5 transition-colors sm:py-4"
-                >
-                  <Icon
-                    className={cn(
-                      "w-6 h-6 sm:w-7 sm:h-7 transition-all duration-200",
-                      isActive
-                        ? "text-[#D4FF00] scale-105"
-                        : "text-neutral-500 group-hover:text-neutral-300",
-                    )}
-                    strokeWidth={isActive ? 2.25 : 1.75}
-                  />
-                  {isActive && (
-                    <span className="absolute bottom-0 inset-x-0 h-[2.5px] bg-[#D4FF00]" />
+                  className={cn(
+                    "h-10 flex-1 rounded-[9px] text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-accent",
+                    isActive ? "bg-ink text-bg" : "text-ink-2 hover:text-ink",
                   )}
+                >
+                  {tab.label}
                 </button>
               );
             })}
@@ -176,7 +157,7 @@ export default function CommunityDetailPage({ params }: CommunityDetailPageProps
       </div>
 
       {/* Main Tab Content Area */}
-      <main className="mx-auto w-full max-w-4xl px-3.5 pt-4 sm:px-6">
+      <main className="mx-auto w-full max-w-4xl px-4 pt-1 sm:px-6">
         {activeTab === "channel" && (
           <div id="community-tab-channel" role="tabpanel" aria-label="Canal">
             {isGuest ? (

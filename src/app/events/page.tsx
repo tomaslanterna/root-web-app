@@ -26,8 +26,9 @@ import {
   Tag,
   X,
 } from "lucide-react";
-import { EventCard } from "@/components/ui/EventCard";
+import { EventCard, formatEventPrice } from "@/components/ui/EventCard";
 import { Button } from "@/components/ui/Button";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { PullToRefresh } from "@/components/ui/PullToRefresh";
 import { SurveyCard } from "@/components/ui/SurveyCard";
 import { QuickActionMenu } from "@/components/ui/QuickActionMenu";
@@ -62,6 +63,12 @@ const genreOptions = [
   { id: "Reggaetón", label: "Reggaetón" },
   { id: "Otros", label: "Otros" },
 ];
+
+const viewOptions = [
+  { id: "grid", label: "Grilla", icon: LayoutGrid },
+  { id: "list", label: "Agenda", icon: List },
+  { id: "calendar", label: "Mes", icon: Calendar },
+] as const;
 
 const citySuggestions = [
   "Montevideo",
@@ -633,20 +640,20 @@ export default function EventsPage() {
   return (
     <div
       ref={swipeRef}
-      className="feed-swipe events-swipe hide-scrollbar flex min-h-screen flex-col bg-[#0B0D10] text-white"
+      className="feed-swipe events-swipe hide-scrollbar flex min-h-screen flex-col bg-bg text-ink"
     >
-      {/* Fixed Header + Filtros (Móvil y Desktop) */}
+      {/* Header fijo: marca, búsqueda y filtros */}
       <header
         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-        className="fixed top-0 inset-x-0 z-40 mx-auto w-full max-w-md md:max-w-[1360px] glass-header-obsidian transition-all duration-300 pt-[var(--root-safe-top)] md:pt-20 md:px-8 lg:px-12"
+        className="fixed top-0 inset-x-0 z-40 mx-auto w-full max-w-md md:max-w-[1360px] bg-bg/95 backdrop-blur-md border-b border-line pt-[var(--root-safe-top)] md:pt-20 md:px-8 lg:px-12"
       >
-        {/* Fila 1 (Mobile): Logo + Mensajes */}
-        <div className="md:hidden px-4 pt-2 pb-2 flex items-center justify-between gap-2.5 cursor-pointer">
-          <div className="flex items-center gap-2 shrink-0 h-9">
-            <div className="w-8 h-8 rounded-full bg-[#D4FF00] text-neutral-950 flex items-center justify-center font-black italic text-sm tracking-tighter shadow-md shadow-[#D4FF00]/15">
+        {/* Fila 1 (mobile): marca + mensajes */}
+        <div className="md:hidden px-4 pt-2 pb-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 shrink-0">
+            <span aria-hidden="true" className="font-display size-8 rounded-thumb bg-accent text-on-accent flex items-center justify-center text-lg">
               r
-            </div>
-            <h1 className="text-xl font-black italic tracking-tighter text-white">root</h1>
+            </span>
+            <h1 className="font-display text-2xl m-0">root</h1>
           </div>
 
           <button
@@ -660,43 +667,42 @@ export default function EventsPage() {
               }
               openInbox();
             }}
-            className="shrink-0 h-9 w-9 flex items-center justify-center rounded-full border-0 bg-transparent text-[#D4FF00] hover:opacity-80 focus-visible:outline-2 focus-visible:outline-[#D4FF00] transition-opacity cursor-pointer"
+            className="shrink-0 size-11 flex items-center justify-center rounded-control bg-surface border border-line text-ink hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-accent transition-colors"
           >
-            <MessageSquare className="h-5 w-5" />
+            <MessageSquare className="size-5" aria-hidden="true" />
           </button>
         </div>
 
-        {/* Fila 2: Searchbar ancho completo (entre el header y los filtros) */}
+        {/* Fila 2: búsqueda */}
         <div
           onClick={(event) => event.stopPropagation()}
-          className="px-4 md:px-6 pt-0 pb-2.5 max-w-7xl mx-auto w-full"
+          className="px-4 md:px-6 pb-3 max-w-7xl mx-auto w-full"
         >
-          <div
+          <button
+            type="button"
             onClick={() => router.push("/search")}
-            className="w-full h-9 md:h-10 bg-[#161922] border-0 rounded-full px-3.5 md:px-4 flex items-center gap-2 md:gap-3 text-neutral-400 hover:bg-[#1C202B] transition-colors cursor-text"
+            className="w-full h-12 px-3.5 flex items-center gap-2.5 rounded-control bg-surface border border-line text-ink-2 text-[15px] text-left hover:bg-surface-2 transition-colors focus-visible:outline-2 focus-visible:outline-accent"
           >
-            <Search className="w-3.5 h-3.5 md:w-4 md:h-4 text-[#D4FF00] shrink-0" />
-            <span className="text-xs md:text-sm font-semibold tracking-wide truncate">
-              Buscar eventos, usuarios o comunidades...
-            </span>
-          </div>
+            <Search className="size-5 shrink-0" aria-hidden="true" />
+            <span className="truncate">Buscar eventos, artistas o lugares</span>
+          </button>
         </div>
 
         {/* Fila 3: Filtros a la izquierda (scroll horizontal) + Selector de layout fijo a la derecha en mobile */}
         <div
           ref={filtersContainerRef}
           onClick={(event) => event.stopPropagation()}
-          className="relative z-30 px-4 md:px-6 pt-0 pb-2.5 max-w-7xl mx-auto w-full"
+          className="relative z-30 px-4 md:px-6 pb-3 max-w-7xl mx-auto w-full"
         >
           <div className="flex items-center justify-between gap-2">
             <div className="flex-1 min-w-0 flex items-center gap-2 overflow-x-auto hide-scrollbar whitespace-nowrap">
               {/* Filtro 1: ¿Cuándo? */}
               <div
                 className={cn(
-                  "shrink-0 h-8 flex items-center rounded-full transition-all select-none",
+                  "shrink-0 h-11 flex items-center rounded-full border transition-colors select-none",
                   isDateActive
-                    ? "bg-[#D4FF00]/15 text-[#D4FF00] shadow-[0_0_15px_rgba(212,255,0,0.15)] border border-[#D4FF00]/40"
-                    : "border border-white/10 bg-[#14171F] text-neutral-300 hover:border-white/20 hover:text-white",
+                    ? "bg-accent/12 text-accent border-accent/40"
+                    : "border-white/10 bg-surface text-ink hover:bg-surface-2",
                 )}
               >
                 <button
@@ -708,16 +714,16 @@ export default function EventsPage() {
                     setIsDatesOpen(false);
                   }}
                   className={cn(
-                    "h-full flex items-center gap-1.5 text-xs font-bold tracking-wide cursor-pointer",
-                    isDateActive ? "pl-3 pr-1" : "px-3.5",
+                    "h-full flex items-center gap-1.5 text-sm font-semibold",
+                    isDateActive ? "pl-3.5 pr-1" : "pl-3.5 pr-3",
                   )}
                 >
-                  <Calendar className={cn("h-3.5 w-3.5 shrink-0", isDateActive ? "text-[#D4FF00]" : "text-neutral-400")} />
+                  <Calendar aria-hidden="true" className={cn("size-4 shrink-0", isDateActive ? "text-accent" : "text-ink-2")} />
                   <span className="max-w-[95px] sm:max-w-none truncate">{getDateLabel()}</span>
                   {!isDateActive && (
                     <ChevronDown
                       className={cn(
-                        "h-3.5 w-3.5 text-neutral-400 transition-transform duration-200 shrink-0",
+                        "size-4 text-ink-2 transition-transform duration-200 shrink-0",
                         isWhenOpen && "rotate-180",
                       )}
                     />
@@ -734,11 +740,11 @@ export default function EventsPage() {
                       e.stopPropagation();
                       clearDateFilter();
                     }}
-                    className="relative z-20 mr-1 h-6 w-6 rounded-full flex items-center justify-center text-[#D4FF00] hover:bg-white/10 active:scale-90 transition-all cursor-pointer touch-manipulation"
+                    className="relative z-20 w-9 h-11 rounded-full flex items-center justify-center text-accent hover:bg-white/10 active:scale-90 transition-transform touch-manipulation"
                     title="Quitar filtro de fecha"
                     aria-label="Quitar filtro de fecha"
                   >
-                    <X className="h-3.5 w-3.5 pointer-events-none" />
+                    <X className="size-4 pointer-events-none" aria-hidden="true" />
                   </button>
                 )}
               </div>
@@ -746,10 +752,10 @@ export default function EventsPage() {
               {/* Filtro 2: Ubicación */}
               <div
                 className={cn(
-                  "shrink-0 h-8 flex items-center rounded-full border transition-all select-none",
+                  "shrink-0 h-11 flex items-center rounded-full border transition-colors select-none",
                   isLocationActive
-                    ? "border-[#D4FF00]/40 bg-[#D4FF00]/15 text-[#D4FF00] shadow-sm shadow-[#D4FF00]/10"
-                    : "border-white/10 bg-[#14171F] text-neutral-300 hover:border-white/20 hover:text-white",
+                    ? "bg-accent/12 text-accent border-accent/40"
+                    : "border-white/10 bg-surface text-ink hover:bg-surface-2",
                 )}
               >
                 <button
@@ -762,16 +768,16 @@ export default function EventsPage() {
                     setIsDatesOpen(false);
                   }}
                   className={cn(
-                    "h-full flex items-center gap-1.5 text-xs font-bold tracking-wide cursor-pointer",
-                    isLocationActive ? "pl-3 pr-1" : "px-3.5",
+                    "h-full flex items-center gap-1.5 text-sm font-semibold",
+                    isLocationActive ? "pl-3.5 pr-1" : "pl-3.5 pr-3",
                   )}
                 >
-                  <MapPin className={cn("h-3.5 w-3.5 shrink-0", isLocationActive ? "text-[#D4FF00]" : "text-neutral-400")} />
+                  <MapPin aria-hidden="true" className={cn("size-4 shrink-0", isLocationActive ? "text-accent" : "text-ink-2")} />
                   <span className="max-w-[100px] sm:max-w-none truncate">{getLocationLabel()}</span>
                   {!isLocationActive && (
                     <ChevronDown
                       className={cn(
-                        "h-3.5 w-3.5 text-neutral-400 transition-transform duration-200 shrink-0",
+                        "size-4 text-ink-2 transition-transform duration-200 shrink-0",
                         isGenreOpen && "rotate-180",
                       )}
                     />
@@ -788,60 +794,34 @@ export default function EventsPage() {
                       e.stopPropagation();
                       clearLocationFilter();
                     }}
-                    className="relative z-20 mr-1 h-6 w-6 rounded-full flex items-center justify-center text-[#D4FF00] hover:bg-white/10 active:scale-90 transition-all cursor-pointer touch-manipulation"
+                    className="relative z-20 w-9 h-11 rounded-full flex items-center justify-center text-accent hover:bg-white/10 active:scale-90 transition-transform touch-manipulation"
                     title="Quitar filtro de ubicación"
                     aria-label="Quitar filtro de ubicación"
                   >
-                    <X className="h-3.5 w-3.5 pointer-events-none" />
+                    <X className="size-4 pointer-events-none" aria-hidden="true" />
                   </button>
                 )}
               </div>
             </div>
 
-            {/* Selector de 3 iconos fijo a la derecha en Mobile */}
-            <div className="md:hidden shrink-0 h-8 flex items-center rounded-full border border-white/10 bg-[#14171F] p-0.5">
-              <button
-                type="button"
-                onClick={() => setViewMode("grid")}
-                title="Vista Cuadrícula"
-                aria-label="Vista Cuadrícula"
-                className={cn(
-                  "h-7 w-7 flex items-center justify-center rounded-full transition-all cursor-pointer",
-                  viewMode === "grid"
-                    ? "bg-[#D4FF00] text-neutral-950 shadow-[0_4px_16px_rgba(212,255,0,0.16)]"
-                    : "text-neutral-400 hover:text-white"
-                )}
-              >
-                <LayoutGrid className="h-3.5 w-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode("list")}
-                title="Vista Agenda"
-                aria-label="Vista Agenda"
-                className={cn(
-                  "h-7 w-7 flex items-center justify-center rounded-full transition-all cursor-pointer",
-                  viewMode === "list"
-                    ? "bg-[#D4FF00] text-neutral-950 shadow-[0_4px_16px_rgba(212,255,0,0.16)]"
-                    : "text-neutral-400 hover:text-white"
-                )}
-              >
-                <List className="h-3.5 w-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode("calendar")}
-                title="Vista Calendario"
-                aria-label="Vista Calendario"
-                className={cn(
-                  "h-7 w-7 flex items-center justify-center rounded-full transition-all cursor-pointer",
-                  viewMode === "calendar"
-                    ? "bg-[#D4FF00] text-neutral-950 shadow-[0_4px_16px_rgba(212,255,0,0.16)]"
-                    : "text-neutral-400 hover:text-white"
-                )}
-              >
-                <Calendar className="h-3.5 w-3.5" />
-              </button>
+            {/* Selector de vista (mobile) */}
+            <div role="radiogroup" aria-label="Vista" className="md:hidden shrink-0 flex p-[3px] rounded-xl bg-surface border border-line">
+              {viewOptions.map(({ id, label, icon: Icon }) => (
+                <button
+                  key={id}
+                  type="button"
+                  role="radio"
+                  aria-checked={viewMode === id}
+                  aria-label={label}
+                  onClick={() => setViewMode(id)}
+                  className={cn(
+                    "size-[38px] flex items-center justify-center rounded-[9px] transition-colors focus-visible:outline-2 focus-visible:outline-accent",
+                    viewMode === id ? "bg-ink text-bg" : "text-ink-2 hover:text-ink",
+                  )}
+                >
+                  <Icon className="size-4" aria-hidden="true" />
+                </button>
+              ))}
             </div>
           </div>
 
@@ -988,7 +968,7 @@ export default function EventsPage() {
                     className="p-0.5 text-neutral-400 hover:text-white cursor-pointer"
                     aria-label="Limpiar ubicación"
                   >
-                    <X className="h-3.5 w-3.5 pointer-events-none" />
+                    <X className="size-4 pointer-events-none" aria-hidden="true" />
                   </button>
                 )}
               </form>
@@ -1050,7 +1030,7 @@ export default function EventsPage() {
       </header>
 
       <PullToRefresh onRefresh={handleRefresh}>
-        <div className="space-y-6 px-4 md:px-6 pt-[calc(var(--root-safe-top)+151px)] md:pt-28 pb-28 w-full max-w-7xl mx-auto">
+        <div className="space-y-7 px-4 md:px-6 pt-[calc(var(--root-safe-top)+184px)] md:pt-28 pb-28 w-full max-w-7xl mx-auto">
           {/* Slide-over Drawer lateral para Filtros Avanzados (Cero Layout Shift) */}
         {showFilters && (
           <div className="fixed inset-0 z-50 flex justify-end">
@@ -1256,121 +1236,109 @@ export default function EventsPage() {
         {/* Live Activity Banner */}
         <LiveEventBanner />
 
-        {/* Swimlane de Encuestas Pendientes */}
+        {/* Encuestas pendientes */}
         {pendingSurveys.length > 0 && (
-          <div className="mt-2 mb-2">
-            <div
-              className={cn(
-                "flex overflow-x-auto overflow-y-hidden touch-pan-x snap-x snap-mandatory hide-scrollbar gap-4 py-1 scroll-px-4",
-                pendingSurveys.length === 1 ? "justify-center" : "justify-start"
-              )}
-            >
+          <section aria-labelledby="events-surveys">
+            <div className="flex items-baseline justify-between gap-3 pb-3">
+              <h2 id="events-surveys" className="m-0 text-[17px] font-semibold">
+                Contanos cómo estuvo
+              </h2>
+              <span className="label-mono text-ink-3">
+                {pendingSurveys.length} {pendingSurveys.length === 1 ? "pendiente" : "pendientes"}
+              </span>
+            </div>
+            <div className="-mx-4 px-4 md:mx-0 md:px-0 flex gap-3 overflow-x-auto overflow-y-hidden touch-pan-x snap-x snap-mandatory hide-scrollbar scroll-px-4">
               {pendingSurveys.map((surveyEvent) => (
                 <SurveyCard key={surveyEvent.id} surveyEvent={surveyEvent} />
               ))}
             </div>
-          </div>
+          </section>
         )}
 
-        {/* Hero Banner: Evento Destacado con Enfoque en Artwork y Guía en la Lectura (Solo Desktop) */}
+        {/* Destacado de la semana */}
         {!hasActiveChips && !debouncedQuery && !isDateActive && !isLocationActive && featuredEvent && (
-          <Link
-            href={`/events/${featuredEvent.id}?origin=/events`}
-            className="group relative hidden md:block w-full rounded-3xl overflow-hidden border border-white/[0.08] border-t-white/[0.2] shadow-[0_20px_50px_rgba(0,0,0,0.7)] bg-neutral-950 transition-all duration-300 hover:border-white/[0.16] hover:border-t-[#D4FF00]/60 cursor-pointer animate-in fade-in"
-          >
-            {/* Specular top rim light */}
-            <div className="pointer-events-none absolute inset-x-8 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/40 to-transparent z-20 opacity-80" />
-
-            {/* Background Artwork Image (Alto amplio y nítido para apreciar el póster) */}
-            <div
-              role="img"
-              aria-label={`Destacado: ${featuredEvent.title}`}
-              className="w-full h-72 sm:h-80 md:h-[380px] lg:h-[420px] bg-cover bg-center transition-transform duration-700 ease-out group-hover:scale-[1.02]"
-              style={{ backgroundImage: `url(${featuredEvent.cinematicBannerUrl?.trim() || fallbackBanner})` }}
-            />
-
-            {/* Viñeta sutil superior (protege la legibilidad de badges sin tapar el arte) */}
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-neutral-950/70 to-transparent" />
-
-            {/* Gradiente inferior suave (solo en el 45% inferior para mantener el centro del póster despejado) */}
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-neutral-950 via-neutral-950/75 to-transparent" />
-
-            {/* Badge Flotante Superior: Destacado / Asistencia */}
-            <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
-              <span className="flex items-center gap-1.5 rounded-full bg-black/60 backdrop-blur-xl border border-white/[0.08] border-t-white/[0.16] px-3 py-1 tech-label text-[10px] text-[#D4FF00] shadow-sm">
-                <Flame className="h-3.5 w-3.5 fill-[#D4FF00] text-[#D4FF00]" />
-                Destacado
-              </span>
-              {featuredEvent.goingCount > 0 && (
-                <span className="flex items-center gap-1.5 rounded-full bg-black/60 backdrop-blur-xl border border-white/[0.08] px-2.5 py-1 text-neutral-200 shadow-sm">
-                  <CheckCircle2 className="h-3 w-3 text-[#D4FF00]" />
-                  <span className="num-display text-xs text-white">{featuredEvent.goingCount}</span>
-                  <span className="tech-label text-[9px] text-neutral-300">confirmados</span>
-                </span>
-              )}
-            </div>
-
-            {/* Contenido Inferior con Guía de Lectura Clara y Descomprimida */}
-            <div className="absolute inset-x-0 bottom-0 z-10 p-5 sm:p-7 md:p-8 flex flex-col justify-end max-w-3xl space-y-2.5">
-              {/* 1. Categoría / Género */}
-              {featuredEvent.genre && (
-                <span className="tech-label text-xs text-[#D4FF00]">
-                  {featuredEvent.genre}
-                </span>
-              )}
-
-              {/* 2. Título del Evento */}
-              <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black uppercase tracking-tight text-white leading-tight drop-shadow-md group-hover:text-[#D4FF00] transition-colors line-clamp-2">
-                {featuredEvent.title}
-              </h2>
-
-              {/* 3. Metadata Esencial (Fecha y Ubicación con buen espaciado) */}
-              <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm text-neutral-300 font-semibold">
-                <div className="flex items-center gap-1.5">
-                  <Calendar className="h-4 w-4 text-[#D4FF00] shrink-0" />
-                  <span className="capitalize">
-                    {new Intl.DateTimeFormat("es-AR", {
-                      weekday: "short",
-                      day: "numeric",
-                      month: "short",
-                    }).format(parseEventRealDate(featuredEvent.date))}
+          <section aria-labelledby="events-featured">
+            <h2 id="events-featured" className="label-mono text-ink-2 m-0 mb-3">
+              Destacado de la semana
+            </h2>
+            <Link
+              href={`/events/${featuredEvent.id}?origin=/events`}
+              className="group block md:grid md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] rounded-hero overflow-hidden bg-surface border border-line text-ink transition-colors hover:border-line-strong focus-visible:outline-2 focus-visible:outline-accent"
+            >
+              <div
+                role="img"
+                aria-label={`Póster de ${featuredEvent.title}`}
+                className="relative h-[400px] md:h-[440px] bg-surface-2 bg-cover bg-center"
+                style={{ backgroundImage: `url(${featuredEvent.cinematicBannerUrl?.trim() || fallbackBanner})` }}
+              >
+                <div className="absolute top-3.5 inset-x-3.5 flex justify-between gap-2">
+                  {featuredEvent.genre ? (
+                    <span className="label-mono px-2.5 py-[7px] rounded-full bg-bg/80 text-accent">
+                      {featuredEvent.genre}
+                    </span>
+                  ) : <span />}
+                  {featuredEvent.goingCount > 0 && (
+                    <span className="px-2.5 py-1.5 rounded-full bg-bg/80 flex items-center gap-1.5 text-[13px] font-semibold">
+                      <span className="num-mono">{featuredEvent.goingCount}</span>
+                      <span className="text-ink-2 font-medium">confirmados</span>
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="p-[18px] md:p-7 flex flex-col gap-3 md:justify-end">
+                <h3 className="font-display text-[26px] md:text-4xl m-0 line-clamp-3">
+                  {featuredEvent.title}
+                </h3>
+                <div className="flex flex-col gap-1.5 text-sm text-ink-2">
+                  <span className="flex items-center gap-2">
+                    <Calendar className="size-4 text-accent shrink-0" aria-hidden="true" />
+                    <span className="capitalize">
+                      {new Intl.DateTimeFormat("es-AR", {
+                        weekday: "short",
+                        day: "numeric",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: false,
+                        timeZone: "America/Montevideo",
+                      }).format(parseEventRealDate(featuredEvent.date))}
+                    </span>
+                  </span>
+                  {featuredEvent.location && (
+                    <span className="flex items-center gap-2 min-w-0">
+                      <MapPin className="size-4 shrink-0" aria-hidden="true" />
+                      <span className="truncate">{featuredEvent.location}</span>
+                    </span>
+                  )}
+                </div>
+                <div className="pt-1 flex items-center justify-between gap-3">
+                  {formatEventPrice(featuredEvent) ? (
+                    <span className="flex flex-col gap-0.5">
+                      <span className="label-mono text-ink-3">Desde</span>
+                      <span className="num-mono text-lg font-semibold">{formatEventPrice(featuredEvent)}</span>
+                    </span>
+                  ) : <span />}
+                  <span className="h-12 px-[18px] rounded-control bg-accent text-on-accent text-[15px] font-semibold flex items-center gap-2 transition-colors group-hover:bg-accent-hover">
+                    Conseguir entradas
+                    <ArrowRight className="size-[18px]" aria-hidden="true" strokeWidth={2.4} />
                   </span>
                 </div>
-                {featuredEvent.location && (
-                  <>
-                    <span className="text-white/30">•</span>
-                    <div className="flex items-center gap-1.5 truncate max-w-xs sm:max-w-md">
-                      <MapPin className="h-4 w-4 text-neutral-400 shrink-0" />
-                      <span className="truncate">{featuredEvent.location}</span>
-                    </div>
-                  </>
-                )}
               </div>
-
-              {/* 4. Call to Action Claro: "Conseguir Entradas" con Flecha interactiva */}
-              <div className="pt-2 sm:pt-3 flex items-center gap-3">
-                <div className="inline-flex items-center gap-2 rounded-full bg-[#D4FF00] px-4 py-2 sm:px-5 sm:py-2.5 tech-label text-neutral-950 shadow-[0_10px_35px_rgba(212,255,0,0.16)] group-hover:brightness-105 transition-all">
-                  <span>Conseguir Entradas</span>
-                  <ArrowRight className="h-4 w-4 stroke-[2.5] transition-transform duration-300 group-hover:translate-x-1" />
-                </div>
-              </div>
-            </div>
-          </Link>
+            </Link>
+          </section>
         )}
 
         {/* Chips de Filtros Activos (solo para filtros adicionales no cubiertos directamente en la barra principal) */}
         {hasActiveChips && (
           <div className="flex flex-wrap items-center gap-1.5 pt-0.5 animate-fade-in">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 mr-0.5 select-none">
-              Filtros:
-            </span>
+            <span className="label-mono text-ink-3 mr-0.5">Filtros</span>
             {appliedFilters.location && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-white/[0.08] border-t-white/[0.14] bg-[#14171F] px-2.5 py-0.5 text-[11px] font-semibold text-neutral-200 shadow-sm">
+              <span className="inline-flex items-center gap-1 h-9 pl-3 pr-1 rounded-full border border-white/10 bg-surface text-[13px] font-medium text-ink">
                 Zona: {appliedFilters.location}
                 <button
                   type="button"
                   onClick={() => removeSingleFilter("location")}
-                  className="hover:text-[#D4FF00] cursor-pointer"
+                  className="size-8 rounded-full flex items-center justify-center hover:bg-white/10"
                   title="Quitar zona"
                 >
                   <X className="h-3 w-3" />
@@ -1378,12 +1346,12 @@ export default function EventsPage() {
               </span>
             )}
             {appliedFilters.priceType !== "all" && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-white/[0.08] border-t-white/[0.14] bg-[#14171F] px-2.5 py-0.5 text-[11px] font-semibold text-neutral-200 shadow-sm">
+              <span className="inline-flex items-center gap-1 h-9 pl-3 pr-1 rounded-full border border-white/10 bg-surface text-[13px] font-medium text-ink">
                 {appliedFilters.priceType === "free" ? "Gratis" : "De pago"}
                 <button
                   type="button"
                   onClick={() => removeSingleFilter("priceType")}
-                  className="hover:text-[#D4FF00] cursor-pointer"
+                  className="size-8 rounded-full flex items-center justify-center hover:bg-white/10"
                   title="Quitar precio"
                 >
                   <X className="h-3 w-3" />
@@ -1391,12 +1359,12 @@ export default function EventsPage() {
               </span>
             )}
             {(appliedFilters.minPrice || appliedFilters.maxPrice) && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-white/[0.08] border-t-white/[0.14] bg-[#14171F] px-2.5 py-0.5 text-[11px] font-semibold text-neutral-200 shadow-sm">
+              <span className="inline-flex items-center gap-1 h-9 pl-3 pr-1 rounded-full border border-white/10 bg-surface text-[13px] font-medium text-ink">
                 ${appliedFilters.minPrice || "0"} - ${appliedFilters.maxPrice || "∞"}
                 <button
                   type="button"
                   onClick={() => removeSingleFilter("price")}
-                  className="hover:text-[#D4FF00] cursor-pointer"
+                  className="size-8 rounded-full flex items-center justify-center hover:bg-white/10"
                   title="Quitar rango de precio"
                 >
                   <X className="h-3 w-3" />
@@ -1404,13 +1372,13 @@ export default function EventsPage() {
               </span>
             )}
             {sortBy === "popular" && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-[#D4FF00]/15 px-2.5 py-0.5 text-[11px] font-semibold text-[#D4FF00]">
+              <span className="inline-flex items-center gap-1 h-9 pl-3 pr-1 rounded-full border border-accent/40 bg-accent/12 text-[13px] font-semibold text-accent">
                 <Flame className="h-3 w-3 fill-[#D4FF00]" />
                 Más votados
                 <button
                   type="button"
                   onClick={() => setSortBy("date")}
-                  className="hover:text-white cursor-pointer"
+                  className="size-8 rounded-full flex items-center justify-center hover:bg-white/10"
                   title="Quitar más votados"
                 >
                   <X className="h-3 w-3" />
@@ -1418,12 +1386,12 @@ export default function EventsPage() {
               </span>
             )}
             {debouncedQuery && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-[#D4FF00]/15 px-2.5 py-0.5 text-[11px] font-semibold text-[#D4FF00]">
+              <span className="inline-flex items-center gap-1 h-9 pl-3 pr-1 rounded-full border border-accent/40 bg-accent/12 text-[13px] font-semibold text-accent">
                 "{debouncedQuery}"
                 <button
                   type="button"
                   onClick={() => setSearchQuery("")}
-                  className="hover:text-white cursor-pointer"
+                  className="size-8 rounded-full flex items-center justify-center hover:bg-white/10"
                   title="Quitar búsqueda"
                 >
                   <X className="h-3 w-3" />
@@ -1433,78 +1401,36 @@ export default function EventsPage() {
             <button
               type="button"
               onClick={clearFilters}
-              className="text-[10px] font-extrabold uppercase tracking-wider text-neutral-400 hover:text-[#D4FF00] ml-1 transition-colors cursor-pointer"
+              className="h-9 px-2 text-[13px] font-semibold text-accent hover:text-accent-hover"
             >
               Limpiar todo
             </button>
           </div>
         )}
 
-        {/* Subheader (Solo Desktop): Próximos eventos + total contador + Selector de 3 iconos */}
-        <div className="hidden md:flex items-center justify-between gap-3 pt-1">
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <h2 className="flex items-center gap-2 tech-label text-xs text-neutral-300 truncate">
-              <Sparkles className="h-4 w-4 text-[#D4FF00] shrink-0" />
-              <span className="truncate">
-                {sortBy === "popular" ? "Mayor Convocatoria" : "Próximos eventos"}
-              </span>
+        {/* Encabezado de la lista + selector de vista (desktop) */}
+        <div className="flex items-end justify-between gap-3">
+          <div className="flex items-baseline gap-3 min-w-0">
+            <h2 className="font-display text-[22px] md:text-[28px] m-0 truncate">
+              {sortBy === "popular" ? "Más convocados" : "Próximos eventos"}
             </h2>
-            <span className="flex items-center gap-1.5 rounded-full bg-[#D4FF00]/10 px-2.5 py-1 shrink-0">
-              <span className="num-display text-xs text-white">{hasLoaded ? total : "…"}</span>
-              <span className="tech-label text-[9px] text-[#D4FF00]">{hasLoaded ? "eventos" : "cargando"}</span>
+            <span className="label-mono text-ink-3 shrink-0">
+              {hasLoaded ? `${total} ${total === 1 ? "evento" : "eventos"}` : "Cargando"}
             </span>
           </div>
-
-          <div className="flex items-center rounded-full border border-white/[0.06] bg-[#111114] p-0.5 shrink-0">
-            <button
-              type="button"
-              onClick={() => setViewMode("grid")}
-              title="Vista Cuadrícula"
-              aria-label="Vista Cuadrícula"
-              className={cn(
-                "flex items-center justify-center rounded-full p-2 text-xs font-bold transition-all cursor-pointer",
-                viewMode === "grid"
-                  ? "bg-[#D4FF00] text-neutral-950 shadow-[0_4px_16px_rgba(212,255,0,0.16)]"
-                  : "text-neutral-400 hover:text-white"
-              )}
-            >
-              <LayoutGrid className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode("list")}
-              title="Vista Agenda"
-              aria-label="Vista Agenda"
-              className={cn(
-                "flex items-center justify-center rounded-full p-2 text-xs font-bold transition-all cursor-pointer",
-                viewMode === "list"
-                  ? "bg-[#D4FF00] text-neutral-950 shadow-[0_4px_16px_rgba(212,255,0,0.16)]"
-                  : "text-neutral-400 hover:text-white"
-              )}
-            >
-              <List className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode("calendar")}
-              title="Vista Calendario"
-              aria-label="Vista Calendario"
-              className={cn(
-                "flex items-center justify-center rounded-full p-2 text-xs font-bold transition-all cursor-pointer",
-                viewMode === "calendar"
-                  ? "bg-[#D4FF00] text-neutral-950 shadow-[0_4px_16px_rgba(212,255,0,0.16)]"
-                  : "text-neutral-400 hover:text-white"
-              )}
-            >
-              <Calendar className="h-3.5 w-3.5" />
-            </button>
-          </div>
+          <SegmentedControl
+            label="Vista"
+            className="hidden md:flex shrink-0"
+            options={viewOptions.map((option) => ({ ...option }))}
+            value={viewMode}
+            onChange={setViewMode}
+          />
         </div>
 
         {/* Contenedor Principal de Eventos (Grilla, Lista Cronológica o Calendario estilo BeReal) */}
         {!hasLoaded && isLoadingEvents ? (
           viewMode === "calendar" ? (
-            <div className="rounded-3xl border border-white/5 bg-[#14171F] p-5 space-y-4 animate-pulse">
+            <div className="rounded-card border border-line bg-surface p-5 space-y-4 animate-pulse">
               <div className="h-8 w-48 rounded-full bg-white/10" />
               <div className="grid grid-cols-7 gap-2 pt-4">
                 {Array.from({ length: 28 }).map((_, i) => (
@@ -1517,24 +1443,24 @@ export default function EventsPage() {
               {[1, 2, 3, 4, 5, 6].map((item) => (
                 <div
                   key={item}
-                  className="h-20 w-full animate-pulse rounded-2xl md:rounded-3xl border border-white/5 bg-[#14171F]"
+                  className="h-20 w-full animate-pulse rounded-card border border-line bg-surface"
                 />
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-5 md:gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-5">
               {[1, 2, 3, 4, 5, 6].map((item) => (
                 <div
                   key={item}
-                  className="mx-auto h-72 sm:h-80 md:h-auto md:aspect-[4/5] w-full max-w-md animate-pulse rounded-3xl border border-white/5 bg-[#14171F] md:max-w-none"
+                  className="aspect-[3/4] w-full animate-pulse rounded-card border border-line bg-surface"
                 />
               ))}
             </div>
           )
         ) : eventsError && events.length === 0 ? (
-          <div className="space-y-4 rounded-3xl border border-rose-500/20 bg-[#14171F] p-8 text-center">
-            <RefreshCw className="mx-auto h-7 w-7 text-rose-400" />
-            <p className="text-sm font-bold text-white">No pudimos cargar los eventos.</p>
+          <div className="space-y-4 rounded-card border border-danger/30 bg-surface p-8 text-center">
+            <RefreshCw className="mx-auto size-7 text-danger" aria-hidden="true" />
+            <p className="text-base font-semibold">No pudimos cargar los eventos.</p>
             <Button
               size="sm"
               variant="outline"
@@ -1555,21 +1481,15 @@ export default function EventsPage() {
               {chronologicalGroups.map((group) => (
                 <div key={group.id} className="space-y-3">
                   {/* Encabezado Cronológico de Grupo */}
-                  <div className="flex items-center justify-between border-b border-white/[0.06] pb-2 pt-1">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-[#D4FF00]" />
-                      <span className="text-xs font-black uppercase tracking-widest text-neutral-200">
-                        {group.title}
-                      </span>
+                  <div className="flex items-baseline justify-between gap-3 border-b border-line pb-2">
+                    <div className="flex items-baseline gap-2 min-w-0">
+                      <span className="font-display text-lg truncate">{group.title}</span>
                       {group.subtitle && (
-                        <span className="text-[11px] font-semibold text-neutral-400">
-                          • {group.subtitle}
-                        </span>
+                        <span className="label-mono text-ink-3 shrink-0">{group.subtitle}</span>
                       )}
                     </div>
-                    <span className="rounded-full bg-white/[0.04] px-2.5 py-0.5 flex items-center gap-1">
-                      <span className="num-display text-xs text-white">{group.events.length}</span>
-                      <span className="tech-label text-[9px] text-neutral-400">{group.events.length === 1 ? "evento" : "eventos"}</span>
+                    <span className="label-mono text-ink-3 shrink-0">
+                      {group.events.length} {group.events.length === 1 ? "evento" : "eventos"}
                     </span>
                   </div>
 
@@ -1584,7 +1504,7 @@ export default function EventsPage() {
             </div>
           ) : (
             /* Vista Grilla Espaciosa con Foco en Portadas */
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-5 md:gap-6 animate-in fade-in duration-300">
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-5 animate-in fade-in duration-300">
               {displayEvents.map((event) => (
                 <EventCard
                   key={event.id}
@@ -1595,12 +1515,12 @@ export default function EventsPage() {
             </div>
           )
         ) : (
-          <div className="space-y-3 rounded-3xl border border-white/5 bg-[#14171F]/50 p-8 text-center">
-            <Film className="mx-auto h-8 w-8 text-neutral-500" />
-            <p className="text-sm font-bold uppercase tracking-wider text-white">
+          <div className="space-y-3 rounded-card border border-line bg-surface p-8 text-center">
+            <Film className="mx-auto size-8 text-ink-3" aria-hidden="true" />
+            <p className="text-base font-semibold">
               No hay próximos eventos con esos filtros
             </p>
-            <p className="text-xs text-neutral-400">Probá ampliar el rango o limpiar los filtros.</p>
+            <p className="text-sm text-ink-2">Probá ampliar el rango o limpiar los filtros.</p>
             <Button size="sm" onClick={clearFilters}>Limpiar filtros</Button>
           </div>
         )}
@@ -1608,10 +1528,8 @@ export default function EventsPage() {
         {/* Indicador de Carga Continua (Scroll Infinito) */}
         {isLoadingEvents && events.length > 0 && (
           <div className="flex flex-col items-center justify-center pt-8 pb-4 gap-3 animate-in fade-in duration-300">
-            <Loader2 className="h-6 w-6 animate-spin text-[#D4FF00]" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400">
-              Cargando más eventos...
-            </span>
+            <Loader2 className="size-6 animate-spin text-accent" aria-hidden="true" />
+            <span className="label-mono text-ink-2">Cargando más eventos</span>
           </div>
         )}
 

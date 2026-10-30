@@ -33,7 +33,6 @@ export function BottomNav() {
   const mounted = useSyncExternalStore(subscribeMounted, () => true, () => false);
   const [isMenuOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
-  const [isCompact, setIsCompact] = useState(false);
   const lastScrollY = useRef(0);
 
   const isIOS =
@@ -44,7 +43,6 @@ export function BottomNav() {
       (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
 
   useEffect(() => {
-    setIsCompact(false);
     setIsVisible(true);
   }, [pathname]);
 
@@ -61,7 +59,6 @@ export function BottomNav() {
 
       // Al inicio de la página (< 30px) siempre vuelve a su tamaño original
       if (currentScrollY <= 30) {
-        setIsCompact(false);
         setIsVisible(true);
         lastScrollY.current = currentScrollY;
         return;
@@ -69,14 +66,12 @@ export function BottomNav() {
 
       const delta = currentScrollY - lastScrollY.current;
 
-      // Al scrollear hacia abajo: la tabbar se achica (efecto Instagram)
+      // Al scrollear hacia abajo se oculta el header flotante de desktop
       if (delta > 8) {
-        setIsCompact(true);
         setIsVisible(false); // Para el header flotante de desktop
       }
-      // Al scrollear hacia arriba: la tabbar vuelve al tamaño original
+      // Al scrollear hacia arriba vuelve a aparecer
       else if (delta < -8) {
-        setIsCompact(false);
         setIsVisible(true); // Para el header flotante de desktop
       }
 
@@ -91,10 +86,9 @@ export function BottomNav() {
     };
   }, [router]);
 
-  // Ocultar barra completamente en flujos de autenticación / onboarding / KYC
+  // Ocultar barra en registro, recuperación, onboarding y KYC (en /login se ve, como invitado)
   const isAuthOrOnboarding =
     pathname === "/register" ||
-    pathname === "/login" ||
     pathname === "/forgot-password" ||
     pathname === "/reset-password" ||
     pathname === "/complete-profile" ||
@@ -139,12 +133,15 @@ export function BottomNav() {
   ];
 
   // Items para el dock móvil (abajo)
-  const visibleMobileItems = NAV_ITEMS.map((item) => {
+  // Sin sesión solo se ven Eventos e Ingresar.
+  const visibleMobileItems = NAV_ITEMS.filter(
+    (item) => user || item.label === "Eventos" || item.label === "Perfil",
+  ).map((item) => {
     if (item.label === "Perfil") {
       if (user?.username) {
         return { ...item, href: `/profile/${user.username}` };
       }
-      return { ...item, href: "/login" };
+      return { ...item, label: "Ingresar", href: "/login" };
     }
     return item;
   });
@@ -277,121 +274,58 @@ export function BottomNav() {
         </div>
       </header>
 
-      {/* 2. Mobile Floating Bottom Dock (Pill inferior para móviles) */}
+      {/* 2. Dock inferior móvil: icono + etiqueta, el activo con fondo lima suave */}
       <nav
         aria-label="Navegación principal móvil"
         inert={hideOnMobile}
         aria-hidden={hideOnMobile || undefined}
         className={cn(
-          "fixed left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-7 flex justify-center transition-all duration-300 ease-out md:hidden",
+          "fixed left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-4 flex justify-center transition-[transform,opacity] duration-200 ease-out motion-reduce:transition-opacity md:hidden",
           isIOS
             ? "bottom-[max(0.75rem,var(--root-safe-bottom))]"
             : "bottom-[var(--root-mobile-nav-bottom)]",
           hideOnMobile
             ? "translate-y-32 opacity-0 pointer-events-none"
-            : isCompact
-              ? "translate-y-1"
-              : "translate-y-0",
+            : "translate-y-0",
         )}
       >
-        <div
-          className={cn(
-            "liquid-glass-dock rounded-full flex items-center justify-around transition-all duration-300 ease-out w-full",
-            isCompact
-              ? "max-w-xs h-12 p-1 shadow-[0_16px_36px_rgba(0,0,0,0.85)] scale-95"
-              : "max-w-md h-14 p-1 shadow-[0_20px_50px_rgba(0,0,0,0.7)] scale-100",
-          )}
-        >
-          {/* Liquid Glass: Specular top edge highlight */}
-          <div className="liquid-glass-specular" />
-          {/* Liquid Glass: Ambient soft refraction */}
-          <div className="liquid-glass-refraction -top-8 left-1/2 -translate-x-1/2 w-64 h-16" />
-
+        <div className="w-full h-16 px-1.5 flex items-center justify-around gap-1 rounded-hero bg-[#15171B] border border-line shadow-[0_12px_32px_rgba(0,0,0,0.5)]">
           {visibleMobileItems.map((item) => {
             const isActive =
               pathname === item.href ||
               (item.href !== "/" && pathname.startsWith(`${item.href}/`)) ||
               (item.label === "Perfil" && isProfileActive);
             const Icon = item.icon;
-            const isProfileItem = item.label === "Perfil";
+            const showAvatar =
+              item.label === "Perfil" && isValidImageUrl(user?.avatarUrl);
 
             return (
               <Link
-                key={item.href}
+                key={item.label}
                 href={item.href}
-                title={item.label}
-                aria-label={item.label}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "relative min-w-0 flex flex-1 items-center justify-center rounded-full select-none transition-all duration-200 group z-10",
-                  isCompact ? "h-10" : "h-12",
-                  isActive
-                    ? "text-[#D4FF00]"
-                    : "text-neutral-400 hover:text-white",
+                  "flex-1 min-w-0 h-[52px] rounded-card flex flex-col items-center justify-center gap-1 text-[11px] font-semibold transition-colors duration-200 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-accent",
+                  isActive ? "bg-accent/10 text-ink" : "text-[#8A9099] hover:text-ink",
                 )}
               >
-                {isActive && (
-                  <span
+                {showAvatar ? (
+                  <img
+                    src={user!.avatarUrl!.trim()}
+                    alt=""
                     className={cn(
-                      "absolute rounded-full -z-10 transition-all duration-200 animate-fade-in",
-                      "bg-gradient-to-b from-white/[0.18] to-white/[0.06] border border-white/[0.16]",
-                      "shadow-[inset_0_1px_1px_0_rgba(255,255,255,0.25),0_4px_14px_rgba(0,0,0,0.4)]",
-                      isCompact ? "w-[80%] max-w-[64px] h-9" : "w-[88%] max-w-[84px] h-11",
+                      "size-[22px] rounded-full object-cover",
+                      isActive ? "ring-2 ring-accent" : "ring-1 ring-white/20",
                     )}
                   />
-                )}
-
-                {/* Si es el tab de Perfil y el usuario está logueado: mostrar miniatura tipo Instagram */}
-                {isProfileItem && user ? (
-                  isValidImageUrl(user.avatarUrl) ? (
-                    <div
-                      className={cn(
-                        "relative rounded-full overflow-hidden shrink-0 transition-all duration-200 group-active:scale-90",
-                        isCompact ? "w-5.5 h-5.5" : "w-6.5 h-6.5",
-                        isActive
-                          ? "ring-2 ring-[#D4FF00] shadow-[0_0_10px_rgba(212,255,0,0.45)]"
-                          : "ring-1 ring-white/20 opacity-75 group-hover:opacity-100",
-                      )}
-                    >
-                      <img
-                        src={user.avatarUrl.trim()}
-                        alt={user.username || "Perfil"}
-                        className="aspect-square h-full w-full object-cover"
-                      />
-                    </div>
-                  ) : (
-                    <div
-                      className={cn(
-                        "rounded-full flex items-center justify-center font-black transition-all duration-200 group-active:scale-90 shrink-0",
-                        isCompact ? "w-5.5 h-5.5 text-[10px]" : "w-6.5 h-6.5 text-xs",
-                        isActive
-                          ? "bg-[#D4FF00]/15 text-[#D4FF00] ring-2 ring-[#D4FF00] shadow-[0_0_10px_rgba(212,255,0,0.4)]"
-                          : "bg-white/[0.08] text-neutral-300 ring-1 ring-white/15",
-                      )}
-                    >
-                      {user.username ? (
-                        user.username.charAt(0).toUpperCase()
-                      ) : (
-                        <User
-                          className={cn(
-                            isCompact ? "w-4 h-4" : "w-4.5 h-4.5",
-                            isActive ? "text-[#D4FF00]" : "text-neutral-400",
-                          )}
-                        />
-                      )}
-                    </div>
-                  )
                 ) : (
                   <Icon
-                    className={cn(
-                      "transition-all duration-200 group-active:scale-90 flex-shrink-0",
-                      isCompact ? "w-5 h-5" : "w-6 h-6",
-                      isActive
-                        ? "stroke-[2.25] text-[#D4FF00] drop-shadow-[0_0_10px_rgba(212,255,0,0.45)]"
-                        : "stroke-[1.75] text-neutral-400 group-hover:text-neutral-200",
-                    )}
+                    aria-hidden="true"
+                    className={cn("size-[22px]", isActive && "text-accent")}
+                    strokeWidth={2}
                   />
                 )}
+                <span className="truncate max-w-full px-1">{item.label}</span>
               </Link>
             );
           })}
