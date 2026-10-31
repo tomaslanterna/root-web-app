@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState, type ReactNode, type RefObject } from "react";
-import { Loader2 } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import { attendanceDate } from "@/lib/badgeAppearance";
+import { attendanceDate, badgeStepValue } from "@/lib/badgeAppearance";
 import type { EventBadge, BadgeLineup } from "@/types/badges";
-import { EventBadgeArtwork } from "./EventBadgeArtwork";
+import { BadgeMedal } from "./BadgeMedal";
 import { EventReviewForm, type ReviewFormState } from "./EventReviewForm";
 import { badgeLocation } from "@/lib/badgeLocation";
 import { useEventCheckout } from "@/hooks/useReviewReminder";
@@ -19,30 +19,69 @@ export function BadgeDetail({ badge, isOwner, heroRef, moving, closing, lineup, 
 }) {
   const { user, isLoading: authLoading } = useAuth();
   const checkout = useEventCheckout(badge.eventId);
-  const [eventStarted,setEventStarted]=useState(false);
-  useEffect(()=>{queueMicrotask(()=>setEventStarted(parseEventRealDate(badge.eventDate).getTime()<=Date.now()));},[badge.eventDate]);
+  const [eventStarted, setEventStarted] = useState(false);
+  // Mientras el dueño puntúa, el arco y el chip siguen la nota antes de guardar.
+  const [draftRating, setDraftRating] = useState<number | null | undefined>(undefined);
+  useEffect(() => { queueMicrotask(() => setEventStarted(parseEventRealDate(badge.eventDate).getTime() <= Date.now())); }, [badge.eventDate]);
   const artists = lineup?.artists.filter(entry => entry.artist) || [];
   const names = artists.length ? [] : lineup?.names || [];
-  const lineupCard: ReactNode = <section aria-label="Lineup" className="rounded-2xl bg-[#14171F] p-4">
-    <h4 className="mb-2 text-sm font-bold">Lineup</h4>
-    {lineupLoading && <Loader2 aria-label="Cargando lineup" className="h-4 w-4 animate-spin text-neutral-500" />}
-    {lineupError ? <div role="alert" className="text-xs text-neutral-400"><p>No pudimos cargar el lineup.</p><button type="button" onClick={onRetry} className="mt-2 min-h-11 text-[#D4FF00]">Reintentar</button></div> : !lineupLoading && !artists.length && !names.length ? <p className="py-2 text-xs text-neutral-500">No hay información del lineup disponible.</p> : null}
-    {artists.map(entry => <div key={entry.artistId} className="flex items-center gap-3 border-t border-white/5 py-3">
-      <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#D4FF00]" />
-      <div className="min-w-0"><p className="break-words text-sm font-bold">{entry.artist!.name}</p><p className="mt-0.5 text-[11px] text-neutral-500">{entry.isHeadliner ? "Headliner" : entry.artist!.artistType}</p></div>
+  const lineupCard: ReactNode = <section aria-labelledby="badge-lineup" className="rounded-card bg-surface border border-line p-4">
+    <h3 id="badge-lineup" className="m-0 mb-1 text-[17px] font-semibold">Lineup</h3>
+    {lineupLoading && <Loader2 aria-label="Cargando lineup" className="size-4 animate-spin text-ink-3" />}
+    {lineupError ? <div role="alert" className="text-sm text-ink-2"><p className="m-0">No pudimos cargar el lineup.</p><button type="button" onClick={onRetry} className="mt-2 min-h-11 font-semibold text-accent">Reintentar</button></div> : !lineupLoading && !artists.length && !names.length ? <p className="m-0 py-2 text-sm text-ink-3">No hay información del lineup disponible.</p> : null}
+    {artists.map(entry => <div key={entry.artistId} className="flex items-baseline justify-between gap-3 border-t border-line py-3">
+      <span className="min-w-0 break-words text-[15px] font-semibold">{entry.artist!.name}</span>
+      <span className={`label-mono shrink-0 ${entry.isHeadliner ? "text-accent" : "text-ink-3"}`}>{entry.isHeadliner ? "Headliner" : entry.artist!.artistType}</span>
     </div>)}
-    {names.map((name, index) => <p key={`${index}:${name}`} className="break-words border-t border-white/5 py-3 text-sm font-bold">{name}</p>)}
+    {names.map((name, index) => <p key={`${index}:${name}`} className="m-0 break-words border-t border-line py-3 text-[15px] font-semibold">{name}</p>)}
   </section>;
-  return <div className="mx-auto max-w-sm space-y-5 pb-6">
-    <div className={badge.mostDanced ? "pt-16" : undefined}>
-      <div ref={heroRef} className={`mx-auto ${badge.mostDanced ? "w-[min(72vw,20rem)]" : "w-[min(86vw,23rem)]"}`} style={{ visibility: moving ? "hidden" : "visible" }}><EventBadgeArtwork badge={badge} celebrate={!moving} /></div>
+
+  return <div className="mx-auto max-w-sm px-4 pb-8">
+    <div className={`flex justify-center ${badge.mostDanced ? "pt-10" : "pt-7"}`}>
+      <div ref={heroRef} style={{ visibility: moving ? "hidden" : "visible" }}>
+        <BadgeMedal badge={badge} size="hero" isOwner={isOwner} ratingOverride={isOwner && badge.review == null ? draftRating : undefined} />
+      </div>
     </div>
-    <div className={`space-y-5 badge-detail-content ${closing ? "badge-detail-closing" : ""}`}>
-      {badge.source === "manual" && <p className="text-center text-xs text-neutral-500">Insignia asignada manualmente · No acredita asistencia por ubicación.</p>}
-      <div className="text-center"><h3 className="text-xl font-black italic leading-tight">{badge.title}</h3><p className="mt-2 break-words text-[11px] text-neutral-500">{badgeLocation(badge)}</p><p className="mt-1 text-[11px] text-neutral-500">{attendanceDate(badge.eventDate)}</p>{badge.mostDanced && <p className="mt-2 text-xs text-[#D4FF00]">{badge.mostDancedPreview ? "La más bailada · Ejemplo visual, sin pasos reales" : "Tu fiesta más bailada de ese año"}</p>}</div>
-      {isOwner && badge.source === "geofence" && !badge.departedAt && !checkout.data && eventStarted && <div className="text-center"><button type="button" disabled={checkout.isLoading} onClick={() => void checkout.mutate().catch(() => undefined)} className="min-h-11 text-xs text-neutral-400 underline">{checkout.isLoading ? "Confirmando..." : "Terminé mi noche"}</button><p className="text-[10px] text-neutral-500">Confirmá tu salida para recibir una invitación a reseñar en otra apertura.</p>{checkout.error && <p role="alert" className="text-xs text-red-400">No pudimos guardar tu salida.</p>}</div>}
-      {checkout.data && <p role="status" className="text-center text-xs text-neutral-400">Salida confirmada. La reseña es opcional.</p>}
-      {isOwner ? <EventReviewForm badge={badge} onSaved={onSaved} onStateChange={onFormState} lineup={lineup} lineupLoading={lineupLoading} lineupError={lineupError} onRetry={onRetry} /> : <>{lineupCard}<p className="text-center text-xs text-neutral-500">Las puntuaciones y reseñas son personales y solo puede verlas su dueño.</p>{!authLoading && !user && <Link href={`/login?next=${encodeURIComponent(`/events/${badge.eventId}/survey`)}`} className="flex min-h-11 items-center justify-center rounded-full bg-[#D4FF00] px-4 text-sm font-bold text-black">Iniciá sesión con tu cuenta para reseñar</Link>}</>}
+
+    <div className={`badge-detail-content ${closing ? "badge-detail-closing" : ""}`}>
+      <div className="pt-5 px-2 flex flex-col items-center gap-1.5 text-center">
+        <h3 className="font-display m-0 text-[26px]">{badge.title}</h3>
+        <span className="break-words text-sm text-ink-2">{badgeLocation(badge)}</span>
+        <span className="num-mono text-[13px] text-ink-3">{attendanceDate(badge.eventDate)}</span>
+        {badge.mostDanced && <span className="mt-1 text-[13px] font-semibold text-accent">{badge.mostDancedPreview ? "La más bailada · ejemplo visual, sin pasos reales" : "Tu noche más bailada del año"}</span>}
+      </div>
+
+      <div className="mt-5 grid grid-cols-2 gap-px rounded-card overflow-hidden bg-line border border-line">
+        <div className="bg-surface p-3.5 flex flex-col gap-[3px]">
+          <span className="num-mono text-xl font-semibold text-accent">{badgeStepValue(badge.steps)}</span>
+          <span className="text-[13px] text-ink-2">pasos esa noche</span>
+        </div>
+        <div className="bg-surface p-3.5 flex flex-col gap-[3px]">
+          <span className="text-[15px] font-semibold flex items-center gap-1.5">
+            {badge.source !== "manual" && <Check className="size-4 text-info" strokeWidth={2.4} aria-hidden="true" />}
+            Asistencia
+          </span>
+          <span className="text-[13px] text-ink-2">{badge.source === "manual" ? "asignada manualmente" : "confirmada por ubicación"}</span>
+        </div>
+      </div>
+      {badge.source === "manual" && <p className="mt-3 mb-0 text-center text-[13px] text-ink-3">Insignia asignada manualmente · No acredita asistencia por ubicación.</p>}
+
+      {isOwner && badge.source === "geofence" && !badge.departedAt && !checkout.data && eventStarted && <div className="mt-4 text-center">
+        <button type="button" disabled={checkout.isLoading} onClick={() => void checkout.mutate().catch(() => undefined)} className="min-h-11 text-sm font-semibold text-accent">{checkout.isLoading ? "Confirmando..." : "Terminé mi noche"}</button>
+        <p className="m-0 text-[13px] text-ink-3">Confirmá tu salida para recibir una invitación a reseñar en otra apertura.</p>
+        {checkout.error && <p role="alert" className="m-0 mt-1 text-sm text-danger">No pudimos guardar tu salida.</p>}
+      </div>}
+      {checkout.data && <p role="status" className="mt-4 mb-0 text-center text-sm text-ink-2">Salida confirmada. La reseña es opcional.</p>}
+
+      <div className="pt-8 flex flex-col gap-5">
+        {isOwner
+          ? <EventReviewForm badge={badge} onSaved={onSaved} onStateChange={onFormState} onRatingChange={setDraftRating} lineup={lineup} lineupLoading={lineupLoading} lineupError={lineupError} onRetry={onRetry} />
+          : <>
+            {lineupCard}
+            <p className="m-0 text-center text-[13px] text-ink-3">Las puntuaciones y reseñas son personales y solo puede verlas su dueño.</p>
+            {!authLoading && !user && <Link href={`/login?next=${encodeURIComponent(`/events/${badge.eventId}/survey`)}`} className="flex h-12 items-center justify-center rounded-control bg-accent px-4 text-[15px] font-semibold text-on-accent">Iniciá sesión para reseñar</Link>}
+          </>}
+      </div>
     </div>
   </div>;
 }

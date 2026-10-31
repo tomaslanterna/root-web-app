@@ -2,23 +2,11 @@
 
 import React, { useState } from "react";
 import { useMatch } from "@/context/MatchContext";
-import Image from "next/image";
 import { useMatcherCatalog } from "@/hooks/useMatcherCatalog";
 import { CreateCrewModal } from "@/components/match/CreateCrewModal";
-import {
-  Users,
-  Flame,
-  MessageSquare,
-  ArrowRight,
-  Loader2,
-  Plus,
-  Trophy,
-  Crown,
-  Search,
-  MapPin,
-} from "lucide-react";
-import { DiscoBallIcon } from "@/components/ui/DancerIcon";
+import { ChevronRight, Loader2, MessageSquare, Plus, Search } from "lucide-react";
 import Link from "next/link";
+import { CrewMonogram } from "@/components/match/CrewMonogram";
 import { Avatar } from "@/components/ui/Avatar";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
@@ -76,101 +64,68 @@ export default function MatchPage() {
     }
   };
 
+  const tabs = [
+    { id: "squads", label: "Mis crews" },
+    { id: "crews", label: "Explorar" },
+  ] as const;
+
   return (
-    <div className="flex flex-col min-h-[100dvh] bg-[#0B0D10] text-white pb-20">
-      {/* Sticky Obsidian Header (sin filtros) */}
-      <header className="glass-header-obsidian sticky top-0 z-40 flex items-center justify-between px-4 pb-3 pt-safe-header transition-all duration-300">
-        <div className="flex items-center gap-2">
-          <DiscoBallIcon className="h-5 w-5 text-[#D4FF00]" />
-          <h1 className="text-lg font-black uppercase tracking-wider text-white">Crews</h1>
+    <div className="flex flex-col min-h-[100dvh] bg-bg text-ink pb-[calc(var(--root-mobile-nav-clearance)+1rem)] md:pb-16">
+      <header className="sticky top-0 z-30 w-full bg-bg/95 backdrop-blur-md border-b border-line">
+        <div className="w-full max-w-2xl mx-auto px-4 pt-[calc(0.75rem+var(--root-safe-top))] pb-3 md:pt-6 flex items-center justify-between gap-3">
+          <h1 className="font-display text-[32px] m-0">Crews</h1>
+          <Link
+            href="/chat"
+            aria-label="Mensajes de crews"
+            className="size-11 rounded-control bg-surface border border-line flex items-center justify-center hover:bg-surface-2 transition-colors focus-visible:outline-2 focus-visible:outline-accent"
+          >
+            <MessageSquare className="size-5" aria-hidden="true" />
+          </Link>
         </div>
       </header>
 
-      {/* Mode Switcher (Mis Crews vs Crews) */}
-      <div className="p-4 pb-2 w-full max-w-lg mx-auto">
-        <div className="w-full bg-black/60 p-1 rounded-full border-0 shadow-md flex items-center gap-1">
-          <button
-            onClick={() => setActiveTab("squads")}
-            className={cn(
-              "flex-1 py-2 px-3 rounded-full tech-label text-xs flex items-center justify-center gap-1.5 transition-all duration-200 cursor-pointer select-none",
-              activeTab === "squads"
-                ? "bg-[#D4FF00] text-neutral-950 shadow-[0_4px_16px_rgba(212,255,0,0.16)] scale-[1.01]"
-                : "text-neutral-400 hover:text-white",
-            )}
-          >
-            <Users className="w-3.5 h-3.5" />
-            <span>Mis Crews</span>
-            {totalMyCrews > 0 && (
-              <span
-                className={cn(
-                  "num-display text-[11px] px-1.5 py-0.2 rounded-full",
-                  activeTab === "squads"
-                    ? "bg-neutral-950/20 text-neutral-950"
-                    : "bg-[#D4FF00]/20 text-[#D4FF00]",
-                )}
-              >
-                {totalMyCrews}
-              </span>
-            )}
-          </button>
-
-          <button
-            onClick={() => setActiveTab("crews")}
-            className={cn(
-              "flex-1 py-2 px-3 rounded-full tech-label text-xs flex items-center justify-center gap-1.5 transition-all duration-200 cursor-pointer select-none",
-              activeTab === "crews"
-                ? "bg-[#D4FF00] text-neutral-950 shadow-[0_4px_16px_rgba(212,255,0,0.16)] scale-[1.01]"
-                : "text-neutral-400 hover:text-white",
-            )}
-          >
-            <Trophy className="w-3.5 h-3.5" />
-            <span>Crews</span>
-            {allCrews.length > 0 && (
-              <span
-                className={cn(
-                  "num-display text-[11px] px-1.5 py-0.2 rounded-full",
-                  activeTab === "crews"
-                    ? "bg-neutral-950/20 text-neutral-950"
-                    : "bg-white/10 text-neutral-300",
-                )}
-              >
-                {allCrews.length}
-              </span>
-            )}
-          </button>
+      <div className="w-full max-w-2xl mx-auto px-4 pt-4">
+        <div role="tablist" aria-label="Crews" className="flex p-[3px] rounded-xl bg-surface border border-line">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                "flex-1 h-10 rounded-[9px] text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-accent",
+                activeTab === tab.id ? "bg-ink text-bg" : "text-ink-2 hover:text-ink",
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
-      </div>
 
-      {/* Main Content Area */}
-      <div className="flex-1 w-full max-w-3xl mx-auto p-4 md:py-6">
-        {/* Tab 1: Mis Crews */}
         {activeTab === "squads" && (
-          <div className="space-y-4 animate-fade-in">
-            {/* Header with Crear Crew Button */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-[#D4FF00]" />
-                <h2 className="text-xs md:text-sm font-black uppercase tracking-widest text-white">
-                  Mis Crews
-                </h2>
-                <span className="text-[10px] md:text-xs font-extrabold uppercase text-[#D4FF00] bg-[#D4FF00]/10 px-2.5 py-0.5 rounded-full">
-                  {totalMyCrews} ACTIVOS
+          <div className="animate-fade-in">
+            <div className="mt-4 p-[18px] rounded-[18px] bg-accent text-on-accent flex flex-col gap-3">
+              <div className="flex flex-col gap-1.5">
+                <span className="font-display text-[22px]">Armá tu crew</span>
+                <span className="text-[15px] leading-snug text-[#2A2F12]">
+                  Juntate con 3 a 5 personas de tu zona para salir juntos y competir en pasos.
                 </span>
               </div>
-
               <button
                 type="button"
                 onClick={() => setIsCreateModalOpen(true)}
-                className="flex items-center gap-1.5 text-xs font-black uppercase text-neutral-950 bg-[#D4FF00] hover:bg-[#c2eb00] active:scale-95 px-3.5 py-2 rounded-full shadow-[0_4px_20px_rgba(212,255,0,0.16)] transition-all cursor-pointer"
+                className="self-start h-11 px-4 rounded-xl bg-bg text-ink text-[15px] font-semibold flex items-center gap-1.5 active:scale-[0.97] transition-transform focus-visible:outline-2 focus-visible:outline-bg focus-visible:outline-offset-2"
               >
-                <Plus className="w-4 h-4 stroke-[3]" /> Crear Crew
+                <Plus className="size-[18px]" strokeWidth={2.4} aria-hidden="true" /> Crear crew
               </button>
             </div>
 
             {squadsError && (
               <button
+                type="button"
                 onClick={() => void refreshSquads().catch(() => undefined)}
-                className="text-xs text-red-300"
+                className="mt-4 min-h-11 text-sm text-danger"
               >
                 {squadsError} Reintentar
               </button>
@@ -178,227 +133,162 @@ export default function MatchPage() {
 
             {crewsLoading && totalMyCrews === 0 ? (
               <div className="flex justify-center py-12">
-                <Loader2 className="h-6 w-6 animate-spin text-[#D4FF00]" />
+                <Loader2 className="size-6 animate-spin text-accent" aria-label="Cargando crews" />
               </div>
             ) : totalMyCrews === 0 ? (
-              <div className="p-8 text-center rounded-3xl bg-[#111114] border-0 space-y-4 mt-2 shadow-xl">
-                <div className="w-14 h-14 rounded-full bg-white/5 mx-auto flex items-center justify-center">
-                  <Users className="w-7 h-7 text-neutral-400" />
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm font-black uppercase tracking-wide text-neutral-200">
-                    Aún no tienes ningún Crew activo
-                  </p>
-                  <p className="text-xs text-neutral-400 max-w-sm mx-auto leading-relaxed">
-                    Creá una crew con tus amigos o sumate a una crew del país para competir en el ranking de pasos y disfrutar los eventos.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsCreateModalOpen(true)}
-                  className="mt-2 py-2.5 px-5 rounded-full bg-[#D4FF00] text-neutral-950 text-xs font-black uppercase tracking-wider inline-flex items-center gap-1.5 shadow-[0_4px_20px_rgba(212,255,0,0.16)] hover:bg-[#c2eb00] transition-all cursor-pointer"
-                >
-                  <Plus className="w-4 h-4 stroke-[3]" /> Crear una Crew
-                </button>
-              </div>
+              <p className="mt-7 text-center text-[15px] text-ink-2">
+                Todavía no tenés crews. Creá una con tus amigos o sumate a una desde Explorar.
+              </p>
             ) : (
-              <div className="space-y-3">
-                {/* Permanent crews user belongs to */}
-                {permanentCrews.map((crew) => (
-                  <Link
-                    key={crew.id}
-                    href={`/crews/${crew.id}`}
-                    className="flex items-center gap-4 p-4 rounded-3xl bg-[#111114] hover:bg-[#16171D] border-0 transition-all group shadow-[0_8px_30px_rgba(0,0,0,0.5)]"
-                  >
-                    <div className="w-14 h-14 aspect-square rounded-2xl bg-[#D4FF00]/10 flex items-center justify-center shrink-0">
-                      <Flame className="w-7 h-7 text-[#D4FF00] stroke-[1.8] fill-none" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-black uppercase tracking-tight text-white group-hover:text-[#D4FF00] transition-colors truncate">
-                          {crew.name}
-                        </h3>
-                        <span className="text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full bg-[#D4FF00]/15 text-[#D4FF00] shrink-0">
-                          Tu Crew
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3 mt-1.5">
-                        <span className="text-[10px] text-neutral-400 font-bold flex items-center gap-1">
-                          <Users className="w-3 h-3 text-neutral-500" /> {crew.memberCount} miembros
-                        </span>
-                        <span className="text-[10px] text-[#D4FF00] font-bold flex items-center gap-1">
-                          <Crown className="w-3 h-3" /> {crew.topSteps.toLocaleString()} pasos top
-                        </span>
-                      </div>
-                    </div>
-                    <ArrowRight className="w-4 h-4 text-neutral-500 group-hover:text-[#D4FF00] group-hover:translate-x-1 transition-all shrink-0" />
-                  </Link>
-                ))}
-
-                {/* Event squads formed */}
-                {userSquads.map((sq) => {
-                  const event = events.find((e) => e.id === sq.eventId);
-                  const members = sq.members;
-
-                  return (
-                    <Link
-                      key={sq.id}
-                      href={`/chat/squad/${sq.id}`}
-                      className="block p-4 rounded-3xl bg-[#111114] hover:bg-[#16171D] border-0 transition-all duration-300 shadow-[0_8px_30px_rgba(0,0,0,0.5)] group"
-                    >
-                      <div className="flex items-center gap-4">
-                        {(sq.eventImage || event?.cinematicBannerUrl) && (
-                          <Image
-                            width={80}
-                            height={80}
-                            unoptimized
-                            src={sq.eventImage || event?.cinematicBannerUrl || ""}
-                            alt={sq.eventTitle || event?.title || "Evento"}
-                            className="w-14 h-14 md:w-16 md:h-16 aspect-square rounded-2xl object-cover shrink-0 shadow-md"
-                          />
-                        )}
-
-                        <div className="flex-1 min-w-0 space-y-1.5">
-                          <div className="flex items-center justify-between">
-                            <h3 className="text-xs md:text-sm font-black uppercase tracking-tight text-white group-hover:text-[#D4FF00] transition-colors truncate">
-                              {sq.name}
-                            </h3>
-                            {sq.matchScore != null && (
-                              <span className="num-display text-[11px] px-2.5 py-0.5 rounded-full bg-[#D4FF00]/15 text-[#D4FF00] shrink-0">
-                                {sq.matchScore}% <span className="tech-label text-[8px] text-[#D4FF00]/80">Match</span>
-                              </span>
-                            )}
-                          </div>
-
-                          <p className="text-[10px] md:text-xs text-neutral-400 font-bold truncate">
-                            {sq.eventTitle || event?.title}
-                          </p>
-
-                          <div className="flex items-center justify-between pt-1">
-                            <div className="flex items-center -space-x-2 md:-space-x-1.5">
-                              {members.map((u) => (
-                                <Avatar
-                                  key={u.userId}
-                                  src={u.avatarUrl || undefined}
-                                  fallback={u.name || "Integrante"}
-                                  size="sm"
-                                  className="ring-2 ring-[#111114] w-6 h-6 md:w-7 md:h-7 aspect-square"
-                                />
-                              ))}
-                              <span className="tech-label text-neutral-400 pl-3">
-                                <span className="num-display text-xs text-white">{sq.members.length}</span> miembros
-                              </span>
-                            </div>
-
-                            <span className="tech-label text-neutral-400 group-hover:text-white flex items-center gap-1 transition-colors">
-                              <MessageSquare className="w-3.5 h-3.5 text-[#D4FF00]" />{" "}
-                              <span className="hidden sm:inline">Chat</span> →
+              <>
+                {permanentCrews.length > 0 && (
+                  <section aria-labelledby="crews-mine" className="mt-7">
+                    <h2 id="crews-mine" className="label-mono text-ink-2 m-0 mb-2.5">
+                      Tus crews · {permanentCrews.length}
+                    </h2>
+                    <div className="flex flex-col rounded-card overflow-hidden bg-surface border border-line divide-y divide-white/[0.06]">
+                      {permanentCrews.map((crew) => (
+                        <Link
+                          key={crew.id}
+                          href={`/crews/${crew.id}`}
+                          className="flex items-center gap-3 p-3.5 hover:bg-surface-2 transition-colors"
+                        >
+                          <CrewMonogram name={crew.name} />
+                          <span className="flex-1 min-w-0 flex flex-col gap-[3px]">
+                            <span className="text-base font-semibold truncate">{crew.name}</span>
+                            <span className="text-[13px] text-ink-2 truncate">
+                              {crew.memberCount} integrantes{crew.location ? ` · ${crew.location}` : ""}
                             </span>
+                          </span>
+                          <span className="flex flex-col items-end gap-0.5 shrink-0">
+                            <span className="num-mono text-[15px] font-semibold text-accent">
+                              {crew.topSteps.toLocaleString("es-AR")}
+                            </span>
+                            <span className="label-mono text-ink-3">pasos top</span>
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {userSquads.length > 0 && (
+                  <section aria-labelledby="crews-squads" className="mt-7">
+                    <div className="flex items-baseline justify-between mb-2.5">
+                      <h2 id="crews-squads" className="label-mono text-ink-2 m-0">Squads de eventos</h2>
+                      <span className="label-mono text-ink-3">Por match</span>
+                    </div>
+                    <div className="flex flex-col gap-3">
+                      {userSquads.map((sq) => {
+                        const event = events.find((e) => e.id === sq.eventId);
+                        const title = sq.eventTitle || event?.title || sq.name;
+                        return (
+                          <div key={sq.id} className="p-3.5 rounded-card bg-surface border border-line flex flex-col gap-3.5">
+                            <div className="flex items-center gap-3">
+                              <CrewMonogram
+                                name={title}
+                                imageUrl={sq.eventImage || event?.cinematicBannerUrl || undefined}
+                                className="size-14 text-xs"
+                              />
+                              <span className="flex-1 min-w-0 flex flex-col gap-[3px]">
+                                <span className="text-base font-semibold truncate">{title}</span>
+                                <span className="label-mono text-accent truncate">{sq.name}</span>
+                                {sq.location && (
+                                  <span className="text-[13px] text-ink-2 truncate">Salida desde {sq.location}</span>
+                                )}
+                              </span>
+                              {sq.matchScore != null && (
+                                <span className="w-16 h-14 shrink-0 rounded-xl bg-accent/10 flex flex-col items-center justify-center">
+                                  <span className="num-mono text-xl font-semibold text-accent">{sq.matchScore}%</span>
+                                  <span className="label-mono text-ink-2">match</span>
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center justify-between gap-3">
+                              <span className="flex items-center gap-2 min-w-0">
+                                <span className="flex -space-x-2">
+                                  {sq.members.slice(0, 4).map((member) => (
+                                    <Avatar
+                                      key={member.userId}
+                                      src={member.avatarUrl || undefined}
+                                      fallback={member.name || "Integrante"}
+                                      size="sm"
+                                      className="size-7 ring-2 ring-surface"
+                                    />
+                                  ))}
+                                </span>
+                                <span className="text-[13px] text-ink-2">{sq.members.length} integrantes</span>
+                              </span>
+                              <Link
+                                href={`/chat/squad/${sq.id}`}
+                                className="h-11 px-4 shrink-0 rounded-xl bg-surface-2 border border-line-strong text-sm font-semibold flex items-center hover:bg-[#23272D] transition-colors"
+                              >
+                                Abrir chat
+                              </Link>
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
+                        );
+                      })}
+                    </div>
+                  </section>
+                )}
+              </>
             )}
           </div>
         )}
 
-        {/* Tab 2: Crews (Todas las crews existentes en el país, sin botón Nueva Crew) */}
         {activeTab === "crews" && (
-          <div className="space-y-4 animate-fade-in">
-            {/* Header: muestra todas las crews existentes en el país (sin botón Nueva Crew) */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Trophy className="w-4 h-4 text-[#D4FF00]" />
-                <h2 className="text-xs md:text-sm font-black uppercase tracking-widest text-white">
-                  Crews en el País
-                </h2>
-              </div>
-              <span className="tech-label text-neutral-400 bg-white/[0.05] px-2.5 py-1 rounded-full">
-                <span className="num-display text-xs text-white">{allCrews.length}</span> Crews registradas
-              </span>
-            </div>
-
-            {/* Buscador de crews en el país */}
-            <div className="relative">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-500" />
+          <div className="pt-4 flex flex-col gap-3.5 animate-fade-in">
+            <label htmlFor="crews-search" className="sr-only">Buscar crew</label>
+            <div className="h-12 px-3.5 flex items-center gap-2.5 rounded-control bg-surface border border-white/10 text-ink-3 focus-within:border-accent">
+              <Search className="size-5 shrink-0" aria-hidden="true" />
               <input
-                type="text"
+                id="crews-search"
+                type="search"
                 value={searchCrewsQuery}
                 onChange={(e) => setSearchCrewsQuery(e.target.value)}
-                placeholder="Buscar crew por nombre o ciudad..."
-                className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-[#111114] border-0 text-white placeholder-neutral-500 text-xs font-bold focus:outline-none focus:ring-1 focus:ring-[#D4FF00]/60 transition-colors shadow-sm"
+                placeholder="Buscar crew por nombre o ciudad"
+                className="flex-1 min-w-0 bg-transparent border-0 outline-none text-ink text-[15px] placeholder:text-ink-3"
               />
             </div>
+            <span className="label-mono text-ink-3">Crews registradas · {allCrews.length}</span>
 
             {crewsLoading ? (
               <div className="flex justify-center py-12">
-                <Loader2 className="w-6 h-6 animate-spin text-[#D4FF00]" />
+                <Loader2 className="size-6 animate-spin text-accent" aria-label="Cargando crews" />
               </div>
             ) : filteredCountryCrews.length === 0 ? (
-              <div className="p-8 text-center rounded-3xl bg-[#111114] border-0 space-y-3 shadow-xl">
-                <Trophy className="w-8 h-8 text-neutral-500 mx-auto" />
-                <p className="text-sm font-bold text-neutral-300">
-                  No se encontraron crews
-                </p>
-                <p className="text-xs text-neutral-500 leading-relaxed">
-                  {searchCrewsQuery
-                    ? `No hay crews que coincidan con "${searchCrewsQuery}".`
-                    : "Aún no hay crews registradas en el país."}
-                </p>
-              </div>
+              <p className="py-8 text-center text-[15px] text-ink-2">
+                {searchCrewsQuery
+                  ? `No hay crews que coincidan con "${searchCrewsQuery}".`
+                  : "Todavía no hay crews registradas."}
+              </p>
             ) : (
-              <div className="space-y-3">
-                {filteredCountryCrews.map((crew) => {
-                  const isMyCrew = permanentCrews.some((c) => c.id === crew.id);
-
-                  return (
-                    <Link
-                      key={crew.id}
-                      href={`/crews/${crew.id}`}
-                      className="flex items-center gap-4 p-4 rounded-3xl bg-[#111114] hover:bg-[#16171D] border-0 transition-all group shadow-[0_8px_30px_rgba(0,0,0,0.5)]"
-                    >
-                      <div className="w-14 h-14 aspect-square rounded-2xl bg-[#D4FF00]/10 flex items-center justify-center shrink-0">
-                        <Flame className="w-7 h-7 text-[#D4FF00] stroke-[1.8] fill-none" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-sm font-black uppercase tracking-tight text-white group-hover:text-[#D4FF00] transition-colors truncate">
-                            {crew.name}
-                          </h3>
-                          {isMyCrew && (
-                            <span className="tech-label text-[9px] px-2.5 py-0.5 rounded-full bg-[#D4FF00]/15 text-[#D4FF00] shrink-0">
-                              Miembro
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-                          <span className="tech-label text-neutral-400 flex items-center gap-1">
-                            <Users className="w-3 h-3 text-neutral-500" /> <span className="num-display text-xs text-white">{crew.memberCount}</span> miembros
-                          </span>
-                          <span className="text-[10px] text-[#D4FF00] font-bold flex items-center gap-1">
-                            <Crown className="w-3 h-3" /> <span className="num-display text-xs">{crew.topSteps.toLocaleString()}</span> <span className="tech-label text-[9px] text-[#D4FF00]/80">pasos top</span>
-                          </span>
-                          {crew.location && (
-                            <span className="tech-label text-neutral-400 flex items-center gap-1">
-                              <MapPin className="w-3 h-3 text-neutral-500" /> {crew.location}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <ArrowRight className="w-4 h-4 text-neutral-500 group-hover:text-[#D4FF00] group-hover:translate-x-1 transition-all shrink-0" />
-                    </Link>
-                  );
-                })}
-              </div>
+              filteredCountryCrews.map((crew) => {
+                const isMyCrew = permanentCrews.some((c) => c.id === crew.id);
+                return (
+                  <Link
+                    key={crew.id}
+                    href={`/crews/${crew.id}`}
+                    className="flex items-center gap-3 p-3.5 rounded-card bg-surface border border-line hover:bg-surface-2 transition-colors"
+                  >
+                    <CrewMonogram name={crew.name} />
+                    <span className="flex-1 min-w-0 flex flex-col gap-[3px]">
+                      <span className="text-base font-semibold truncate">{crew.name}</span>
+                      <span className="text-[13px] text-ink-2 truncate">
+                        {crew.memberCount} integrantes{crew.location ? ` · ${crew.location}` : ""}
+                      </span>
+                    </span>
+                    {isMyCrew && <span className="label-mono text-accent shrink-0">Miembro</span>}
+                    <ChevronRight className="size-5 text-ink-3 shrink-0" aria-hidden="true" />
+                  </Link>
+                );
+              })
             )}
           </div>
         )}
       </div>
 
-      {/* Modal para Crear Crew y añadir amigos */}
       <CreateCrewModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}

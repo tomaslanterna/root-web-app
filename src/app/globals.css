@@ -39,14 +39,6 @@
 .badge-accolade[data-animate="true"] .badge-accolade__shine { animation: badge-metal-shine 340ms 560ms ease-out both; transform-box: fill-box; }
 .badge-accolade[data-animate="true"] .badge-accolade__laurel-glint { animation: badge-laurel-glint 300ms 570ms ease-out both; }
 
-.profile-modern {
-  font-family: "Avenir Next", "Segoe UI Variable Display", "SF Pro Display", var(--font-geist-sans), sans-serif;
-  font-feature-settings: "ss01", "ss02", "cv01", "cv02", "cv05";
-  font-optical-sizing: auto;
-  letter-spacing: -0.01em;
-}
-.profile-modern :is(button, input, textarea, select) { font-family: inherit; }
-
 .data-display,
 .num-display {
   font-family: var(--font-geist-sans), sans-serif;
@@ -56,7 +48,7 @@
 }
 
 .tech-label {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: 0.14em;
@@ -78,18 +70,66 @@
   .badge-accolade :is(.badge-accolade__shine, .badge-accolade__laurel-glint) { opacity: 0; }
 }
 
+/* Sistema v2 "Nocturno editorial": un solo acento lima, texto ≥ 4.5:1, controles ≥ 44px. */
 @theme {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  --color-bg: #0A0B0D;
+  --color-surface: #131518;
+  --color-surface-2: #1B1E23;
+  --color-ink: #F2F3EF;
+  --color-ink-2: #A9AEB6;
+  --color-ink-3: #858B94;
+  --color-accent: #D4FF00;
+  --color-accent-hover: #E4FF5C;
+  --color-on-accent: #0A0B0D;
+  --color-live: #FF5A36;
+  --color-live-ink: #FF7A5C;
+  --color-danger: #FF8A80;
+  --color-info: #7DD3FC;
+  --color-line: rgba(255, 255, 255, 0.08);
+  --color-line-strong: rgba(255, 255, 255, 0.14);
+
+  --radius-thumb: 10px;
+  --radius-control: 14px;
+  --radius-card: 16px;
+  --radius-hero: 22px;
+}
+
+@layer components {
+  /* Títulos de cartel: eventos, crews y secciones. */
+  .font-display {
+    /* next/font define --font-archivo en <body>, no en :root: se referencia directo. */
+    font-family: var(--font-archivo), var(--font-geist-sans), sans-serif;
+    font-stretch: 125%;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+    line-height: 0.95;
+  }
+
+  /* Etiqueta mono: fechas, contadores y encabezados chicos. */
+  .label-mono {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .num-mono {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-feature-settings: "tnum";
+  }
 }
 
 :root {
-  --background: #fafafa;
-  --foreground: #09090b;
+  color-scheme: dark;
   /* Capacitor 8 supplies these on Android; browsers/iOS use their native env(). */
   --root-safe-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
   --root-safe-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
-  --root-mobile-nav-height: 3.875rem;
+  --root-mobile-nav-height: 4rem;
   --root-mobile-nav-bottom: calc(1rem + var(--root-safe-bottom));
   --root-mobile-nav-clearance: calc(var(--root-mobile-nav-height) + var(--root-mobile-nav-bottom));
 }
@@ -120,7 +160,7 @@
   }
 
   body {
-    @apply bg-neutral-50 text-neutral-950 antialiased selection:bg-neutral-900 selection:text-white;
+    @apply bg-bg text-ink antialiased selection:bg-accent selection:text-on-accent;
     font-feature-settings: "ss01", "ss02", "cv01", "cv02";
     overflow-x: clip;
   }

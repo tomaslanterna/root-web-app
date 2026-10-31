@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Ticket, Search, Plus, Filter, ShieldCheck, ChevronRight, Loader2, X } from "lucide-react";
+import { ChevronLeft, Loader2, Plus, Search, ShieldCheck } from "lucide-react";
 import { transfersApi } from "@/services/transfers";
 import { Modal, AlertModal, ConfirmModal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
@@ -77,212 +77,197 @@ export default function TransfersPage() {
     }
   };
 
+  const fieldClass =
+    "w-full h-12 px-3.5 rounded-control bg-bg border border-line-strong text-[15px] text-ink placeholder:text-ink-3 outline-none focus:border-accent transition-colors";
+  const formatDate = (raw?: string) => {
+    if (!raw) return "Fecha a confirmar";
+    const date = new Date(raw);
+    if (Number.isNaN(date.getTime())) return "Fecha a confirmar";
+    return new Intl.DateTimeFormat("es-AR", { weekday: "short", day: "numeric", month: "short", timeZone: "America/Montevideo" })
+      .format(date)
+      .replace(/\./g, "");
+  };
+
   return (
-    <div className="flex flex-col min-h-screen bg-[#0B0D10] text-white pb-24">
-      {/* Create Modal */}
-            <Modal 
-        isOpen={isModalOpen} 
+    <div className="flex flex-col min-h-screen bg-bg text-ink pb-[calc(var(--root-mobile-nav-clearance)+1rem)] md:pb-16">
+      <Modal
+        isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title="Crear Transfer"
+        title="Vender una entrada"
         footer={
-          <Button 
-            onClick={handleCreateTransfer} 
-            disabled={isCreating} 
-            className="w-full text-xs font-black uppercase bg-[#D4FF00] text-black hover:bg-[#b3d600]"
-          >
-            {isCreating ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Crear Oferta"}
+          <Button onClick={handleCreateTransfer} disabled={isCreating} size="full">
+            {isCreating ? <Loader2 className="size-4 animate-spin" aria-label="Publicando" /> : "Publicar oferta"}
           </Button>
         }
       >
-        <form onSubmit={handleCreateTransfer} className="space-y-4">
-          <div>
-            <label className="block text-[10px] font-black uppercase tracking-wider text-neutral-400 mb-1.5">ID del Evento</label>
-            <input 
-              type="text" 
+        <form onSubmit={handleCreateTransfer} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="transfer-event" className="text-[13px] font-semibold">ID del evento</label>
+            <input
+              id="transfer-event"
+              type="text"
               required
               value={newEventId}
               onChange={(e) => setNewEventId(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#D4FF00]/50 transition-colors" 
+              className={fieldClass}
               placeholder="ej. e1"
             />
           </div>
-          <div>
-            <label className="block text-[10px] font-black uppercase tracking-wider text-neutral-400 mb-1.5">Precio Acordado</label>
-            <input 
-              type="number" 
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="transfer-price" className="text-[13px] font-semibold">Precio</label>
+            <input
+              id="transfer-price"
+              type="number"
+              inputMode="numeric"
               required
               value={newPrice}
               onChange={(e) => setNewPrice(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#D4FF00]/50 transition-colors" 
-              placeholder="ej. 45000"
+              aria-describedby="transfer-price-help"
+              className={cn(fieldClass, "num-mono")}
+              placeholder="ej. 650"
             />
+            <span id="transfer-price-help" className="text-xs text-ink-2">
+              Como máximo, el valor de taquilla original.
+            </span>
           </div>
         </form>
       </Modal>
 
-      <AlertModal 
-        isOpen={alertConfig.isOpen} 
-        onClose={() => setAlertConfig(prev => ({...prev, isOpen: false}))}
+      <AlertModal
+        isOpen={alertConfig.isOpen}
+        onClose={() => setAlertConfig(prev => ({ ...prev, isOpen: false }))}
         title={alertConfig.title}
         message={alertConfig.message}
       />
 
-      <ConfirmModal 
+      <ConfirmModal
         isOpen={selectedTransfer !== null}
         onClose={() => setSelectedTransfer(null)}
-        title="Iniciar Trato"
-        message={selectedTransfer ? `¿Quieres iniciar trato con ${selectedTransfer.seller?.name || "este usuario"} por $${selectedTransfer.price || selectedTransfer.price_agreed}?` : ""}
+        title="Iniciar trato"
+        message={selectedTransfer ? `¿Querés iniciar el trato con ${selectedTransfer.seller?.name || "este usuario"} por $ ${selectedTransfer.price || selectedTransfer.price_agreed}?` : ""}
         onConfirm={confirmStartDeal}
         isLoading={isStartingDeal}
       />
 
-      {/* Header */}
-      <header className="sticky top-0 z-40 glass-header-obsidian pt-safe-header pb-3">
-        <div className="px-4 py-3 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center shadow-inner">
-              <Ticket className="w-5 h-5" />
-            </div>
-            <h1 className="text-xl font-black italic tracking-tighter text-white">transfer</h1>
-          </div>
-
+      <div className="w-full max-w-2xl mx-auto px-4 pt-[calc(0.75rem+var(--root-safe-top))] md:pt-6">
+        <header className="flex items-center gap-3">
           <button
-            onClick={() => setIsModalOpen(true)}
-            className="bg-[#D4FF00] text-neutral-950 p-2 rounded-full hover:bg-[#bce400] active:scale-95 transition-all shadow-md shadow-[#D4FF00]/10 flex items-center justify-center gap-1.5 px-3.5 text-xs font-black uppercase tracking-wider cursor-pointer"
+            type="button"
+            onClick={() => router.back()}
+            aria-label="Volver"
+            className="size-11 shrink-0 rounded-control bg-surface border border-line flex items-center justify-center hover:bg-surface-2 transition-colors focus-visible:outline-2 focus-visible:outline-accent"
           >
-            <Plus className="w-4 h-4 stroke-[3]" />
-            <span className="hidden sm:inline">Crear Transfer</span>
+            <ChevronLeft className="size-[22px]" aria-hidden="true" />
           </button>
-        </div>
+          <h1 className="font-display text-[26px] m-0 flex-1">Transfers</h1>
+          <Button onClick={() => setIsModalOpen(true)} className="h-11 pl-2.5 pr-3.5">
+            <Plus className="size-[18px]" strokeWidth={2.4} aria-hidden="true" /> Vender
+          </Button>
+        </header>
 
-        {/* Info Banner */}
-        <div className="px-4 pb-2">
-          <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-lg p-2.5 flex items-start gap-2">
-            <ShieldCheck className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
-            <p className="text-[10px] text-indigo-200/70 font-semibold leading-tight">
-              Mercado P2P seguro. Los precios están limitados al valor de taquilla original. Root retiene tu dinero hasta que confirmes el ingreso al evento.
-            </p>
+        <div className="mt-4 p-3.5 flex gap-3 rounded-card bg-info/[0.08] border border-info/25">
+          <ShieldCheck className="size-[22px] shrink-0 text-info" aria-hidden="true" />
+          <div className="flex flex-col gap-1">
+            <span className="text-[15px] font-semibold">Mercado P2P seguro</span>
+            <span className="text-sm leading-snug text-ink-2">
+              Precio tope: el valor de taquilla original. root retiene el dinero hasta que confirmes que entraste al evento.
+            </span>
           </div>
         </div>
-      </header>
 
-      {/* Tabs & Search */}
-      <div className="px-4 pt-2 pb-4 space-y-3 sticky top-[110px] z-30 bg-[#0B0D10]/95 backdrop-blur-xl">
-        <div className="flex space-x-1 p-1 bg-[#14171F] rounded-full border border-white/5">
-          <button
-            onClick={() => setActiveTab("explorar")}
-            className={cn(
-              "flex-1 py-1.5 tech-label text-[11px] transition-all rounded-full",
-              activeTab === "explorar" 
-                ? "bg-white/10 text-white shadow-sm" 
-                : "text-neutral-500 hover:text-neutral-300"
-            )}
-          >
-            Explorar
-          </button>
-          <button
-            onClick={() => setActiveTab("mis-ofertas")}
-            className={cn(
-              "flex-1 py-1.5 tech-label text-[11px] transition-all rounded-full",
-              activeTab === "mis-ofertas" 
-                ? "bg-white/10 text-white shadow-sm" 
-                : "text-neutral-500 hover:text-neutral-300"
-            )}
-          >
-            Mis Ofertas
-          </button>
-        </div>
-
-        <div className="flex gap-2">
-          <div className="flex-1 bg-[#14171F] border border-white/10 rounded-xl px-3 py-2.5 flex items-center gap-2 focus-within:border-indigo-500/50 transition-colors">
-            <Search className="w-4 h-4 text-neutral-500" />
-            <input
-              type="text"
-              placeholder="Buscar evento..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="bg-transparent border-none outline-none text-sm w-full text-white placeholder:text-neutral-600"
-            />
-          </div>
-          <button className="bg-[#14171F] border border-white/10 rounded-xl p-2.5 text-neutral-400 hover:text-white transition-colors">
-            <Filter className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-
-      {/* List */}
-      <div className="px-4 space-y-3">
-        {isLoading ? (
-          <div className="flex justify-center items-center py-20">
-            <Loader2 className="w-8 h-8 text-[#D4FF00] animate-spin" />
-          </div>
-        ) : filteredTransfers.length > 0 ? (
-          filteredTransfers.map(transfer => (
-            <div 
-              key={transfer.id}
-              onClick={() => handleTransferClick(transfer)}
-              className="group relative bg-[#14171F] border border-white/5 rounded-2xl overflow-hidden active:scale-[0.98] transition-all cursor-pointer hover:border-white/10"
-            >
-              {/* Si está pendiente, overlay de opacidad */}
-              {transfer.status === 'NEGOTIATING' && (
-                <div className="absolute inset-0 bg-black/60 z-10 flex flex-col items-center justify-center backdrop-blur-[1px]">
-                  <span className="bg-amber-500/20 text-amber-400 border border-amber-500/30 px-3 py-1 rounded-full tech-label text-[10px]">
-                    En Trato
-                  </span>
-                </div>
+        <div role="tablist" aria-label="Transfers" className="mt-4 flex p-[3px] rounded-xl bg-surface border border-line">
+          {([
+            { id: "explorar", label: "Explorar" },
+            { id: "mis-ofertas", label: "Mis ofertas" },
+          ] as const).map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                "flex-1 h-10 rounded-[9px] text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-accent",
+                activeTab === tab.id ? "bg-ink text-bg" : "text-ink-2 hover:text-ink",
               )}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
-              <div className="flex items-stretch h-28">
-                {/* Image Side */}
-                <div className="w-24 shrink-0 relative">
-                  <img src={transfer.event_image || "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=80&w=2070&auto=format&fit=crop"} className="w-full h-full object-cover" alt="Event" />
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent to-[#14171F]" />
-                </div>
+        <div className="mt-3 h-12 px-3.5 flex items-center gap-2.5 rounded-control bg-surface border border-white/10 text-ink-3 focus-within:border-accent">
+          <Search className="size-5 shrink-0" aria-hidden="true" />
+          <input
+            type="search"
+            aria-label="Buscar evento"
+            placeholder="Buscar evento"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="flex-1 min-w-0 bg-transparent border-0 outline-none text-[15px] text-ink placeholder:text-ink-3"
+          />
+        </div>
 
-                {/* Content Side */}
-                <div className="flex-1 p-3 flex flex-col justify-between relative z-0">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-bold text-sm leading-tight text-white line-clamp-1">{transfer.event_name || "Evento Privado"}</h3>
-                      <p className="tech-mono text-[10px] text-neutral-400 mt-0.5">
-                        {transfer.event_date ? new Intl.DateTimeFormat('es-AR', { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(transfer.event_date)) : "Fecha a confirmar"}
-                      </p>
-                    </div>
-                    <div className="text-right shrink-0 ml-2">
-                      <p className="num-display text-sm text-[#D4FF00]">${transfer.price_agreed ? transfer.price_agreed.toLocaleString('es-AR') : transfer.price?.toLocaleString('es-AR')}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between mt-auto pt-2">
-                    <div className="flex items-center gap-2">
-                      {transfer.seller?.avatar_url ? (
-                        <img src={transfer.seller.avatar_url} className="w-5 h-5 rounded-full object-cover" />
-                      ) : (
-                        <div className="w-5 h-5 rounded-full bg-neutral-800 flex items-center justify-center text-[8px] font-bold">
-                          {transfer.seller?.name?.charAt(0) || "U"}
-                        </div>
-                      )}
-                      <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-neutral-300 leading-none">{transfer.seller?.name || "Usuario Vendedor"}</span>
-                        <span className="text-[9px] text-neutral-500 flex items-center gap-0.5 mt-0.5">
-                          <ShieldCheck className="w-2.5 h-2.5 text-indigo-400" />
-                          Usuario Verificado
-                        </span>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-neutral-600 group-hover:text-white transition-colors" />
-                  </div>
-                </div>
-              </div>
+        <div className="mt-4 flex flex-col gap-3">
+          {isLoading ? (
+            <div className="flex justify-center py-20">
+              <Loader2 className="size-8 text-accent animate-spin" aria-label="Cargando transfers" />
             </div>
-          ))
-        ) : (
-          <div className="py-12 text-center text-neutral-500">
-            <Ticket className="w-8 h-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm font-semibold">No hay entradas disponibles</p>
-          </div>
-        )}
+          ) : filteredTransfers.length > 0 ? (
+            filteredTransfers.map((transfer) => {
+              const isNegotiating = transfer.status === "NEGOTIATING";
+              const isMine = transfer.seller_id === user?.id || transfer.buyer_id === user?.id;
+              const isAvailable = transfer.status?.toUpperCase() === "AVAILABLE";
+              const price = transfer.price_agreed ?? transfer.price;
+              return (
+                <button
+                  key={transfer.id}
+                  type="button"
+                  onClick={() => handleTransferClick(transfer)}
+                  disabled={!isMine && !isAvailable}
+                  className={cn(
+                    "flex gap-3 p-3 rounded-card bg-surface border border-line text-left transition-colors hover:bg-surface-2 active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-accent disabled:cursor-default disabled:hover:bg-surface",
+                    isNegotiating && "opacity-75",
+                  )}
+                >
+                  <span
+                    aria-hidden="true"
+                    className="size-[72px] shrink-0 rounded-xl bg-surface-2 bg-cover bg-center"
+                    style={{ backgroundImage: `url(${transfer.event_image || FALLBACK_IMAGE})` }}
+                  />
+                  <span className="flex-1 min-w-0 flex flex-col gap-1">
+                    <span className="text-base font-semibold truncate">{transfer.event_name || "Evento privado"}</span>
+                    <span className="label-mono text-accent">{formatDate(transfer.event_date)}</span>
+                    <span className="text-[13px] text-ink-2 truncate">
+                      Vende {transfer.seller?.name || "usuario verificado"}
+                    </span>
+                  </span>
+                  <span className="shrink-0 flex flex-col items-end justify-between">
+                    <span className="num-mono text-[17px] font-semibold">
+                      {price != null ? `$ ${Number(price).toLocaleString("es-AR")}` : "—"}
+                    </span>
+                    <span
+                      className={cn(
+                        "label-mono px-2 py-1 rounded-full",
+                        isNegotiating ? "bg-surface-2 text-ink-2" : "bg-accent/12 text-accent",
+                      )}
+                    >
+                      {isNegotiating ? "En trato" : isAvailable ? "Disponible" : transfer.status}
+                    </span>
+                  </span>
+                </button>
+              );
+            })
+          ) : (
+            <p className="py-12 text-center text-[15px] text-ink-2">
+              {activeTab === "mis-ofertas" ? "Todavía no publicaste ofertas." : "No hay entradas disponibles."}
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );
 }
+
+const FALLBACK_IMAGE =
+  "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=80&w=600&auto=format&fit=crop";

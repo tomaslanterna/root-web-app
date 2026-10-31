@@ -1,7 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState, type InputHTMLAttributes } from "react";
-import { Eye, EyeOff, Lock } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function PasswordInput({ className, disabled, ...props }: Omit<InputHTMLAttributes<HTMLInputElement>, "type">) {
@@ -29,16 +29,13 @@ export function PasswordInput({ className, disabled, ...props }: Omit<InputHTMLA
   };
 
   return (
-    <div className="relative group">
-      <div aria-hidden="true" className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-neutral-500 group-focus-within:text-acid-lime transition-colors">
-        <Lock size={18} />
-      </div>
+    <div className="relative">
       <input
         {...props}
         ref={inputRef}
         type={visible ? "text" : "password"}
         disabled={disabled}
-        className={cn("w-full bg-[#14171F]/80 backdrop-blur-md border border-white/10 rounded-2xl py-3.5 pl-11 pr-14 text-white placeholder:text-neutral-500 focus:outline-none focus:border-acid-lime/50 focus:ring-1 focus:ring-acid-lime/50 transition-all font-medium text-sm", className)}
+        className={cn("w-full h-[52px] bg-surface border border-line-strong rounded-control pl-3.5 pr-14 text-base text-ink placeholder:text-ink-3 focus:outline-none focus:border-accent focus:border-[1.5px] transition-colors disabled:opacity-50", className)}
       />
       <button
         type="button"
@@ -48,7 +45,7 @@ export function PasswordInput({ className, disabled, ...props }: Omit<InputHTMLA
         aria-controls={props.id}
         onPointerDown={event => event.preventDefault()}
         onClick={toggle}
-        className="absolute inset-y-0 right-1 w-11 flex items-center justify-center text-neutral-400 hover:text-acid-lime focus-visible:outline-2 focus-visible:outline-acid-lime rounded-xl disabled:opacity-50"
+        className="absolute top-1/2 -translate-y-1/2 right-1 size-11 flex items-center justify-center text-ink-2 hover:text-ink focus-visible:outline-2 focus-visible:outline-accent rounded-xl disabled:opacity-50"
       >
         {visible ? <EyeOff size={19} aria-hidden="true" /> : <Eye size={19} aria-hidden="true" />}
       </button>

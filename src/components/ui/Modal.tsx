@@ -41,17 +41,17 @@ export function Modal({ isOpen, onClose, title, children, footer, presentation =
 
   return (
     <div className={`fixed inset-0 z-[80] flex items-center justify-center bg-black/80 ${presentation === "screen" ? "" : "p-4 backdrop-blur-sm"}`}>
-      <div ref={ref} tabIndex={-1} role="dialog" aria-modal="true" aria-label={title} className={presentation === "screen" ? "mx-auto flex h-[100dvh] w-full max-w-md flex-col overflow-hidden bg-[#0B0D10] pt-[var(--root-safe-top)] pb-[var(--root-safe-bottom)] md:h-[min(900px,100dvh)] md:rounded-3xl md:border md:border-white/10" : "bg-[#14171F] rounded-3xl border border-white/10 w-full max-w-sm max-h-[85dvh] overflow-hidden flex flex-col shadow-2xl motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 duration-200"}>
+      <div ref={ref} tabIndex={-1} role="dialog" aria-modal="true" aria-label={title} className={presentation === "screen" ? "mx-auto flex h-[100dvh] w-full max-w-md flex-col overflow-hidden bg-bg pt-[var(--root-safe-top)] pb-[var(--root-safe-bottom)] md:h-[min(900px,100dvh)] md:rounded-hero md:border md:border-line" : "bg-surface text-ink rounded-hero border border-line w-full max-w-sm max-h-[85dvh] overflow-hidden flex flex-col shadow-[0_24px_48px_rgba(0,0,0,0.6)] motion-safe:animate-fade-in"}>
         
         {/* Header */}
-        {header || <div className="flex items-center justify-between p-4 border-b border-white/5">
-          <h3 className="text-sm font-black uppercase tracking-wider text-white">{title}</h3>
+        {header || <div className="flex items-center justify-between gap-3 pl-4 pr-2 py-2 border-b border-line">
+          <h3 className="m-0 text-[17px] font-semibold">{title}</h3>
           <button 
             onClick={onClose} 
             aria-label="Cerrar diálogo"
-            className="p-1 rounded-full hover:bg-white/10 transition-colors"
+            className="size-11 rounded-full flex items-center justify-center text-ink-2 hover:bg-white/10 hover:text-ink transition-colors"
           >
-            <X className="w-5 h-5 text-neutral-400 hover:text-white" />
+            <X className="size-5" aria-hidden="true" />
           </button>
         </div>}
         
@@ -62,7 +62,7 @@ export function Modal({ isOpen, onClose, title, children, footer, presentation =
 
         {/* Footer */}
         {footer && (
-          <div className="p-4 border-t border-white/5 bg-black/20 flex gap-2 justify-end">
+          <div className="p-4 border-t border-line flex gap-2 justify-end">
             {footer}
           </div>
         )}
@@ -97,16 +97,16 @@ export function ConfirmModal({
       title={title}
       footer={
         <>
-          <Button variant="outline" onClick={onClose} disabled={isLoading} className="text-xs font-bold uppercase border-white/10 text-neutral-300">
+          <Button variant="secondary" onClick={onClose} disabled={isLoading}>
             {cancelText}
           </Button>
-          <Button onClick={onConfirm} disabled={isLoading} className="text-xs font-black uppercase bg-[#D4FF00] text-black hover:bg-[#b3d600]">
+          <Button onClick={onConfirm} disabled={isLoading}>
             {isLoading ? "Cargando..." : confirmText}
           </Button>
         </>
       }
     >
-      <p className="text-sm text-neutral-300 leading-relaxed font-medium">{message}</p>
+      <p className="m-0 text-[15px] text-ink-2 leading-relaxed">{message}</p>
     </Modal>
   );
 }
@@ -123,12 +123,12 @@ export function AlertModal({ isOpen, onClose, title, message }: AlertModalProps)
       onClose={onClose}
       title={title}
       footer={
-        <Button onClick={onClose} className="w-full text-xs font-black uppercase bg-white/10 text-white hover:bg-white/20">
+        <Button variant="secondary" size="full" onClick={onClose}>
           Entendido
         </Button>
       }
     >
-      <p className="text-sm text-neutral-300 leading-relaxed font-medium">{message}</p>
+      <p className="m-0 text-[15px] text-ink-2 leading-relaxed">{message}</p>
     </Modal>
   );
 }

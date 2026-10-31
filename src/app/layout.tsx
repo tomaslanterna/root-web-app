@@ -1,6 +1,6 @@
 import React from "react";
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Archivo, Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { BottomNav } from "@/components/ui/BottomNav";
 import { ThemeProvider } from "@/context/ThemeContext";
@@ -21,6 +21,13 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+// Display de cartel: se usa expandida (wdth 125) en títulos.
+const archivo = Archivo({
+  variable: "--font-archivo",
+  subsets: ["latin"],
+  axes: ["wdth"],
 });
 
 export const metadata: Metadata = {
@@ -44,7 +51,7 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} font-sans min-h-[100dvh] bg-[#0B0D10] text-white selection:bg-[#D4FF00] selection:text-neutral-950`}
+        className={`${geistSans.variable} ${geistMono.variable} ${archivo.variable} font-sans min-h-[100dvh] bg-bg text-ink`}
         suppressHydrationWarning
       >
         <CapacitorSetup />
@@ -56,13 +63,13 @@ export default function RootLayout({
                 <PushNotificationsProvider>
                   <ChatRealtimeProvider>
                     <MatchProvider>
-                      <div className="flex flex-col min-h-[100dvh] w-full bg-[#0B0D10]">
+                      <div className="flex flex-col min-h-[100dvh] w-full bg-bg">
                         <React.Suspense fallback={null}>
                           <BottomNav />
                         </React.Suspense>
 
                         {/* Contenedor principal con max-w-[1360px] calibrado para desktop */}
-                        <div className="flex-1 flex flex-col min-h-[100dvh] w-full pt-0 md:pt-24 pb-24 md:pb-16 bg-[#0B0D10]">
+                        <div className="flex-1 flex flex-col min-h-[100dvh] w-full pt-0 md:pt-24 pb-24 md:pb-16 bg-bg">
                           {/* Contenido principal - Ancho óptimo y simétrico en desktop */}
                           <main className="flex-1 w-full min-w-0 max-w-md md:max-w-[1360px] mx-auto px-0 sm:px-4 md:px-8 lg:px-12 border-x border-white/10 md:border-x-0 shadow-2xl md:shadow-none transition-colors duration-300">
                             {children}

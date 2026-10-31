@@ -3,34 +3,35 @@ import { cn } from "@/lib/utils";
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "outline" | "ghost" | "glass";
+  variant?: "primary" | "secondary" | "outline" | "ghost" | "glass" | "danger";
   size?: "sm" | "md" | "lg" | "full" | "icon";
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = "primary", size = "md", ...props }, ref) => {
     const variants = {
-      primary: "bg-[#D4FF00] text-neutral-950 hover:bg-[#c2eb00] shadow-[0_10px_35px_rgba(212,255,0,0.16)] border-none font-black",
-      secondary: "bg-[#14171F] text-white hover:bg-[#1c2230] border-0 shadow-[0_4px_16px_rgba(0,0,0,0.3)] font-bold",
-      outline: "bg-white/[0.03] text-white border border-white/[0.08] hover:bg-white/[0.08] font-bold",
-      ghost: "bg-transparent text-neutral-400 hover:text-white hover:bg-white/[0.06] font-bold",
-      glass: "glass-obsidian text-[#D4FF00] hover:bg-white/[0.08] border-0 shadow-[0_8px_24px_-6px_rgba(0,0,0,0.4)] font-extrabold",
+      primary: "bg-accent text-on-accent hover:bg-accent-hover",
+      secondary: "bg-surface-2 text-ink border border-line-strong hover:bg-[#23272D]",
+      outline: "bg-surface text-ink border border-line-strong hover:bg-surface-2",
+      ghost: "bg-transparent text-accent hover:bg-white/[0.06]",
+      glass: "glass-obsidian text-accent hover:bg-white/[0.08]",
+      danger: "bg-transparent text-danger border border-[rgba(255,107,107,0.45)] hover:bg-[rgba(255,138,128,0.08)]",
     };
 
+    // Todo control táctil mide 44px o más.
     const sizes = {
-      sm: "px-3.5 py-1.5 text-xs font-bold rounded-full gap-1.5",
-      md: "px-4 py-2 text-sm font-extrabold rounded-full gap-2",
-      lg: "px-6 py-3 text-sm font-black rounded-full gap-2.5",
-      full: "w-full py-3 text-sm font-black rounded-full gap-2",
-      icon: "p-2 rounded-full",
+      sm: "h-11 px-3.5 text-sm gap-1.5",
+      md: "h-12 px-[18px] text-[15px] gap-2",
+      lg: "h-[52px] px-6 text-base gap-2.5",
+      full: "w-full h-12 px-[18px] text-[15px] gap-2",
+      icon: "size-11",
     };
-
 
     return (
       <button
         ref={ref}
         className={cn(
-          "inline-flex items-center justify-center transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:pointer-events-none uppercase tracking-wider",
+          "inline-flex items-center justify-center rounded-control font-semibold transition-[background-color,transform,opacity] duration-200 ease-out active:scale-[0.97] active:duration-[120ms] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-50 disabled:pointer-events-none",
           variants[variant],
           sizes[size],
           className
@@ -43,4 +44,3 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 Button.displayName = "Button";
 
 export { Button };
-

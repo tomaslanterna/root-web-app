@@ -1,15 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  ChevronDown,
-  Filter,
-  Loader2,
-  MapPin,
-  RotateCcw,
-  Search,
-  Users,
-} from "lucide-react";
+import { ChevronDown, Loader2, Search } from "lucide-react";
 import { CommunityList } from "@/components/communities/CommunityList";
 import { Button } from "@/components/ui/Button";
 import { useCommunityDirectory } from "@/hooks/useCommunities";
@@ -26,10 +18,6 @@ const DEFAULT_FILTERS: CommunityFilters = {
   limit: PAGE_SIZE,
   offset: 0,
 };
-
-const fieldClassName =
-  "h-11 w-full rounded-2xl border-0 bg-[#0B0D10] px-4 text-sm font-semibold text-white outline-none transition-colors placeholder:text-neutral-500 focus:ring-1 focus:ring-[#D4FF00]/40 shadow-sm";
-const selectClassName = `${fieldClassName} appearance-none pr-12`;
 
 const URUGUAY_DEPARTMENTS = [
   "Artigas",
@@ -58,7 +46,6 @@ export default function CommunitiesPage() {
   const [scope, setScope] = useState<"mine" | "explore">("explore");
   const [draftFilters, setDraftFilters] = useState<CommunityFilters>(DEFAULT_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState<CommunityFilters>(DEFAULT_FILTERS);
-  const [areFiltersExpanded, setAreFiltersExpanded] = useState(false);
   const { communities, meta, load, isLoading, error } = useCommunityDirectory();
 
   useEffect(() => {
@@ -70,14 +57,12 @@ export default function CommunitiesPage() {
     if (scope !== "explore") return;
     const next = { ...draftFilters, limit: PAGE_SIZE, offset: 0 };
     setAppliedFilters(next);
-    setAreFiltersExpanded(false);
   };
 
   const clearFilters = () => {
     const defaults = { ...DEFAULT_FILTERS, country: scope === "mine" ? "" : DEFAULT_FILTERS.country };
     setDraftFilters(defaults);
     setAppliedFilters(defaults);
-    setAreFiltersExpanded(false);
   };
 
   const loadMore = () => {
@@ -93,175 +78,107 @@ export default function CommunitiesPage() {
     appliedFilters.department,
   ].filter(Boolean).length;
 
+  const switchScope = (tab: "mine" | "explore") => {
+    setScope(tab);
+    const defaults = { ...DEFAULT_FILTERS, country: tab === "mine" ? "" : DEFAULT_FILTERS.country };
+    setDraftFilters(defaults);
+    setAppliedFilters(defaults);
+  };
+
+  // Los selects aplican al cambiar; la búsqueda, al confirmar con Enter.
+  const applyNow = (patch: Partial<CommunityFilters>) => {
+    const next = { ...draftFilters, ...patch, limit: PAGE_SIZE, offset: 0 };
+    setDraftFilters(next);
+    setAppliedFilters(next);
+  };
+
+  const chipClass = (active: boolean) =>
+    `h-11 appearance-none rounded-full border pl-3.5 pr-9 text-sm outline-none transition-colors focus-visible:outline-2 focus-visible:outline-accent ${
+      active ? "border-accent/40 bg-accent/12 font-semibold text-accent" : "border-white/10 bg-surface text-ink"
+    }`;
+
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-[#0B0D10] pb-28 text-white">
-      <header className="glass-header-obsidian sticky top-0 z-40 flex items-center justify-between px-4 pb-3 pt-safe-header">
-        <div className="flex items-center gap-2">
-          <Users className="h-5 w-5 text-[#D4FF00]" />
-          <h1 className="text-lg font-black uppercase tracking-wider">Comunidades</h1>
-        </div>
-        <div className="flex items-center gap-1.5 rounded-full bg-[#D4FF00]/10 px-2.5 py-1">
-          {isLoading && communities.length === 0 ? (
-            <Loader2 className="h-3 w-3 animate-spin text-[#D4FF00]" />
-          ) : (
-            <>
-              <span className="num-display text-xs text-white">{meta.total}</span>
-              <span className="tech-label text-[9px] text-[#D4FF00]">{scope === "mine" ? "tuyas" : "disponibles"}</span>
-            </>
-          )}
+    <div className="flex min-h-[100dvh] flex-col bg-bg pb-[calc(var(--root-mobile-nav-clearance)+1rem)] text-ink md:pb-16">
+      <header className="sticky top-0 z-30 w-full bg-bg/95 backdrop-blur-md border-b border-line">
+        <div className="mx-auto w-full max-w-6xl px-4 pt-[calc(0.75rem+var(--root-safe-top))] pb-3 md:px-8 md:pt-6">
+          <h1 className="font-display m-0 text-[32px]">Comunidades</h1>
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl space-y-5 p-4 md:p-8">
-        <div role="tablist" aria-label="Comunidades" className="flex gap-1.5 rounded-full border-0 bg-black/60 p-1">
-          {(["mine", "explore"] as const).map((tab) => <button key={tab} type="button" role="tab" aria-selected={scope === tab} disabled={isLoading} onClick={() => { setScope(tab); setAreFiltersExpanded(false); const defaults = { ...DEFAULT_FILTERS, country: tab === "mine" ? "" : DEFAULT_FILTERS.country }; setDraftFilters(defaults); setAppliedFilters(defaults); }} className={`flex-1 rounded-full px-3 py-2.5 tech-label text-xs transition-all cursor-pointer ${scope === tab ? "bg-[#D4FF00] text-black shadow-md shadow-[#D4FF00]/20" : "text-neutral-400 hover:text-white"}`}>{tab === "mine" ? "Mis comunidades" : "Explorar"}</button>)}
+      <main className="mx-auto flex w-full max-w-6xl flex-col gap-3.5 px-4 pt-4 md:px-8">
+        <div role="tablist" aria-label="Comunidades" className="flex rounded-xl border border-line bg-surface p-[3px]">
+          {(["mine", "explore"] as const).map((tab) => <button key={tab} type="button" role="tab" aria-selected={scope === tab} disabled={isLoading} onClick={() => switchScope(tab)} className={`h-10 flex-1 rounded-[9px] text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-accent ${scope === tab ? "bg-ink text-bg" : "text-ink-2 hover:text-ink"}`}>{tab === "mine" ? "Mis comunidades" : "Explorar"}</button>)}
         </div>
-        {scope === "explore" && <section className="overflow-hidden rounded-3xl border-0 bg-[#111114] shadow-[0_12px_32px_-8px_rgba(0,0,0,0.6)]">
-          <button
-            type="button"
-            onClick={() => setAreFiltersExpanded((current) => !current)}
-            className="flex w-full items-center justify-between gap-4 p-4 text-left md:p-5"
-            aria-expanded={areFiltersExpanded}
-            aria-controls="community-filters"
-          >
-            <span className="flex min-w-0 items-center gap-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#D4FF00]/10 text-[#D4FF00]">
-                <Filter className="h-4 w-4" />
-              </span>
-              <span className="min-w-0">
-                <span className="block truncate tech-label text-xs text-neutral-100">
-                  Descubrí tu comunidad
-                </span>
-                <span className="mt-0.5 block text-[10px] font-bold uppercase tracking-wider text-neutral-500">
-                  {activeFilterCount > 0 ? (
-                    <span className="inline-flex items-center gap-1">
-                      <span className="num-display text-xs text-white">{activeFilterCount}</span>
-                      <span className="tech-label text-[9px] text-[#D4FF00]">filtros activos</span>
-                    </span>
-                  ) : (
-                    "Filtrar por estilo y departamento"
-                  )}
-                </span>
-              </span>
-            </span>
-            <ChevronDown
-              className={`h-5 w-5 shrink-0 text-[#D4FF00] transition-transform duration-200 ${
-                areFiltersExpanded ? "rotate-180" : ""
-              }`}
+
+        {scope === "explore" && <section aria-label="Filtros" className="flex flex-col gap-3">
+          <div className="flex h-12 items-center gap-2.5 rounded-control border border-white/10 bg-surface px-3.5 text-ink-3 focus-within:border-accent">
+            <Search className="size-5 shrink-0" aria-hidden="true" />
+            <input
+              type="search"
+              aria-label="Buscar comunidades"
+              value={draftFilters.query ?? ""}
+              onChange={(event) => setDraftFilters((current) => ({ ...current, query: event.target.value }))}
+              onKeyDown={(event) => event.key === "Enter" && applyFilters()}
+              onBlur={() => draftFilters.query !== appliedFilters.query && applyFilters()}
+              placeholder="Nombre o descripción"
+              className="min-w-0 flex-1 border-0 bg-transparent text-[15px] text-ink outline-none placeholder:text-ink-3"
             />
-          </button>
+          </div>
 
-          {areFiltersExpanded && (
-            <div
-              id="community-filters"
-              className="border-t border-white/[0.06] px-4 pb-4 pt-4 md:px-5 md:pb-5"
-            >
-              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-            <label className="relative block">
-              <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500" />
-              <input
-                value={draftFilters.query ?? ""}
-                onChange={(event) =>
-                  setDraftFilters((current) => ({
-                    ...current,
-                    query: event.target.value,
-                  }))
-                }
-                onKeyDown={(event) => event.key === "Enter" && applyFilters()}
-                placeholder="Nombre o descripción"
-                className={`${fieldClassName} pl-11`}
-              />
-            </label>
-
-            <label className="relative block">
-              <select
-                value={draftFilters.category ?? ""}
-                onChange={(event) =>
-                  setDraftFilters((current) => ({
-                    ...current,
-                    category: event.target.value,
-                  }))
-                }
-                className={selectClassName}
-                aria-label="Categoría"
-              >
-                <option value="">Todos los estilos</option>
+          <div className="flex flex-wrap gap-2">
+            <label className="relative">
+              <span className="sr-only">Estilo</span>
+              <select value={draftFilters.category ?? ""} onChange={(event) => applyNow({ category: event.target.value })} className={chipClass(!!appliedFilters.category)}>
+                <option value="">Estilo</option>
                 <option value="electrónica">Electrónica</option>
                 <option value="cachengue">Cachengue</option>
                 <option value="reggaetón">Reggaetón</option>
                 <option value="general">Otros</option>
               </select>
-              <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 opacity-80" aria-hidden="true" />
             </label>
-
-            <label className="relative block">
-              <select
-                value={draftFilters.country ?? ""}
-                onChange={(event) =>
-                  setDraftFilters((current) => ({
-                    ...current,
-                    country: event.target.value,
-                    department:
-                      event.target.value === "UY" ? current.department : "",
-                  }))
-                }
-                className={selectClassName}
-                aria-label="País"
-              >
+            <label className="relative">
+              <span className="sr-only">País</span>
+              <select value={draftFilters.country ?? ""} onChange={(event) => applyNow({ country: event.target.value, department: event.target.value === "UY" ? draftFilters.department : "" })} className={chipClass(!!appliedFilters.country)}>
                 <option value="">Todos los países</option>
                 <option value="UY">Uruguay</option>
                 <option value="AR">Argentina</option>
                 <option value="BR">Brasil</option>
               </select>
-              <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 opacity-80" aria-hidden="true" />
             </label>
-
             {draftFilters.country === "UY" && (
-              <label className="relative block">
-                <MapPin className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500" />
-                <select
-                  value={draftFilters.department ?? ""}
-                  onChange={(event) =>
-                    setDraftFilters((current) => ({
-                      ...current,
-                      department: event.target.value,
-                    }))
-                  }
-                  className={`${selectClassName} pl-11`}
-                  aria-label="Departamento"
-                >
-                  <option value="">Todos los departamentos</option>
+              <label className="relative">
+                <span className="sr-only">Departamento</span>
+                <select value={draftFilters.department ?? ""} onChange={(event) => applyNow({ department: event.target.value })} className={chipClass(!!appliedFilters.department)}>
+                  <option value="">Departamento</option>
                   {URUGUAY_DEPARTMENTS.map((department) => (
-                    <option key={department} value={department}>
-                      {department}
-                    </option>
+                    <option key={department} value={department}>{department}</option>
                   ))}
                 </select>
-                <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 opacity-80" aria-hidden="true" />
               </label>
             )}
-              </div>
+          </div>
 
-              <div className="mt-4 flex gap-2">
-                <Button onClick={applyFilters} disabled={isLoading} className="flex-1 md:flex-none">
-                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                  Aplicar
-                </Button>
-                <Button variant="outline" onClick={clearFilters} disabled={isLoading}>
-                  <RotateCcw className="h-4 w-4" /> Limpiar
-                </Button>
-              </div>
-            </div>
-          )}
+          <div className="flex items-center justify-between">
+            <span className="label-mono text-ink-3">
+              {activeFilterCount > 0 ? `${activeFilterCount} ${activeFilterCount === 1 ? "filtro" : "filtros"} · ` : ""}
+              {meta.total} comunidades
+            </span>
+            {activeFilterCount > 0 && (
+              <button type="button" onClick={clearFilters} disabled={isLoading} className="h-11 px-1 text-sm font-semibold text-accent hover:text-accent-hover">
+                Limpiar
+              </button>
+            )}
+          </div>
         </section>}
 
-        {scope === "mine" && !user ? <div className="rounded-3xl border-0 bg-[#111114] p-6 text-center text-sm shadow-xl"><Link href="/login" className="font-bold text-[#D4FF00]">Iniciá sesión para ver tus comunidades</Link></div> : error && communities.length === 0 ? (
-          <section className="rounded-3xl border border-red-500/20 bg-red-500/5 p-8 text-center">
-            <p className="text-sm font-bold text-red-300">
-              No pudimos cargar las comunidades.
-            </p>
+        {scope === "mine" && !user ? <p className="m-0 rounded-card border border-line bg-surface p-6 text-center text-[15px]"><Link href="/login" className="font-semibold text-accent">Iniciá sesión para ver tus comunidades</Link></p> : error && communities.length === 0 ? (
+          <section className="rounded-card border border-danger/30 bg-surface p-8 text-center">
+            <p className="m-0 text-base font-semibold">No pudimos cargar las comunidades.</p>
             <Button
-              variant="outline"
+              variant="secondary"
               size="sm"
               className="mt-4"
               onClick={() => void load({ ...appliedFilters, scope }).catch(() => undefined)}
@@ -270,20 +187,20 @@ export default function CommunitiesPage() {
             </Button>
           </section>
         ) : (
-          <CommunityList communities={communities} isLoading={isLoading && communities.length === 0} emptyMessage={scope === "mine" ? "Todavía no pertenecés a ninguna comunidad. Descubrí una en Explorar." : "No hay comunidades disponibles con estos filtros."} />
+          <CommunityList communities={communities} isLoading={isLoading && communities.length === 0} emptyMessage={scope === "mine" ? "Todavía no pertenecés a ninguna comunidad. Descubrí una en Explorar." : "No hay comunidades con estos filtros."} />
         )}
 
         {meta.hasMore && (
           <div className="flex justify-center pt-2">
-            <Button variant="outline" onClick={loadMore} disabled={isLoading}>
-              {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+            <Button variant="secondary" onClick={loadMore} disabled={isLoading}>
+              {isLoading && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
               Cargar más
             </Button>
           </div>
         )}
 
         {scope === "explore" && (
-          <p className="border-t border-white/[0.06] px-2 pt-6 text-center text-sm font-medium leading-relaxed text-neutral-400">
+          <p className="m-0 border-t border-line px-2 pt-6 text-center text-sm leading-relaxed text-ink-2">
             si sos RRPP y queres tener tu comunidad, contactanos!
           </p>
         )}

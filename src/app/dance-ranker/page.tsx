@@ -1,356 +1,389 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import { ChevronLeft, Activity, Trophy, Zap, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell, LabelList } from "recharts";
-import { api } from "@/lib/api";
+import { Activity, ChevronDown, ChevronLeft, ChevronRight, Flame, Loader2, MapPin, Plus, Users } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 import { useDanceContext } from "@/context/DanceContext";
+import { useDanceStats } from "@/hooks/useDanceStats";
 import { EventLiveRankingCard } from "@/components/events/EventLiveRankingModal";
-import { DetailHeader } from "@/components/ui/DetailHeader";
+import { BadgeCrown } from "@/components/profile/BadgeMedal";
+import { Button } from "@/components/ui/Button";
+import { cn } from "@/lib/utils";
+import type { DanceSession } from "@/services/dance";
 
-function stepsToKm(steps: number): number {
-  return (steps * 0.75) / 1000;
-}
+const timeZone = "America/Montevideo";
+const DAY = 86_400_000;
+// Estimación de kcal: MET 6,5 (baile electrónico intenso) × 70 kg.
+const MET = 6.5;
+const WEIGHT_KG = 70;
+const STEP_METERS = 0.75;
+const STEPS_PER_MINUTE = 120;
 
-interface DanceSession {
-  id: string;
-  eventId: string;
-  eventTitle: string;
-  stepsCount: number;
-  startTime: string;
-  endTime: string;
-  isValidated: boolean;
-}
+const fmt = (n: number) => n.toLocaleString("es-UY");
+const short = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1).replace(".", ",")}K` : String(n));
+const dayKey = (date: Date) => new Intl.DateTimeFormat("en-CA", { timeZone }).format(date);
+const monthKey = (date: Date) => dayKey(date).slice(0, 7);
+const partyName = (title: string) => title.replace("Noche de ", "").replace(" en ", " ");
+const clean = (value: string) => value.replace(/\./g, "");
 
-interface ChartPoint {
-  time: string;
-  steps: number;
-}
+type Period = "fiestas" | "week" | "month";
+interface Point { label: string; steps: number }
 
-interface CrewData {
-  id: string;
-  name: string;
-  memberCount: number;
-  topSteps: number;
-  userRank: number;
+function buildChart(period: Period, parties: DanceSession[], now: number): { points: Point[]; caption: string } {
+  if (period === "fiestas") {
+    const allParties = [...parties].reverse();
+    return {
+      points: allParties.map((party) => ({ label: partyName(party.eventTitle), steps: party.stepsCount })),
+      caption: `pasos en tus ${allParties.length} fiestas`,
+    };
+  }
+  if (period === "week") {
+    // Semana de lunes a domingo, en hora de Montevideo.
+    const today = new Date(now);
+    const weekday = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].indexOf(
+      new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone }).format(today),
+    );
+    const days = Array.from({ length: 7 }, (_, i) => new Date(now + (i - weekday) * DAY));
+    const totals = new Map(days.map((d) => [dayKey(d), 0]));
+    for (const party of parties) {
+      const key = dayKey(new Date(party.startTime));
+      if (totals.has(key)) totals.set(key, totals.get(key)! + party.stepsCount);
+    }
+    const label = (d: Date) => clean(new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "short", timeZone }).format(d));
+    return {
+      points: days.map((d) => ({
+        label: clean(new Intl.DateTimeFormat("es-AR", { weekday: "short", timeZone }).format(d)).replace(/^\w/, (c) => c.toUpperCase()),
+        steps: totals.get(dayKey(d)) ?? 0,
+      })),
+      caption: `pasos esta semana (${label(days[0])} – ${label(days[6])})`,
+    };
+  }
+  const months = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(now);
+    d.setDate(1);
+    d.setMonth(d.getMonth() - (5 - i));
+    return d;
+  });
+  const totals = new Map(months.map((d) => [monthKey(d), 0]));
+  for (const party of parties) {
+    const key = monthKey(new Date(party.startTime));
+    if (totals.has(key)) totals.set(key, totals.get(key)! + party.stepsCount);
+  }
+  return {
+    points: months.map((d) => ({
+      label: clean(new Intl.DateTimeFormat("es-AR", { month: "short", timeZone }).format(d)).replace(/^\w/, (c) => c.toUpperCase()),
+      steps: totals.get(monthKey(d)) ?? 0,
+    })),
+    caption: "pasos por mes · últimos 6 meses",
+  };
 }
 
 export default function DanceRankerPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const { liveEvent, isAtVenue, attendanceConfirmed } = useDanceContext();
   const isAtLiveEvent = Boolean(liveEvent && (isAtVenue || attendanceConfirmed));
-  const [activeTab, setActiveTab] = useState<"fiestas" | "week" | "month">("fiestas");
-  const [sessions, setSessions] = useState<DanceSession[]>([]);
-  const [crews, setCrews] = useState<CrewData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const chartScrollRef = useRef<HTMLDivElement | null>(null);
+  const { parties, crews, isLoading, error, retry, rankings, isLoadingRankings, loadCrewRankings } = useDanceStats();
+  const [period, setPeriod] = useState<Period>("fiestas");
+  const [crewsOpen, setCrewsOpen] = useState(true);
+  const [now] = useState(() => Date.now());
 
+  const last = parties[0];
   useEffect(() => {
-    Promise.all([
-      api.get("/v1/dance/sessions"),
-      api.get("/v1/crews")
-    ])
-      .then(([sessionsRes, crewsRes]) => {
-        const rawSessions = sessionsRes.data?.data || [];
-        // Agrupar los pasos por eventId para no repetir fiestas
-        const aggregatedMap = new Map<string, DanceSession>();
-        
-        rawSessions.forEach((session: DanceSession) => {
-          if (aggregatedMap.has(session.eventId)) {
-            const existing = aggregatedMap.get(session.eventId)!;
-            existing.stepsCount += session.stepsCount;
-          } else {
-            aggregatedMap.set(session.eventId, { ...session });
-          }
-        });
-        
-        const aggregatedSessions = Array.from(aggregatedMap.values());
-        setSessions(aggregatedSessions);
-        setCrews(crewsRes.data?.data || []);
-      })
-      .catch((err) => console.error("Error fetching dance data:", err))
-      .finally(() => setIsLoading(false));
-  }, []);
+    if (crewsOpen && last && crews.length) loadCrewRankings(crews, last.eventId);
+  }, [crewsOpen, last, crews, loadCrewRankings]);
 
-  // Build chart data from sessions — group by event for now, or by hour if single event
-  const now = new Date();
-  
-  let chartData: ChartPoint[] = [];
+  const totalSteps = parties.reduce((acc, party) => acc + party.stepsCount, 0);
+  const activeMinutes = Math.round(totalSteps / STEPS_PER_MINUTE);
+  const kcal = Math.round(MET * WEIGHT_KG * (activeMinutes / 60));
+  const km = (totalSteps * STEP_METERS) / 1000;
 
-  if (activeTab === "fiestas") {
-    const filtered = [...sessions].reverse();
-    chartData = filtered.map((s) => ({
-      time: s.eventTitle.replace("Noche de ", "").replace(" en ", " ").substring(0, 12),
-      steps: s.stepsCount,
-    }));
-  } else if (activeTab === "week") {
-    // Show last 7 days explicitly (e.g., L M M J V S D or day names)
-    // Create an array of the last 7 days
-    const days: { dateStr: string; time: string; steps: number }[] = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
-      days.push({
-        dateStr: d.toISOString().substring(0, 10),
-        time: new Intl.DateTimeFormat("es-AR", { weekday: "short" }).format(d).substring(0, 3), // "lun", "mar"
-        steps: 0,
-      });
-    }
+  const lastDate = last ? new Date(last.startTime) : null;
+  // "dom 26/10"
+  const headerDate = lastDate
+    ? `${clean(new Intl.DateTimeFormat("es-AR", { weekday: "short", timeZone }).format(lastDate))} ${new Intl.DateTimeFormat("es-AR", { day: "numeric", timeZone }).format(lastDate)}/${new Intl.DateTimeFormat("es-AR", { month: "numeric", timeZone }).format(lastDate)}`
+    : "";
+  const wasLastNight = lastDate ? now - lastDate.getTime() < 1.5 * DAY : false;
+  const bestOfMonth = last
+    ? last.stepsCount > 0 && parties
+        .filter((party) => monthKey(new Date(party.startTime)) === monthKey(new Date(last.startTime)))
+        .every((party) => party.stepsCount <= last.stepsCount)
+    : false;
 
-    sessions.forEach(s => {
-      const sDateStr = s.startTime.substring(0, 10);
-      const dayMatch = days.find(d => d.dateStr === sDateStr);
-      if (dayMatch) {
-        dayMatch.steps += s.stepsCount;
-      }
-    });
+  const { points, caption } = buildChart(period, parties, now);
+  const chartTotal = points.reduce((acc, point) => acc + point.steps, 0);
+  const chartMax = Math.max(...points.map((point) => point.steps), 0);
+  const best = points.find((point) => point.steps === chartMax);
 
-    chartData = days.map(d => ({ time: d.time, steps: d.steps }));
-  } else if (activeTab === "month") {
-    // Show last 30 days grouped in maybe 4 weeks, or just 30 bars (every 5 days tick)
-    // Let's do 30 bars for the last 30 days
-    const days: { dateStr: string; time: string; steps: number }[] = [];
-    for (let i = 29; i >= 0; i--) {
-      const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
-      days.push({
-        dateStr: d.toISOString().substring(0, 10),
-        time: d.getDate().toString(), // "1", "2", "30"
-        steps: 0,
-      });
-    }
-
-    sessions.forEach(s => {
-      const sDateStr = s.startTime.substring(0, 10);
-      const dayMatch = days.find(d => d.dateStr === sDateStr);
-      if (dayMatch) {
-        dayMatch.steps += s.stepsCount;
-      }
-    });
-
-    chartData = days.map(d => ({ time: d.time, steps: d.steps }));
-  }
-
-  const totalSteps = sessions.reduce((acc, s) => acc + s.stepsCount, 0);
-  const totalKm = stepsToKm(totalSteps);
-  const activeMins = Math.round(totalSteps / 120);
-  const maxSteps = Math.max(...chartData.map(d => d.steps), 1);
-
-  const lastPartySteps = sessions.length > 0 ? sessions[0].stepsCount : 0;
-
-  useEffect(() => {
-    if (isLoading || activeTab !== "fiestas" || chartData.length <= 4) return;
-    const scrollToEnd = () => {
-      const container = chartScrollRef.current;
-      if (container) {
-        container.scrollLeft = container.scrollWidth;
-      }
-    };
-    scrollToEnd();
-    const rafId = requestAnimationFrame(scrollToEnd);
-    const timerId = window.setTimeout(scrollToEnd, 60);
-    return () => {
-      cancelAnimationFrame(rafId);
-      window.clearTimeout(timerId);
-    };
-  }, [isLoading, activeTab, chartData.length]);
+  const card = "rounded-[18px] bg-surface border border-line";
 
   return (
-    <div className="min-h-[100dvh] bg-[#0B0D10] text-white flex flex-col pb-20">
-      {/* Header */}
-      <DetailHeader
-        position="sticky"
-        onBack={() => router.back()}
-        icon={<Activity className="w-4 h-4 text-[#D4FF00]" />}
-        title="Estadísticas de Baile"
-        showSave={false}
-        showShare={false}
-      />
+    <div className="num-display min-h-[100dvh] bg-bg text-ink pb-[calc(var(--root-mobile-nav-clearance)+1rem)] md:pb-16">
+      <header className="sticky top-0 z-30 w-full bg-bg/95 backdrop-blur-md border-b border-line">
+        <div className="w-full max-w-2xl mx-auto px-4 pt-[calc(0.75rem+var(--root-safe-top))] pb-3 md:pt-6 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            aria-label="Volver al perfil"
+            className="size-11 shrink-0 rounded-control bg-surface border border-line flex items-center justify-center hover:bg-surface-2 transition-colors focus-visible:outline-2 focus-visible:outline-accent"
+          >
+            <ChevronLeft className="size-[22px]" aria-hidden="true" />
+          </button>
+          <h1 className="font-display not-italic m-0 flex-1 text-2xl">Dance stats</h1>
+          {headerDate && <span className="text-[13px] text-ink-2">{headerDate}</span>}
+        </div>
+      </header>
 
-      <div className="p-4 space-y-6 animate-fade-in">
+      <div className="w-full max-w-2xl mx-auto pt-4">
+
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-20 space-y-4">
-            <Loader2 className="w-8 h-8 text-[#D4FF00] animate-spin" />
-            <p className="text-sm font-bold text-neutral-400">Cargando tus estadísticas...</p>
+          <div className="flex justify-center py-24">
+            <Loader2 className="size-8 animate-spin text-accent" aria-label="Cargando tus estadísticas" />
+          </div>
+        ) : error ? (
+          <div role="alert" className={cn(card, "mx-4 mt-8 p-6 text-center")}>
+            <p className="m-0 text-base">No pudimos cargar tus estadísticas.</p>
+            <Button variant="secondary" className="mt-4 not-italic tracking-normal" onClick={retry}>Reintentar</Button>
           </div>
         ) : (
           <>
-        {/* Punto de acceso al Ranking en Vivo del Evento (solo visible si el usuario está en el evento) */}
-        {isAtLiveEvent && liveEvent && (
-          <EventLiveRankingCard
-            eventId={liveEvent.id}
-            eventTitle={liveEvent.title}
-            eventLocation={liveEvent.location}
-          />
-        )}
-
-        {/* Hero: steps comparison */}
-        <div className="grid grid-cols-2 gap-3 pt-2 pb-2">
-          {/* Última fiesta */}
-          <div className="relative overflow-hidden flex flex-col items-center justify-center bg-[#111114] border-0 rounded-3xl p-4 shadow-[0_8px_30px_rgba(0,0,0,0.5)]">
-            <p className="tech-label text-[#D4FF00] mb-1">Última fiesta</p>
-            <h2 className="num-display text-3xl sm:text-4xl text-white">
-              {lastPartySteps.toLocaleString()}
-            </h2>
-            <p className="tech-label text-neutral-400 mt-1">Pasos</p>
-          </div>
-
-          {/* Pasos Totales */}
-          <div className="relative overflow-hidden flex flex-col items-center justify-center bg-[#111114] border-0 rounded-3xl p-4 shadow-[0_8px_30px_rgba(0,0,0,0.5)]">
-            <p className="tech-label text-neutral-400 mb-1">Total histórico</p>
-            <h2 className="num-display text-3xl sm:text-4xl text-white">
-              {totalSteps.toLocaleString()}
-            </h2>
-            <p className="tech-label text-neutral-400 mt-1">Pasos</p>
-          </div>
-        </div>
-
-        {/* Metrics grid */}
-        <div className="grid grid-cols-2 gap-3">
-          {/* km */}
-          <div className="flex flex-col items-center justify-center bg-[#111114] border-0 rounded-2xl p-3 gap-1 shadow-sm">
-            <Activity className="w-5 h-5 text-neutral-400 stroke-[1.8]" />
-            <span className="num-display text-lg text-white">{totalKm.toFixed(1)}</span>
-            <span className="tech-label text-[9px] text-neutral-400">km</span>
-          </div>
-          {/* Minutos activos */}
-          <div className="flex flex-col items-center justify-center bg-[#111114] border-0 rounded-2xl p-3 gap-1 shadow-sm">
-            <Zap className="w-5 h-5 text-neutral-400 stroke-[1.8]" />
-            <span className="num-display text-lg text-white">{activeMins}</span>
-            <span className="tech-label text-[9px] text-neutral-400">min activos</span>
-          </div>
-        </div>
-
-        {/* Chart */}
-        <div className="bg-[#D4FF00] border-0 rounded-3xl p-5 shadow-[0_12px_40px_rgba(212,255,0,0.16)]">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-sm font-black uppercase tracking-widest text-black">Actividad</h3>
-            <div className="flex items-center gap-1.5 bg-black/10 p-1 rounded-full border-0">
-              {(["fiestas", "week", "month"] as const).map(tab => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab as any)}
-                  className={`px-3 py-1 text-[10px] font-black uppercase tracking-wider rounded-full transition-all ${activeTab === tab ? "bg-black text-[#D4FF00] shadow-sm" : "text-black/60 hover:text-black font-bold"}`}
-                >
-                  {tab === "fiestas" ? "Fiestas" : tab === "week" ? "Sem" : "Mes"}
-                </button>
-              ))}
-            </div>
-          </div>
-          
-          <div
-            ref={chartScrollRef}
-            className="h-48 w-full relative overflow-x-auto hide-scrollbar touch-pan-x overscroll-x-contain"
-          >
-            {chartData.length === 0 ? (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                <Activity className="w-8 h-8 text-black/20 mb-2 stroke-[1.8]" />
-                <p className="text-xs font-black text-black/60 uppercase tracking-widest">Sin registros</p>
-                <p className="text-[10px] text-black/50 font-medium max-w-[200px] mt-1">No hay fiestas registradas en este período de tiempo.</p>
-              </div>
-            ) : (
-              <div
-                style={{
-                  width:
-                    activeTab === "fiestas" && chartData.length > 4
-                      ? `${(chartData.length / 4) * 100}%`
-                      : "100%",
-                  minWidth: "100%",
-                  height: "100%",
-                }}
-              >
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-                    <XAxis
-                      dataKey="time"
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fill: "#000", fontSize: 10, fontWeight: 700 }}
-                      dy={10}
-                      minTickGap={10}
-                      interval={activeTab === "fiestas" ? 0 : "preserveStartEnd"}
-                    />
-                    <Tooltip 
-                      cursor={{ fill: "rgba(0,0,0,0.05)" }}
-                      contentStyle={{ backgroundColor: "#000", border: "none", borderRadius: "12px", boxShadow: "0 8px 30px rgba(0,0,0,0.5)" }}
-                      itemStyle={{ color: "#D4FF00", fontWeight: "bold" }}
-                      labelStyle={{ color: "#888", marginBottom: "4px" }}
-                    />
-                    <Bar dataKey="steps" radius={[8, 8, 8, 8]} maxBarSize={64}>
-                      {activeTab === "fiestas" && (
-                        <LabelList 
-                          dataKey="steps" 
-                          position="insideTop" 
-                          fill="#D4FF00" 
-                          fontSize={11} 
-                          offset={8}
-                          style={{ fontWeight: 900, fontStyle: 'italic', letterSpacing: '-0.05em' }}
-                          formatter={(val: any) => {
-                            if (typeof val === "number") {
-                              return val >= 1000 ? (val / 1000).toFixed(1) + 'k' : val.toString();
-                            }
-                            return val;
-                          }}
-                        />
-                      )}
-                      {chartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.steps > maxSteps * 0.7 ? "#000000" : "rgba(0,0,0,0.15)"} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+            {isAtLiveEvent && liveEvent && (
+              <div className="px-4 pt-5 not-italic font-normal tracking-normal">
+                <EventLiveRankingCard eventId={liveEvent.id} eventTitle={liveEvent.title} eventLocation={liveEvent.location} />
               </div>
             )}
-          </div>
-        </div>
 
-        {/* Crews List */}
-        <div className="space-y-3">
-          <h3 className="text-sm font-black uppercase tracking-widest text-neutral-300 ml-1">Tus Rankings en Crews</h3>
-          {crews.length === 0 ? (
-            <div 
-              onClick={() => router.push('/match')}
-              className="bg-[#111114] border-0 rounded-3xl p-5 cursor-pointer hover:bg-[#16171D] transition-all group shadow-[0_8px_30px_rgba(0,0,0,0.5)]"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-black/40 flex items-center justify-center shrink-0">
-                    <Trophy className="w-6 h-6 text-neutral-400 stroke-[1.8]" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-black uppercase tracking-widest text-white">Unirte a una Crew</h4>
-                    <p className="text-xs text-neutral-400 font-medium">Compite con amigos</p>
-                  </div>
-                </div>
-                <ChevronLeft className="w-5 h-5 text-neutral-500 rotate-180 group-hover:text-white transition-all" />
+            {last ? (
+              <section aria-labelledby="dance-hero" className="px-5 pt-7 flex flex-col">
+                <h2 id="dance-hero" className="m-0 flex flex-col font-[inherit]">
+                  <span className="text-[15px] text-ink-2">{wasLastNight ? "anoche tiraste" : "en tu última fiesta tiraste"}</span>
+                  <span className="text-[clamp(72px,28vw,112px)] leading-[0.95] tracking-[-0.07em] text-accent">{fmt(last.stepsCount)}</span>
+                  <span className="mt-1.5 text-[22px] leading-tight">pasos en {last.eventTitle}.</span>
+                </h2>
+                {bestOfMonth && (
+                  <span className="mt-4 self-start min-h-10 px-3.5 rounded-xl bg-accent/10 border border-accent/35 text-accent text-sm flex items-center gap-2">
+                    <BadgeCrown className="w-4" />
+                    Tu noche más bailada del mes
+                  </span>
+                )}
+              </section>
+            ) : (
+              <p className={cn(card, "mx-4 mt-7 p-6 text-center text-base")}>
+                Todavía no registraste pasos. Activá el contador en tu próxima fiesta.
+              </p>
+            )}
+
+            <section aria-label="Totales" className="mx-4 mt-7 grid grid-cols-2 gap-px rounded-card overflow-hidden bg-line border border-line">
+              <div className="col-span-2 bg-surface p-4 flex items-baseline justify-between gap-2">
+                <span className="label-mono text-ink-2 not-italic whitespace-nowrap">Total histórico</span>
+                <span className="flex flex-wrap items-baseline justify-end gap-x-1.5">
+                  <span className="text-[26px]">{fmt(totalSteps)}</span>
+                  <span className="text-sm text-ink-2 whitespace-nowrap">pasos · {parties.length} {parties.length === 1 ? "fiesta" : "fiestas"}</span>
+                </span>
               </div>
-            </div>
-          ) : (
-            crews.map((crew) => (
-              <div 
-                key={crew.id}
-                onClick={() => router.push(`/crews/${crew.id}`)}
-                className="bg-[#111114] border-0 rounded-3xl p-5 cursor-pointer hover:bg-[#16171D] transition-all group shadow-[0_8px_30px_rgba(0,0,0,0.5)]"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 aspect-square rounded-2xl bg-[#D4FF00]/10 flex items-center justify-center relative shrink-0">
-                      <Trophy className="w-5 h-5 text-[#D4FF00] stroke-[1.8] fill-none" />
-                      <div className="absolute -bottom-1.5 -right-1.5 bg-[#D4FF00] text-black w-6 h-6 rounded-full flex items-center justify-center num-display text-[10px] shadow-[0_2px_8px_rgba(212,255,0,0.2)]">
-                        {crew.userRank}°
+              <div className="bg-surface px-4 py-3.5 flex items-center gap-2.5">
+                <Flame className="size-[18px] text-accent shrink-0" aria-hidden="true" />
+                <span className="flex flex-col"><span className="text-lg">{fmt(kcal)}</span><span className="text-[13px] text-ink-2">kcal</span></span>
+              </div>
+              <div className="bg-surface px-4 py-3.5 flex items-center gap-2.5">
+                <MapPin className="size-[18px] text-accent shrink-0" aria-hidden="true" />
+                <span className="flex flex-col"><span className="text-lg">{km.toLocaleString("es-UY", { maximumFractionDigits: 1 })}</span><span className="text-[13px] text-ink-2">km</span></span>
+              </div>
+              <div className="col-span-2 bg-surface px-4 py-3.5 flex items-center gap-2.5">
+                <Activity className="size-[18px] text-accent shrink-0" aria-hidden="true" />
+                <span className="flex items-baseline gap-1.5"><span className="text-lg">{fmt(activeMinutes)}</span><span className="text-[13px] text-ink-2">min activos</span></span>
+              </div>
+            </section>
+            <p className="mx-4 mt-2.5 mb-0 text-xs leading-normal text-ink-3">Las kcal se estiman con MET 6,5 (baile electrónico intenso) × 70 kg.</p>
+
+            <section aria-labelledby="dance-activity" className={cn(card, "mx-4 mt-6 p-4 flex flex-col gap-[18px]")}>
+              <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-3">
+                <h2 id="dance-activity" className="font-display not-italic m-0 text-xl">Actividad</h2>
+                <div role="radiogroup" aria-label="Período" className="flex p-[3px] rounded-xl bg-bg border border-line">
+                  {([["fiestas", "Fiestas"], ["week", "Semana"], ["month", "Mes"]] as const).map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      role="radio"
+                      aria-checked={period === id}
+                      onClick={() => setPeriod(id)}
+                      className={cn(
+                        "h-[38px] px-3 rounded-[9px] text-[13px] not-italic font-semibold tracking-normal transition-colors focus-visible:outline-2 focus-visible:outline-accent",
+                        period === id ? "bg-ink text-bg" : "text-ink-2 hover:text-ink",
+                      )}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[22px]">{fmt(chartTotal)}</span>
+                <span className="text-[13px] text-ink-2">{caption}</span>
+              </div>
+              {chartTotal > 0 ? (
+                <>
+                  <div className="overflow-x-auto hide-scrollbar scrollbar-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pb-1 -mx-2 px-2">
+                    <div className={cn("flex flex-col gap-2.5", points.length > 6 ? "min-w-max" : "w-full")}>
+                      <div
+                        role="img"
+                        aria-label={`Gráfico de barras, ${caption}. ${points.map((point) => `${point.label} ${fmt(point.steps)}`).join(", ")}`}
+                        className="h-[190px] flex items-end gap-2 border-b border-white/10"
+                      >
+                        {points.map((point, index) => {
+                          const top = point.steps === chartMax && point.steps > 0;
+                          return (
+                            <div
+                              key={`${point.label}-${index}`}
+                              className={cn(
+                                "h-full flex flex-col items-center justify-end gap-1.5",
+                                points.length > 6 ? "w-16 shrink-0" : "flex-1 min-w-0",
+                              )}
+                            >
+                              <span className={cn("text-xs", top ? "text-accent" : "text-ink-2")}>
+                                {point.steps ? short(point.steps) : "–"}
+                              </span>
+                              <div
+                                className={cn(
+                                  "w-full max-w-10 rounded-t-lg rounded-b-sm",
+                                  top ? "bg-accent" : point.steps ? "bg-[#4A505A]" : "bg-[#262A30]",
+                                )}
+                                style={{
+                                  height: chartMax
+                                    ? Math.max(point.steps ? 6 : 2, Math.round((point.steps / chartMax) * 150))
+                                    : 2,
+                                }}
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div aria-hidden="true" className="flex gap-2">
+                        {points.map((point, index) => (
+                          <span
+                            key={`${point.label}-label-${index}`}
+                            className={cn(
+                              "text-center text-[11px] truncate",
+                              points.length > 6 ? "w-16 shrink-0" : "flex-1 min-w-0",
+                              point.steps === chartMax && point.steps > 0 ? "text-ink" : "text-ink-3",
+                            )}
+                          >
+                            {point.label}
+                          </span>
+                        ))}
                       </div>
                     </div>
-                    <div>
-                      <h4 className="text-sm font-black uppercase tracking-wider text-white group-hover:text-[#D4FF00] transition-colors">{crew.name}</h4>
-                      <p className="tech-label text-neutral-400">{crew.memberCount} miembros</p>
-                    </div>
                   </div>
-                  <ChevronLeft className="w-5 h-5 text-neutral-500 rotate-180 group-hover:text-[#D4FF00] group-hover:translate-x-1 transition-all" />
+                  {best && (
+                    <span className="flex items-center gap-2 text-[13px] text-ink-2">
+                      <span aria-hidden="true" className="size-2.5 rounded-[3px] bg-accent" />
+                      Máximo: {best.label} · {fmt(best.steps)} pasos
+                    </span>
+                  )}
+                </>
+              ) : (
+                <div className="h-[190px] p-4 rounded-control border border-dashed border-line-strong flex flex-col items-center justify-center gap-1.5 text-center">
+                  <span className="text-[15px]">Sin registros</span>
+                  <span className="text-[13px] text-ink-2">No hay fiestas registradas en este período.</span>
                 </div>
-              </div>
-            ))
-          )}
-        </div>
-        </>
+              )}
+            </section>
+
+            {last && (
+              <section className={cn(card, "mx-4 mt-3 overflow-hidden")}>
+                <button
+                  type="button"
+                  aria-expanded={crewsOpen}
+                  aria-controls="dance-crews"
+                  onClick={() => setCrewsOpen((open) => !open)}
+                  className="w-full min-h-16 px-4 py-3 flex items-center gap-3 text-left focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
+                >
+                  <span className="size-10 shrink-0 rounded-xl bg-accent/12 text-accent flex items-center justify-center">
+                    <Users className="size-5" aria-hidden="true" />
+                  </span>
+                  <span className="flex-1 min-w-0 flex flex-col gap-0.5">
+                    <span className="text-base truncate">Tus crews en {last.eventTitle}</span>
+                    <span className="text-[13px] text-ink-2">
+                      {crews.length} {crews.length === 1 ? "crew" : "crews"} · tocá para {crewsOpen ? "cerrar" : "ver"}
+                    </span>
+                  </span>
+                  <ChevronDown className={cn("size-[22px] text-ink-2 transition-transform", crewsOpen && "rotate-180")} aria-hidden="true" />
+                </button>
+
+                {crewsOpen && (
+                  <div id="dance-crews" className="px-3 pb-3 flex flex-col gap-3">
+                    {crews.map((crew) => {
+                      const entries = [...(rankings[crew.id] ?? [])].sort((a, b) => b.steps - a.steps);
+                      const crewTotal = entries.reduce((acc, entry) => acc + entry.steps, 0);
+                      const top = entries[0]?.steps || 1;
+                      const myIndex = entries.findIndex((entry) => entry.userId === user?.id);
+                      const winner = entries[0];
+                      return (
+                        <article key={crew.id} className="px-4 py-[18px] rounded-control bg-bg border border-line flex flex-col gap-4">
+                          <div className="flex flex-col gap-1.5">
+                            <span className="label-mono text-ink-2 not-italic">
+                              {crew.name}{myIndex >= 0 ? ` · ${myIndex + 1}° de ${entries.length}` : ""}
+                            </span>
+                            {entries.length > 0 && crewTotal > 0 ? (
+                              <h3 className="m-0 text-[22px] leading-tight font-[inherit]">
+                                Tu crew tiró <span className="text-accent">{fmt(crewTotal)}</span> pasos en {last.eventTitle}.
+                              </h3>
+                            ) : (
+                              <p className="m-0 text-[15px] text-ink-2">
+                                {isLoadingRankings && !rankings[crew.id] ? "Cargando ranking…" : `Nadie de la crew registró pasos en ${last.eventTitle}.`}
+                              </p>
+                            )}
+                          </div>
+                          {crewTotal > 0 && (
+                            <>
+                              <div className="flex flex-col gap-3">
+                                {entries.map((entry, index) => {
+                                  const isMe = entry.userId === user?.id;
+                                  return (
+                                    <div key={entry.userId}>
+                                      <div className={cn("flex justify-between gap-3 text-sm", isMe ? "text-accent" : "text-ink")}>
+                                        <span className="truncate">{entry.username || entry.name}{isMe ? " (vos)" : ""}</span>
+                                        <span className="shrink-0">{fmt(entry.steps)}</span>
+                                      </div>
+                                      <div className="mt-1.5 h-2.5 rounded-md bg-[#1B1F2A]">
+                                        <div
+                                          className={cn("h-2.5 rounded-md", isMe ? "bg-accent" : index === 0 ? "bg-ink" : "bg-[#5B6270]")}
+                                          style={{ width: `${Math.round((entry.steps / top) * 100)}%` }}
+                                        />
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              {winner && (
+                                <p className="m-0 text-[15px] leading-snug">
+                                  {winner.userId === user?.id
+                                    ? "Esta vez ganaste vos. La próxima, a defender el título."
+                                    : `Esta vez ganó ${winner.username || winner.name}. La próxima, revancha en la pista.`}
+                                </p>
+                              )}
+                            </>
+                          )}
+                          <Link href={`/crews/${crew.id}`} className="self-start min-h-11 flex items-center gap-1.5 text-sm text-accent hover:text-accent-hover">
+                            Ver ranking de la crew <ChevronRight className="size-4" strokeWidth={2.2} aria-hidden="true" />
+                          </Link>
+                        </article>
+                      );
+                    })}
+                    <Link
+                      href="/match"
+                      className="min-h-[52px] rounded-control border border-dashed border-accent/40 flex items-center justify-center gap-2 text-[15px] hover:bg-surface-2 transition-colors"
+                    >
+                      <Plus className="size-[18px] text-accent" strokeWidth={2.2} aria-hidden="true" />
+                      {crews.length ? "Unirte a otra crew" : "Unirte a una crew"}
+                    </Link>
+                  </div>
+                )}
+              </section>
+            )}
+          </>
         )}
       </div>
     </div>

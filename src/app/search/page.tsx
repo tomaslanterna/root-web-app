@@ -2,12 +2,11 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Search, Loader2, ChevronLeft, X } from "lucide-react";
+import { cn, isValidImageUrl } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { EventCard } from "@/components/ui/EventCard";
 import { CommunityCard } from "@/components/communities/CommunityCard";
-import { DetailHeader } from "@/components/ui/DetailHeader";
 
 type TabType = "usuarios" | "eventos" | "comunidades";
 
@@ -27,7 +26,7 @@ export default function SearchPage() {
     { id: "comunidades", label: "Comunidades" },
   ];
 
-  // Auto focus input on mount
+  // Auto focus input al montar
   useEffect(() => {
     if (inputRef.current) {
       inputRef.current.focus();
@@ -38,11 +37,11 @@ export default function SearchPage() {
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedQuery(query);
-    }, 500);
+    }, 400);
     return () => clearTimeout(handler);
   }, [query]);
 
-  // Perform search
+  // Ejecutar búsqueda
   useEffect(() => {
     if (!debouncedQuery.trim()) {
       setResults([]);
@@ -67,7 +66,6 @@ export default function SearchPage() {
         setResults(response.data.results || []);
       } catch (err) {
         console.error("Search error", err);
-        // Fallback for mocked view until backend is ready
         setResults([]);
       } finally {
         setIsLoading(false);
@@ -78,21 +76,52 @@ export default function SearchPage() {
   }, [debouncedQuery, activeTab]);
 
   return (
-    <div className="flex flex-col min-h-[100dvh] bg-[#0B0D10] text-white">
-      {/* Sticky Search Header & Tabs Navigation */}
-      <div className="sticky top-0 z-30 bg-[#0B0D10]/95 backdrop-blur-xl border-b border-white/10">
-        <DetailHeader
-          isSearch={true}
-          searchValue={query}
-          onSearchChange={setQuery}
-          onClearSearch={() => setQuery("")}
-          searchInputRef={inputRef}
-          className="relative inset-x-auto top-auto z-auto bg-none bg-transparent border-none pb-2 pt-safe-header pointer-events-auto"
-        />
+    <div className="flex flex-col min-h-[100dvh] bg-bg text-ink pb-[calc(var(--root-mobile-nav-clearance)+1rem)] md:pb-16">
+      {/* Header fijo superior con buscador y pestañas */}
+      <header className="sticky top-0 z-30 w-full bg-bg/95 backdrop-blur-md border-b border-line">
+        <div className="w-full max-w-4xl mx-auto px-4 pt-[calc(0.75rem+var(--root-safe-top))] pb-1.5 md:pt-6">
+          {/* Fila 1: Botón volver + Input de búsqueda */}
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => router.back()}
+              aria-label="Volver"
+              className="size-11 shrink-0 rounded-control bg-surface border border-line flex items-center justify-center hover:bg-surface-2 transition-colors focus-visible:outline-2 focus-visible:outline-accent cursor-pointer"
+            >
+              <ChevronLeft className="size-[22px]" aria-hidden="true" />
+            </button>
 
-        {/* Tabs estilo Perfil / Detalle de Comunidades */}
+            <div className="h-11 px-3.5 flex-1 min-w-0 flex items-center gap-2.5 rounded-control bg-surface border border-line focus-within:border-accent text-ink-3 transition-colors">
+              <Search className="size-4.5 shrink-0" aria-hidden="true" />
+              <input
+                ref={inputRef}
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Buscar eventos, usuarios o comunidades..."
+                aria-label="Buscar eventos, usuarios o comunidades"
+                className="flex-1 min-w-0 bg-transparent border-0 outline-none text-ink text-sm font-semibold placeholder:text-ink-3"
+              />
+              {query && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQuery("");
+                    inputRef.current?.focus();
+                  }}
+                  className="p-1 rounded-full hover:bg-white/10 text-ink-3 hover:text-ink transition-colors cursor-pointer"
+                  aria-label="Limpiar búsqueda"
+                >
+                  <X className="size-4" aria-hidden="true" />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Fila 2: Tabs estilo clásico con indicador inferior centrado */}
         <nav aria-label="Filtro de búsqueda" className="w-full">
-          <div className="flex w-full items-center justify-around max-w-md md:max-w-xl mx-auto" role="tablist">
+          <div className="flex w-full max-w-4xl mx-auto items-stretch" role="tablist">
             {tabs.map((tab) => {
               const isActive = activeTab === tab.id;
               return (
@@ -103,100 +132,112 @@ export default function SearchPage() {
                   aria-selected={isActive}
                   aria-controls={`search-tab-${tab.id}`}
                   onClick={() => setActiveTab(tab.id)}
-                  className="relative flex-1 flex items-center justify-center py-3.5 sm:py-4 transition-colors group select-none cursor-pointer"
+                  className={cn(
+                    "relative flex-1 h-11 sm:h-12 flex items-center justify-center text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent cursor-pointer",
+                    isActive ? "text-accent" : "text-ink-3 hover:text-ink-2",
+                  )}
                 >
-                  <span
-                    className={cn(
-                      "tech-label text-xs sm:text-sm transition-all duration-200 tracking-wider",
-                      isActive
-                        ? "text-[#D4FF00]"
-                        : "text-neutral-500 group-hover:text-neutral-300",
-                    )}
-                  >
-                    {tab.label}
-                  </span>
+                  <span>{tab.label}</span>
                   {isActive && (
-                    <span className="absolute bottom-0 inset-x-0 h-[2.5px] bg-[#D4FF00]" />
+                    <span className="absolute bottom-0 inset-x-0 h-[2.5px] bg-accent shadow-[0_-1px_6px_rgba(212,255,0,0.3)]" />
                   )}
                 </button>
               );
             })}
           </div>
         </nav>
-      </div>
+      </header>
 
-      {/* Results Content */}
-      <div className="flex-1 p-4 space-y-4">
+      {/* Resultados de búsqueda */}
+      <main className="w-full max-w-4xl mx-auto flex-1 px-4 pt-5 pb-20">
         {isLoading && (
-          <div className="flex justify-center p-8">
-            <Loader2 className="w-6 h-6 animate-spin text-[#D4FF00]" />
+          <div className="flex justify-center py-20">
+            <Loader2 className="size-8 animate-spin text-accent" aria-label="Buscando..." />
           </div>
         )}
 
         {!isLoading && debouncedQuery && results.length === 0 && (
-          <div className="text-center p-8 text-neutral-500">
-            <p className="text-sm font-bold uppercase tracking-wider">
-              No se encontraron resultados
+          <div className="py-20 text-center flex flex-col items-center justify-center gap-2">
+            <Search className="size-10 text-ink-3 opacity-30 mb-1" aria-hidden="true" />
+            <p className="font-display text-lg text-ink m-0">No se encontraron resultados</p>
+            <p className="text-sm text-ink-3 m-0">
+              No hay coincidencias para &ldquo;{debouncedQuery}&rdquo; en {activeTab}.
+            </p>
+          </div>
+        )}
+
+        {!isLoading && !debouncedQuery && (
+          <div className="py-24 text-center flex flex-col items-center justify-center gap-2">
+            <span className="size-14 rounded-2xl bg-surface border border-line flex items-center justify-center text-accent mb-1 shadow-sm">
+              <Search className="size-6" aria-hidden="true" />
+            </span>
+            <p className="font-display text-xl text-ink m-0">Explorá en Root</p>
+            <p className="text-sm text-ink-3 m-0">
+              Buscá artistas, fiestas, perfiles de amigos o comunidades.
             </p>
           </div>
         )}
 
         {!isLoading && debouncedQuery && results.length > 0 && (
-          <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-6 pb-20">
-            {activeTab === "usuarios" &&
-              results.map((user: any) => (
-                <div
-                  key={user.id}
-                  onClick={() =>
-                    router.push(`/profile/${user.username}?from=search`)
-                  }
-                  className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors cursor-pointer border border-transparent hover:border-white/10"
-                >
-                  <div className="w-12 h-12 rounded-full overflow-hidden bg-neutral-800">
-                    {user.avatarUrl ? (
-                      <img
-                        src={user.avatarUrl}
-                        alt={user.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-lg font-bold">
-                        {user.name?.charAt(0)}
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-white leading-tight">
-                      {user.name}
-                    </h3>
-                    <p className="text-xs text-neutral-400 font-semibold tracking-wide">
-                      @{user.username}
-                    </p>
-                  </div>
-                </div>
-              ))}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="label-mono text-ink-3">
+                {results.length} {results.length === 1 ? "resultado" : "resultados"}
+              </span>
+            </div>
 
-            {activeTab === "eventos" &&
-              results.map((event: any) => (
-                <EventCard key={event.id} event={event} variant="full" />
-              ))}
+            {activeTab === "usuarios" && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {results.map((user: any) => (
+                  <div
+                    key={user.id}
+                    onClick={() => router.push(`/profile/${user.username}?from=search`)}
+                    className="p-3.5 rounded-card bg-surface border border-line flex items-center gap-3.5 hover:bg-surface-2 transition-colors cursor-pointer group focus-visible:outline-2 focus-visible:outline-accent"
+                  >
+                    <div className="size-12 rounded-full overflow-hidden bg-surface-2 shrink-0 border border-white/10 ring-1 ring-white/10">
+                      {isValidImageUrl(user.avatarUrl) ? (
+                        <img
+                          src={user.avatarUrl.trim()}
+                          alt=""
+                          className="size-full object-cover group-hover:scale-105 transition-transform"
+                        />
+                      ) : (
+                        <div className="size-full flex items-center justify-center text-base font-bold text-ink">
+                          {user.name?.charAt(0)?.toUpperCase() || user.username?.charAt(0)?.toUpperCase() || "U"}
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1 flex flex-col gap-0.5">
+                      <h3 className="font-semibold text-ink text-[15px] leading-snug truncate m-0 group-hover:text-accent transition-colors">
+                        {user.name}
+                      </h3>
+                      <p className="text-xs text-ink-3 font-medium tracking-wide m-0 truncate">
+                        @{user.username}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
-            {activeTab === "comunidades" &&
-              results.map((community: any) => (
-                <CommunityCard key={community.id} community={community} />
-              ))}
+            {activeTab === "eventos" && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {results.map((event: any) => (
+                  <EventCard key={event.id} event={event} />
+                ))}
+              </div>
+            )}
+
+            {activeTab === "comunidades" && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {results.map((community: any) => (
+                  <CommunityCard key={community.id} community={community} />
+                ))}
+              </div>
+            )}
           </div>
         )}
-
-        {!debouncedQuery && (
-          <div className="text-center p-8 text-neutral-600">
-            <Search className="w-10 h-10 mx-auto mb-3 opacity-20" />
-            <p className="text-xs font-bold uppercase tracking-wider">
-              Empieza a escribir para buscar
-            </p>
-          </div>
-        )}
-      </div>
+      </main>
     </div>
   );
 }
