@@ -45,4 +45,35 @@ export function DiscoBallIcon({
   );
 }
 
+export function DancerFigureIcon({
+  strokeWidth = 2,
+  className,
+  ...props
+}: DancerIconProps) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      {...props}
+    >
+      {/* Cabeza */}
+      <circle cx="12" cy="4" r="2" />
+      {/* Torso */}
+      <path d="M12 6v6" />
+      {/* Brazos bailando */}
+      <path d="m12 8 5-4" />
+      <path d="m12 9-4 2-1 4" />
+      {/* Piernas bailando */}
+      <path d="m12 12-3 5-3 1" />
+      <path d="m12 12 4 4 2-1" />
+    </svg>
+  );
+}
+
 export const DancerIcon = DiscoBallIcon;

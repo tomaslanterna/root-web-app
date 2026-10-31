@@ -6,7 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button";
-import { ChevronLeft, ChevronRight, Loader2, Settings, ShieldCheck } from "lucide-react";
+import { Award, ChevronLeft, ChevronRight, Grid3X3, Loader2, Settings, ShieldCheck } from "lucide-react";
 import { MOCK_POSTS } from "@/lib/mocks";
 import { DanceStatsWidget } from "@/components/profile/DanceStatsWidget";
 import { cn, copyTextToClipboard, isValidImageUrl } from "@/lib/utils";
@@ -202,8 +202,8 @@ export default function UserProfilePage() {
   }
 
   const tabs = [
-    { id: "Posts", label: "Posts" },
-    { id: "Insignias", label: "Insignias" },
+    { id: "Posts", label: "Posts", icon: Grid3X3 },
+    { id: "Insignias", label: "Insignias", icon: Award },
   ];
 
   const roleLabel = profileUser.role === "USER" ? "Raver" : profileUser.role;
@@ -360,20 +360,22 @@ export default function UserProfilePage() {
         <div role="tablist" aria-label="Contenido del perfil" className="flex border-b border-line">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
+            const Icon = tab.icon;
             return (
               <button
                 key={tab.id}
                 type="button"
                 role="tab"
+                aria-label={tab.label}
                 aria-selected={isActive}
                 aria-controls={`profile-tab-${tab.id}`}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  "flex-1 h-[52px] text-[13px] font-semibold transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent",
-                  isActive ? "text-ink shadow-[inset_0_-2px_0_var(--color-accent)]" : "text-ink-3 hover:text-ink-2",
+                  "flex-1 h-12 flex items-center justify-center transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent",
+                  isActive ? "text-accent shadow-[inset_0_-2px_0_var(--color-accent)]" : "text-ink-3 hover:text-ink-2",
                 )}
               >
-                {tab.label}
+                <Icon className="size-5" aria-hidden="true" />
               </button>
             );
           })}

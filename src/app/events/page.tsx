@@ -274,6 +274,20 @@ export default function EventsPage() {
   const filtersContainerRef = useRef<HTMLDivElement>(null);
   const bottomSheetRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
+  const [headerHeight, setHeaderHeight] = useState<number>(0);
+
+  useEffect(() => {
+    const updateHeaderHeight = () => {
+      if (headerRef.current) {
+        setHeaderHeight(headerRef.current.offsetHeight);
+      }
+    };
+    updateHeaderHeight();
+    const observer = new ResizeObserver(updateHeaderHeight);
+    if (headerRef.current) observer.observe(headerRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   const openInbox = inbox?.open ?? (() => router.push("/chat?from=events"));
   const { ref: swipeRef } = useHorizontalSwipe(
@@ -644,6 +658,7 @@ export default function EventsPage() {
     >
       {/* Header fijo: marca, búsqueda y filtros */}
       <header
+        ref={headerRef}
         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
         className="fixed top-0 inset-x-0 z-40 mx-auto w-full max-w-md md:max-w-[1360px] bg-bg/95 backdrop-blur-md border-b border-line pt-[var(--root-safe-top)] md:pt-20 md:px-8 lg:px-12"
       >
@@ -676,30 +691,30 @@ export default function EventsPage() {
         {/* Fila 2: búsqueda */}
         <div
           onClick={(event) => event.stopPropagation()}
-          className="px-4 md:px-6 pb-3 max-w-7xl mx-auto w-full"
+          className="px-4 md:px-6 pb-2 md:pb-2.5 max-w-7xl mx-auto w-full"
         >
           <button
             type="button"
             onClick={() => router.push("/search")}
-            className="w-full h-12 px-3.5 flex items-center gap-2.5 rounded-control bg-surface border border-line text-ink-2 text-[15px] text-left hover:bg-surface-2 transition-colors focus-visible:outline-2 focus-visible:outline-accent"
+            className="w-full h-9 md:h-10 px-3 flex items-center gap-2 rounded-xl bg-surface border border-line text-ink-2 text-xs md:text-sm text-left hover:bg-surface-2 transition-colors focus-visible:outline-2 focus-visible:outline-accent"
           >
-            <Search className="size-5 shrink-0" aria-hidden="true" />
+            <Search className="size-4 shrink-0" aria-hidden="true" />
             <span className="truncate">Buscar eventos, artistas o lugares</span>
           </button>
         </div>
 
-        {/* Fila 3: Filtros a la izquierda (scroll horizontal) + Selector de layout fijo a la derecha en mobile */}
+        {/* Fila 3: Filtros a la izquierda (scroll horizontal) + Selector de layout compacto a la derecha en mobile */}
         <div
           ref={filtersContainerRef}
           onClick={(event) => event.stopPropagation()}
-          className="relative z-30 px-4 md:px-6 pb-3 max-w-7xl mx-auto w-full"
+          className="relative z-30 px-4 md:px-6 pb-2.5 md:pb-3 max-w-7xl mx-auto w-full"
         >
           <div className="flex items-center justify-between gap-2">
-            <div className="flex-1 min-w-0 flex items-center gap-2 overflow-x-auto hide-scrollbar whitespace-nowrap">
+            <div className="flex-1 min-w-0 flex items-center gap-1.5 overflow-x-auto hide-scrollbar whitespace-nowrap py-0.5">
               {/* Filtro 1: ¿Cuándo? */}
               <div
                 className={cn(
-                  "shrink-0 h-11 flex items-center rounded-full border transition-colors select-none",
+                  "shrink-0 h-8 md:h-8.5 flex items-center rounded-full border transition-colors select-none text-xs",
                   isDateActive
                     ? "bg-accent/12 text-accent border-accent/40"
                     : "border-white/10 bg-surface text-ink hover:bg-surface-2",
@@ -714,16 +729,16 @@ export default function EventsPage() {
                     setIsDatesOpen(false);
                   }}
                   className={cn(
-                    "h-full flex items-center gap-1.5 text-sm font-semibold",
-                    isDateActive ? "pl-3.5 pr-1" : "pl-3.5 pr-3",
+                    "h-full flex items-center gap-1.5 text-xs font-medium",
+                    isDateActive ? "pl-2.5 pr-1" : "pl-2.5 pr-2.5",
                   )}
                 >
-                  <Calendar aria-hidden="true" className={cn("size-4 shrink-0", isDateActive ? "text-accent" : "text-ink-2")} />
-                  <span className="max-w-[95px] sm:max-w-none truncate">{getDateLabel()}</span>
+                  <Calendar aria-hidden="true" className={cn("size-3.5 shrink-0", isDateActive ? "text-accent" : "text-ink-2")} />
+                  <span className="max-w-[80px] sm:max-w-none truncate">{getDateLabel()}</span>
                   {!isDateActive && (
                     <ChevronDown
                       className={cn(
-                        "size-4 text-ink-2 transition-transform duration-200 shrink-0",
+                        "size-3.5 text-ink-2 transition-transform duration-200 shrink-0",
                         isWhenOpen && "rotate-180",
                       )}
                     />
@@ -740,11 +755,11 @@ export default function EventsPage() {
                       e.stopPropagation();
                       clearDateFilter();
                     }}
-                    className="relative z-20 w-9 h-11 rounded-full flex items-center justify-center text-accent hover:bg-white/10 active:scale-90 transition-transform touch-manipulation"
+                    className="relative z-20 w-6 h-full rounded-full flex items-center justify-center text-accent hover:bg-white/10 active:scale-90 transition-transform touch-manipulation"
                     title="Quitar filtro de fecha"
                     aria-label="Quitar filtro de fecha"
                   >
-                    <X className="size-4 pointer-events-none" aria-hidden="true" />
+                    <X className="size-3 pointer-events-none" aria-hidden="true" />
                   </button>
                 )}
               </div>
@@ -752,7 +767,7 @@ export default function EventsPage() {
               {/* Filtro 2: Ubicación */}
               <div
                 className={cn(
-                  "shrink-0 h-11 flex items-center rounded-full border transition-colors select-none",
+                  "shrink-0 h-8 md:h-8.5 flex items-center rounded-full border transition-colors select-none text-xs",
                   isLocationActive
                     ? "bg-accent/12 text-accent border-accent/40"
                     : "border-white/10 bg-surface text-ink hover:bg-surface-2",
@@ -768,16 +783,16 @@ export default function EventsPage() {
                     setIsDatesOpen(false);
                   }}
                   className={cn(
-                    "h-full flex items-center gap-1.5 text-sm font-semibold",
-                    isLocationActive ? "pl-3.5 pr-1" : "pl-3.5 pr-3",
+                    "h-full flex items-center gap-1.5 text-xs font-medium",
+                    isLocationActive ? "pl-2.5 pr-1" : "pl-2.5 pr-2.5",
                   )}
                 >
-                  <MapPin aria-hidden="true" className={cn("size-4 shrink-0", isLocationActive ? "text-accent" : "text-ink-2")} />
-                  <span className="max-w-[100px] sm:max-w-none truncate">{getLocationLabel()}</span>
+                  <MapPin aria-hidden="true" className={cn("size-3.5 shrink-0", isLocationActive ? "text-accent" : "text-ink-2")} />
+                  <span className="max-w-[80px] sm:max-w-none truncate">{getLocationLabel()}</span>
                   {!isLocationActive && (
                     <ChevronDown
                       className={cn(
-                        "size-4 text-ink-2 transition-transform duration-200 shrink-0",
+                        "size-3.5 text-ink-2 transition-transform duration-200 shrink-0",
                         isGenreOpen && "rotate-180",
                       )}
                     />
@@ -794,18 +809,18 @@ export default function EventsPage() {
                       e.stopPropagation();
                       clearLocationFilter();
                     }}
-                    className="relative z-20 w-9 h-11 rounded-full flex items-center justify-center text-accent hover:bg-white/10 active:scale-90 transition-transform touch-manipulation"
+                    className="relative z-20 w-6 h-full rounded-full flex items-center justify-center text-accent hover:bg-white/10 active:scale-90 transition-transform touch-manipulation"
                     title="Quitar filtro de ubicación"
                     aria-label="Quitar filtro de ubicación"
                   >
-                    <X className="size-4 pointer-events-none" aria-hidden="true" />
+                    <X className="size-3 pointer-events-none" aria-hidden="true" />
                   </button>
                 )}
               </div>
             </div>
 
             {/* Selector de vista (mobile) */}
-            <div role="radiogroup" aria-label="Vista" className="md:hidden shrink-0 flex p-[3px] rounded-xl bg-surface border border-line">
+            <div role="radiogroup" aria-label="Vista" className="md:hidden shrink-0 flex p-[2px] rounded-lg bg-surface border border-line">
               {viewOptions.map(({ id, label, icon: Icon }) => (
                 <button
                   key={id}
@@ -815,11 +830,11 @@ export default function EventsPage() {
                   aria-label={label}
                   onClick={() => setViewMode(id)}
                   className={cn(
-                    "size-[38px] flex items-center justify-center rounded-[9px] transition-colors focus-visible:outline-2 focus-visible:outline-accent",
+                    "size-7 flex items-center justify-center rounded-[6px] transition-colors focus-visible:outline-2 focus-visible:outline-accent",
                     viewMode === id ? "bg-ink text-bg" : "text-ink-2 hover:text-ink",
                   )}
                 >
-                  <Icon className="size-4" aria-hidden="true" />
+                  <Icon className="size-3.5" aria-hidden="true" />
                 </button>
               ))}
             </div>
@@ -1030,7 +1045,10 @@ export default function EventsPage() {
       </header>
 
       <PullToRefresh onRefresh={handleRefresh}>
-        <div className="space-y-7 px-4 md:px-6 pt-[calc(var(--root-safe-top)+184px)] md:pt-28 pb-28 w-full max-w-7xl mx-auto">
+        <div
+          style={headerHeight > 0 ? { paddingTop: `${headerHeight + 20}px` } : undefined}
+          className="space-y-7 px-4 md:px-6 pt-[calc(var(--root-safe-top)+175px)] md:pt-[200px] pb-28 w-full max-w-7xl mx-auto"
+        >
           {/* Slide-over Drawer lateral para Filtros Avanzados (Cero Layout Shift) */}
         {showFilters && (
           <div className="fixed inset-0 z-50 flex justify-end">

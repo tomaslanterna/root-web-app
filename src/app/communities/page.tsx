@@ -99,8 +99,10 @@ export default function CommunitiesPage() {
 
   return (
     <div className="flex min-h-[100dvh] flex-col bg-bg pb-[calc(var(--root-mobile-nav-clearance)+1rem)] text-ink md:pb-16">
-      <header className="mx-auto w-full max-w-6xl px-4 pt-[calc(0.75rem+var(--root-safe-top))] md:px-8 md:pt-6">
-        <h1 className="font-display m-0 text-[32px]">Comunidades</h1>
+      <header className="sticky top-0 z-30 w-full bg-bg/95 backdrop-blur-md border-b border-line">
+        <div className="mx-auto w-full max-w-6xl px-4 pt-[calc(0.75rem+var(--root-safe-top))] pb-3 md:px-8 md:pt-6">
+          <h1 className="font-display m-0 text-[32px]">Comunidades</h1>
+        </div>
       </header>
 
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-3.5 px-4 pt-4 md:px-8">

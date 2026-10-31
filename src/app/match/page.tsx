@@ -71,8 +71,8 @@ export default function MatchPage() {
 
   return (
     <div className="flex flex-col min-h-[100dvh] bg-bg text-ink pb-[calc(var(--root-mobile-nav-clearance)+1rem)] md:pb-16">
-      <div className="w-full max-w-2xl mx-auto px-4 pt-[calc(0.75rem+var(--root-safe-top))] md:pt-6">
-        <header className="flex items-center justify-between gap-3">
+      <header className="sticky top-0 z-30 w-full bg-bg/95 backdrop-blur-md border-b border-line">
+        <div className="w-full max-w-2xl mx-auto px-4 pt-[calc(0.75rem+var(--root-safe-top))] pb-3 md:pt-6 flex items-center justify-between gap-3">
           <h1 className="font-display text-[32px] m-0">Crews</h1>
           <Link
             href="/chat"
@@ -81,9 +81,11 @@ export default function MatchPage() {
           >
             <MessageSquare className="size-5" aria-hidden="true" />
           </Link>
-        </header>
+        </div>
+      </header>
 
-        <div role="tablist" aria-label="Crews" className="mt-4 flex p-[3px] rounded-xl bg-surface border border-line">
+      <div className="w-full max-w-2xl mx-auto px-4 pt-4">
+        <div role="tablist" aria-label="Crews" className="flex p-[3px] rounded-xl bg-surface border border-line">
           {tabs.map((tab) => (
             <button
               key={tab.id}

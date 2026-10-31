@@ -6,9 +6,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { parseEventRealDate } from "@/hooks/useDanceSync";
 import {
   ArrowUpRight,
-  Bookmark,
-  CalendarPlus,
   Check,
+  ChevronDown,
   ChevronLeft,
   Loader2,
   Share,
@@ -35,7 +34,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const [hasLoaded, setHasLoaded] = useState(false);
   const [isAttendeesOpen, setIsAttendeesOpen] = useState(false);
   const [copiedShare, setCopiedShare] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
+  const [isTicketsExpanded, setIsTicketsExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState<"info" | "venue" | "rules">("info");
   const [selectedTierId, setSelectedTierId] = useState<string | null>(null);
   const tabsRef = useRef<HTMLDivElement>(null);
@@ -113,20 +112,6 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       setCopiedShare(true);
       setTimeout(() => setCopiedShare(false), 2500);
     }
-  };
-
-  const generateGoogleCalendarUrl = () => {
-    if (!event) return "#";
-    const start = parseEventRealDate(event.date);
-    const end = event.endDate
-      ? parseEventRealDate(event.endDate)
-      : new Date(start.getTime() + 6 * 60 * 60 * 1000);
-    const format = (d: Date) => d.toISOString().replace(/-|:|\.\d\d\d/g, "");
-    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(
-      event.title,
-    )}&dates=${format(start)}/${format(end)}&details=${encodeURIComponent(
-      event.description || `Evento en Root: ${event.title}`,
-    )}&location=${encodeURIComponent(event.location)}`;
   };
 
   let googleMapsUrl = "#";
@@ -253,7 +238,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     "size-11 rounded-full bg-bg/80 text-ink flex items-center justify-center transition-colors hover:bg-bg focus-visible:outline-2 focus-visible:outline-accent";
 
   return (
-    <div className="min-h-screen bg-bg text-ink pb-32 md:pb-16">
+    <div className="min-h-screen bg-bg text-ink pb-16 md:pb-20">
       {copiedShare && (
         <div role="status" className="fixed top-[calc(1.5rem+var(--root-safe-top))] left-1/2 -translate-x-1/2 z-50 h-11 px-5 rounded-full bg-accent text-on-accent text-sm font-semibold flex items-center gap-2 animate-fade-in">
           <Check className="size-4" aria-hidden="true" /> Enlace copiado
@@ -278,24 +263,6 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
               <ChevronLeft className="size-[22px]" aria-hidden="true" />
             </button>
             <div className="flex gap-2">
-              <a
-                href={generateGoogleCalendarUrl()}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Agendar en Google Calendar"
-                className={roundButton}
-              >
-                <CalendarPlus className="size-5" aria-hidden="true" />
-              </a>
-              <button
-                type="button"
-                aria-label="Guardar evento"
-                aria-pressed={isSaved}
-                onClick={() => setIsSaved(!isSaved)}
-                className={cn(roundButton, isSaved && "text-accent")}
-              >
-                <Bookmark className={cn("size-5", isSaved && "fill-current")} aria-hidden="true" />
-              </button>
               <button type="button" aria-label="Compartir evento" onClick={handleShare} className={roundButton}>
                 <Share className="size-5" aria-hidden="true" />
               </button>
@@ -487,89 +454,119 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         </div>
 
         {/* Entradas */}
-        <section id="tickets-section" aria-labelledby="event-tickets" className="mx-4 md:mx-0 mt-8 flex flex-col gap-2.5 scroll-mt-28">
-          <h2 id="event-tickets" className="font-display text-[22px] m-0 mb-1">Entradas</h2>
-          {event.ticketTiers == null ? (
-            <p className="m-0 p-4 rounded-control bg-surface border border-line text-[15px] text-ink-2">
-              Todavía no hay información de entradas oficiales para este evento.
-            </p>
-          ) : event.ticketTiers.length === 0 ? (
-            <p className="m-0 p-4 rounded-control bg-surface border border-line text-[15px] text-ink-2">
-              Estamos buscando las entradas oficiales de este evento.
-            </p>
-          ) : (
-            <fieldset className="m-0 p-0 border-0 flex flex-col gap-2.5">
-              <legend className="sr-only">Elegí un lote</legend>
-              {ticketTiers?.map((tier) => {
-                const isSoldOut = tier.status === "sold_out";
-                const isSelected = !isSoldOut && selectedTier?.id === tier.id;
-                if (isSoldOut) {
-                  return (
-                    <div
-                      key={tier.id}
-                      aria-disabled="true"
-                      className="p-4 rounded-control border border-dashed border-line-strong text-ink-3 flex items-center justify-between gap-3"
-                    >
-                      <span className="flex flex-col gap-[3px]">
-                        <span className="text-[15px] font-semibold line-through">{tier.name}</span>
-                        <span className="label-mono">Agotado</span>
-                      </span>
-                      <span className="num-mono text-base line-through">{tier.priceLabel}</span>
-                    </div>
-                  );
-                }
-                return (
-                  <label
-                    key={tier.id}
-                    className={cn(
-                      "p-4 rounded-control flex items-center gap-3 cursor-pointer transition-colors",
-                      isSelected
-                        ? "border-[1.5px] border-accent bg-accent/[0.06]"
-                        : "border border-white/10 bg-surface hover:bg-surface-2",
-                    )}
-                  >
-                    <input
-                      type="radio"
-                      name="ticket-tier"
-                      checked={isSelected}
-                      onChange={() => setSelectedTierId(tier.id)}
-                      className="size-5 m-0 accent-accent"
-                    />
-                    <span className="flex-1 min-w-0 flex flex-col gap-[3px]">
-                      <span className="text-[15px] font-semibold">{tier.name}</span>
-                      <span className={cn("label-mono", tier.status === "limited" ? "text-accent" : "text-ink-3")}>
-                        {tier.status === "limited" ? "Disponible · quedan pocas" : "Disponible"}
-                      </span>
+        <section id="tickets-section" aria-labelledby="event-tickets" className="mx-4 md:mx-0 mt-8 scroll-mt-28">
+          <div className="rounded-card bg-surface border border-line p-4 md:p-5 flex flex-col gap-4">
+            {/* Header replegable */}
+            <button
+              type="button"
+              onClick={() => setIsTicketsExpanded((prev) => !prev)}
+              aria-expanded={isTicketsExpanded}
+              aria-controls="event-tickets-content"
+              className="flex items-center justify-between gap-3 text-left w-full group focus-visible:outline-2 focus-visible:outline-accent rounded-lg cursor-pointer"
+            >
+              <div className="flex flex-col gap-1 min-w-0">
+                <h2 id="event-tickets" className="font-display text-[22px] m-0">Entradas</h2>
+                <span className="num-mono text-sm text-ink-2 font-medium">
+                  {selectedTier ? selectedTier.priceLabel : priceLabel}
+                  {ticketTiers && ticketTiers.length > 0 && (
+                    <span className="text-xs text-ink-3 ml-2 font-normal">
+                      ({ticketTiers.length} {ticketTiers.length === 1 ? "lote" : "lotes"})
                     </span>
-                    <span className="num-mono text-lg font-semibold">{tier.priceLabel}</span>
-                  </label>
-                );
-              })}
-            </fieldset>
-          )}
-          <Link href="/transfers" className="mt-1 min-h-11 inline-flex items-center text-sm font-medium text-accent hover:text-accent-hover">
-            ¿Agotado? Mirá entradas en Transfers
-          </Link>
+                  )}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-accent group-hover:text-accent-hover transition-colors shrink-0">
+                <span>{isTicketsExpanded ? "Ocultar precios" : "Ver precios"}</span>
+                <ChevronDown
+                  className={cn(
+                    "size-4 transition-transform duration-200",
+                    isTicketsExpanded && "rotate-180",
+                  )}
+                  aria-hidden="true"
+                />
+              </div>
+            </button>
+
+            {/* Precios de entradas dentro de sección replegable */}
+            {isTicketsExpanded && (
+              <div id="event-tickets-content" className="pt-3 border-t border-line animate-in fade-in duration-200 flex flex-col gap-2.5">
+                {event.ticketTiers == null ? (
+                  <p className="m-0 p-3.5 rounded-control bg-surface-2 border border-line text-[14px] text-ink-2">
+                    Todavía no hay información de entradas oficiales para este evento.
+                  </p>
+                ) : event.ticketTiers.length === 0 ? (
+                  <p className="m-0 p-3.5 rounded-control bg-surface-2 border border-line text-[14px] text-ink-2">
+                    Estamos buscando las entradas oficiales de este evento.
+                  </p>
+                ) : (
+                  <fieldset className="m-0 p-0 border-0 flex flex-col gap-2.5">
+                    <legend className="sr-only">Elegí un lote</legend>
+                    {ticketTiers?.map((tier) => {
+                      const isSoldOut = tier.status === "sold_out";
+                      const isSelected = !isSoldOut && selectedTier?.id === tier.id;
+                      if (isSoldOut) {
+                        return (
+                          <div
+                            key={tier.id}
+                            aria-disabled="true"
+                            className="p-3.5 rounded-control border border-dashed border-line-strong text-ink-3 flex items-center justify-between gap-3"
+                          >
+                            <span className="flex flex-col gap-[2px]">
+                              <span className="text-[14px] font-semibold line-through">{tier.name}</span>
+                              <span className="label-mono">Agotado</span>
+                            </span>
+                            <span className="num-mono text-sm line-through">{tier.priceLabel}</span>
+                          </div>
+                        );
+                      }
+                      return (
+                        <label
+                          key={tier.id}
+                          className={cn(
+                            "p-3.5 rounded-control flex items-center gap-3 cursor-pointer transition-colors",
+                            isSelected
+                              ? "border-[1.5px] border-accent bg-accent/[0.06]"
+                              : "border border-white/10 bg-surface-2 hover:bg-[#23272D]",
+                          )}
+                        >
+                          <input
+                            type="radio"
+                            name="ticket-tier"
+                            checked={isSelected}
+                            onChange={() => setSelectedTierId(tier.id)}
+                            className="size-4 m-0 accent-accent"
+                          />
+                          <span className="flex-1 min-w-0 flex flex-col gap-[2px]">
+                            <span className="text-[14px] font-semibold">{tier.name}</span>
+                            <span className={cn("label-mono", tier.status === "limited" ? "text-accent" : "text-ink-3")}>
+                              {tier.status === "limited" ? "Disponible · quedan pocas" : "Disponible"}
+                            </span>
+                          </span>
+                          <span className="num-mono text-base font-semibold">{tier.priceLabel}</span>
+                        </label>
+                      );
+                    })}
+                  </fieldset>
+                )}
+              </div>
+            )}
+
+            {/* Botón Conseguir ticket al final de los tickets, visible tanto replegada como expandida */}
+            <Button
+              size="lg"
+              onClick={() => handleBuyTicket(selectedTier?.id)}
+              className="w-full flex items-center justify-center gap-2 text-base font-bold shadow-[0_4px_20px_rgba(212,255,0,0.15)]"
+            >
+              <span>Conseguir ticket</span>
+              <ArrowUpRight className="size-[18px]" strokeWidth={2.4} aria-hidden="true" />
+            </Button>
+          </div>
         </section>
 
         {/* Muro */}
         <section className="mx-4 md:mx-0 mt-8">
           <CommentSection targetId={event.id} title="Muro y comunidad" />
         </section>
-      </div>
-
-      {/* Barra de compra fija */}
-      <div className="fixed inset-x-0 bottom-0 z-40 bg-bg border-t border-line">
-        <div className="max-w-3xl mx-auto px-4 md:px-8 pt-3 pb-[calc(1rem+var(--root-safe-bottom))] flex items-center justify-between gap-3">
-          <span className="flex flex-col gap-0.5 min-w-0">
-            <span className="label-mono text-ink-3 truncate">{selectedTier?.name ?? "Desde"}</span>
-            <span className="num-mono text-xl font-semibold">{selectedTier?.priceLabel ?? priceLabel}</span>
-          </span>
-          <Button size="lg" onClick={() => handleBuyTicket(selectedTier?.id)} className="shrink-0 px-5 whitespace-nowrap">
-            Conseguir ticket
-            <ArrowUpRight className="size-[18px]" strokeWidth={2.4} aria-hidden="true" />
-          </Button>
-        </div>
       </div>
 
       <FollowedAttendeesModal

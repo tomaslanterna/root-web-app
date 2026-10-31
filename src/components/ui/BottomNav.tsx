@@ -303,9 +303,10 @@ export function BottomNav() {
               <Link
                 key={item.label}
                 href={item.href}
+                aria-label={item.label}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "flex-1 min-w-0 h-[52px] rounded-card flex flex-col items-center justify-center gap-1 text-[11px] font-semibold transition-colors duration-200 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-accent",
+                  "flex-1 min-w-0 h-12 rounded-card flex items-center justify-center transition-colors duration-200 active:scale-[0.95] focus-visible:outline-2 focus-visible:outline-accent",
                   isActive ? "bg-accent/10 text-ink" : "text-[#8A9099] hover:text-ink",
                 )}
               >
@@ -314,18 +315,17 @@ export function BottomNav() {
                     src={user!.avatarUrl!.trim()}
                     alt=""
                     className={cn(
-                      "size-[22px] rounded-full object-cover",
+                      "size-[26px] rounded-full object-cover",
                       isActive ? "ring-2 ring-accent" : "ring-1 ring-white/20",
                     )}
                   />
                 ) : (
                   <Icon
                     aria-hidden="true"
-                    className={cn("size-[22px]", isActive && "text-accent")}
+                    className={cn("size-[26px]", isActive && "text-accent")}
                     strokeWidth={2}
                   />
                 )}
-                <span className="truncate max-w-full px-1">{item.label}</span>
               </Link>
             );
           })}

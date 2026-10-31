@@ -33,10 +33,10 @@ interface Point { label: string; steps: number }
 
 function buildChart(period: Period, parties: DanceSession[], now: number): { points: Point[]; caption: string } {
   if (period === "fiestas") {
-    const recent = parties.slice(0, 6).reverse();
+    const allParties = [...parties].reverse();
     return {
-      points: recent.map((party) => ({ label: partyName(party.eventTitle), steps: party.stepsCount })),
-      caption: `pasos en tus últimas ${recent.length} fiestas`,
+      points: allParties.map((party) => ({ label: partyName(party.eventTitle), steps: party.stepsCount })),
+      caption: `pasos en tus ${allParties.length} fiestas`,
     };
   }
   if (period === "week") {
@@ -121,8 +121,8 @@ export default function DanceRankerPage() {
 
   return (
     <div className="num-display min-h-[100dvh] bg-bg text-ink pb-[calc(var(--root-mobile-nav-clearance)+1rem)] md:pb-16">
-      <div className="w-full max-w-2xl mx-auto pt-[calc(0.75rem+var(--root-safe-top))] md:pt-6">
-        <header className="px-4 flex items-center gap-3">
+      <header className="sticky top-0 z-30 w-full bg-bg/95 backdrop-blur-md border-b border-line">
+        <div className="w-full max-w-2xl mx-auto px-4 pt-[calc(0.75rem+var(--root-safe-top))] pb-3 md:pt-6 flex items-center gap-3">
           <button
             type="button"
             onClick={() => router.back()}
@@ -133,7 +133,10 @@ export default function DanceRankerPage() {
           </button>
           <h1 className="font-display not-italic m-0 flex-1 text-2xl">Dance stats</h1>
           {headerDate && <span className="text-[13px] text-ink-2">{headerDate}</span>}
-        </header>
+        </div>
+      </header>
+
+      <div className="w-full max-w-2xl mx-auto pt-4">
 
         {isLoading ? (
           <div className="flex justify-center py-24">
@@ -222,36 +225,56 @@ export default function DanceRankerPage() {
               </div>
               {chartTotal > 0 ? (
                 <>
-                  <div
-                    role="img"
-                    aria-label={`Gráfico de barras, ${caption}. ${points.map((point) => `${point.label} ${fmt(point.steps)}`).join(", ")}`}
-                    className="h-[190px] flex items-end gap-2 border-b border-white/10"
-                  >
-                    {points.map((point, index) => {
-                      const top = point.steps === chartMax && point.steps > 0;
-                      return (
-                        <div key={`${point.label}-${index}`} className="flex-1 min-w-0 h-full flex flex-col items-center justify-end gap-1.5">
-                          <span className={cn("text-xs", top ? "text-accent" : "text-ink-2")}>{point.steps ? short(point.steps) : "–"}</span>
-                          <div
-                            className={cn(
-                              "w-full max-w-10 rounded-t-lg rounded-b-sm",
-                              top ? "bg-accent" : point.steps ? "bg-[#4A505A]" : "bg-[#262A30]",
-                            )}
-                            style={{ height: chartMax ? Math.max(point.steps ? 6 : 2, Math.round((point.steps / chartMax) * 150)) : 2 }}
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div aria-hidden="true" className="-mt-2.5 flex gap-2">
-                    {points.map((point, index) => (
-                      <span
-                        key={`${point.label}-label-${index}`}
-                        className={cn("flex-1 min-w-0 text-center text-[11px] truncate", point.steps === chartMax && point.steps > 0 ? "text-ink" : "text-ink-3")}
+                  <div className="overflow-x-auto hide-scrollbar scrollbar-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pb-1 -mx-2 px-2">
+                    <div className={cn("flex flex-col gap-2.5", points.length > 6 ? "min-w-max" : "w-full")}>
+                      <div
+                        role="img"
+                        aria-label={`Gráfico de barras, ${caption}. ${points.map((point) => `${point.label} ${fmt(point.steps)}`).join(", ")}`}
+                        className="h-[190px] flex items-end gap-2 border-b border-white/10"
                       >
-                        {point.label}
-                      </span>
-                    ))}
+                        {points.map((point, index) => {
+                          const top = point.steps === chartMax && point.steps > 0;
+                          return (
+                            <div
+                              key={`${point.label}-${index}`}
+                              className={cn(
+                                "h-full flex flex-col items-center justify-end gap-1.5",
+                                points.length > 6 ? "w-16 shrink-0" : "flex-1 min-w-0",
+                              )}
+                            >
+                              <span className={cn("text-xs", top ? "text-accent" : "text-ink-2")}>
+                                {point.steps ? short(point.steps) : "–"}
+                              </span>
+                              <div
+                                className={cn(
+                                  "w-full max-w-10 rounded-t-lg rounded-b-sm",
+                                  top ? "bg-accent" : point.steps ? "bg-[#4A505A]" : "bg-[#262A30]",
+                                )}
+                                style={{
+                                  height: chartMax
+                                    ? Math.max(point.steps ? 6 : 2, Math.round((point.steps / chartMax) * 150))
+                                    : 2,
+                                }}
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div aria-hidden="true" className="flex gap-2">
+                        {points.map((point, index) => (
+                          <span
+                            key={`${point.label}-label-${index}`}
+                            className={cn(
+                              "text-center text-[11px] truncate",
+                              points.length > 6 ? "w-16 shrink-0" : "flex-1 min-w-0",
+                              point.steps === chartMax && point.steps > 0 ? "text-ink" : "text-ink-3",
+                            )}
+                          >
+                            {point.label}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                   {best && (
                     <span className="flex items-center gap-2 text-[13px] text-ink-2">

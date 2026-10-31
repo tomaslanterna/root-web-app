@@ -88,7 +88,7 @@ export function ChatList({ className, onBack, backButtonRef }: { className?: str
 
   return (
     <div className={`flex flex-col h-full bg-bg text-ink ${className || ""}`}>
-      <header className="px-4 pt-[calc(0.75rem+var(--root-safe-top))] md:pt-6 flex items-center gap-3">
+      <header className="sticky top-0 z-30 bg-bg/95 backdrop-blur-md border-b border-line px-4 pt-[calc(0.75rem+var(--root-safe-top))] pb-3 md:pt-6 flex items-center gap-3">
         {onBack && (
           <button
             ref={backButtonRef}
