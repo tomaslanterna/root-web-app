@@ -114,20 +114,18 @@ export default function MatchPage() {
 
         {activeTab === "squads" && (
           <div className="animate-fade-in">
-            <div className="mt-4 p-[18px] rounded-[18px] bg-accent text-on-accent flex flex-col gap-3">
-              <div className="flex flex-col gap-1.5">
-                <span className="font-display text-[22px]">Armá tu crew</span>
-                <span className="text-[15px] leading-snug text-[#2A2F12]">
-                  Juntate con 3 a 5 personas de tu zona para salir juntos y competir en pasos.
-                </span>
-              </div>
+            <div className="mt-4 px-3.5 py-3 rounded-2xl bg-black text-white border-[1.5px] border-white grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5">
+              <span className="font-display text-base whitespace-nowrap">Armá tu crew</span>
               <button
                 type="button"
                 onClick={() => setIsCreateModalOpen(true)}
-                className="self-start h-11 px-4 rounded-xl bg-bg text-ink text-[15px] font-semibold flex items-center gap-1.5 active:scale-[0.97] transition-transform focus-visible:outline-2 focus-visible:outline-bg focus-visible:outline-offset-2"
+                className="col-start-2 row-span-2 row-start-1 self-center shrink-0 h-10 px-3 rounded-xl bg-white text-black text-[13px] font-semibold flex items-center gap-1 whitespace-nowrap hover:bg-ink active:scale-[0.97] transition-[background-color,transform] focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2"
               >
-                <Plus className="size-[18px]" strokeWidth={2.4} aria-hidden="true" /> Crear crew
+                <Plus className="size-4" strokeWidth={2.4} aria-hidden="true" /> Crear crew
               </button>
+              <span className="col-start-1 text-sm font-medium leading-snug text-white">
+                De 2 a 10 personas a competir
+              </span>
             </div>
 
             {squadsError && (

@@ -915,7 +915,7 @@ export default function EventsPage() {
           className="sticky z-30 -mx-4 px-4 md:-mx-6 md:px-6 bg-bg/95 backdrop-blur-md !mb-0"
         >
           {featuredEvents.length > 0 && (
-            <section aria-labelledby="events-featured" className="pb-4">
+            <section aria-labelledby="events-featured" className="py-4">
               <h2 id="events-featured" className="font-display text-[22px] md:text-[28px] m-0 mb-3">
                 Eventos destacados
               </h2>
@@ -931,21 +931,18 @@ export default function EventsPage() {
             </section>
           )}
 
-          <div className="-mx-4 px-4 md:-mx-6 md:px-6 border-t border-line pt-3">
-            <div className="flex items-end justify-between gap-3">
-              <h2 className="font-display text-[22px] md:text-[28px] m-0 truncate">
-                {sortBy === "popular" ? "Más convocados" : "Próximos eventos"}
-              </h2>
-              <SegmentedControl
-                label="Vista"
-                className="hidden md:flex shrink-0"
-                options={viewOptions.map((option) => ({ ...option }))}
-                value={viewMode}
-                onChange={setViewMode}
-              />
-            </div>
+          <div className="-mx-4 px-4 md:-mx-6 md:px-6 border-t border-line py-3">
+            <h2 className="font-display text-[22px] md:text-[28px] m-0 truncate">
+              {sortBy === "popular" ? "Más convocados" : "Próximos eventos"}
+            </h2>
+          </div>
+        </div>
+
+        {/* Recupera la altura que pierden los destacados al achicarse */}
+        <div ref={collapseSpacerRef} aria-hidden="true" className="!mb-0" />
+
         {/* Filtros del listado: ¿Cuándo?, Ubicación y vista */}
-        <div ref={filtersContainerRef} className="relative pt-2.5 pb-3">
+        <div ref={filtersContainerRef} className="relative pt-2.5">
           <div className="flex items-center justify-between gap-2">
             <div className="flex-1 min-w-0 flex items-center gap-1.5 overflow-x-auto hide-scrollbar whitespace-nowrap py-0.5">
               {/* Filtro 1: ¿Cuándo? */}
@@ -1055,6 +1052,14 @@ export default function EventsPage() {
                 )}
               </div>
             </div>
+
+            <SegmentedControl
+              label="Vista"
+              className="hidden md:flex shrink-0"
+              options={viewOptions.map((option) => ({ ...option }))}
+              value={viewMode}
+              onChange={setViewMode}
+            />
 
             {/* Selector de vista (mobile) */}
             <div role="radiogroup" aria-label="Vista" className="md:hidden shrink-0 flex p-[2px] rounded-lg bg-surface border border-line">
@@ -1279,11 +1284,6 @@ export default function EventsPage() {
             </div>
           )}
         </div>
-          </div>
-        </div>
-
-        {/* Recupera la altura que pierden los destacados al achicarse */}
-        <div ref={collapseSpacerRef} aria-hidden="true" />
 
         {/* Chips de Filtros Activos (solo para filtros adicionales no cubiertos directamente en la barra principal) */}
         {hasActiveChips && (
