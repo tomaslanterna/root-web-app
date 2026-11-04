@@ -175,7 +175,7 @@ export default function TransfersPage() {
           </div>
         </div>
 
-        <div role="tablist" aria-label="Transfers" className="mt-4 flex p-[3px] rounded-xl bg-surface border border-line">
+        <div role="tablist" aria-label="Transfers" className="mt-4 flex p-[2px] rounded-lg bg-surface border border-line">
           {([
             { id: "explorar", label: "Explorar" },
             { id: "mis-ofertas", label: "Mis ofertas" },
@@ -187,7 +187,7 @@ export default function TransfersPage() {
               aria-selected={activeTab === tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "flex-1 h-10 rounded-[9px] text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-accent",
+                "flex-1 h-7 rounded-[6px] text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-accent",
                 activeTab === tab.id ? "bg-ink text-bg" : "text-ink-2 hover:text-ink",
               )}
             >
@@ -196,15 +196,15 @@ export default function TransfersPage() {
           ))}
         </div>
 
-        <div className="mt-3 h-12 px-3.5 flex items-center gap-2.5 rounded-control bg-surface border border-white/10 text-ink-3 focus-within:border-accent">
-          <Search className="size-5 shrink-0" aria-hidden="true" />
+        <div className="mt-3 h-9 md:h-10 px-3 flex items-center gap-2 rounded-xl bg-surface border border-white/10 text-ink-3 focus-within:border-accent">
+          <Search className="size-4 shrink-0" aria-hidden="true" />
           <input
             type="search"
             aria-label="Buscar evento"
             placeholder="Buscar evento"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 min-w-0 bg-transparent border-0 outline-none text-[15px] text-ink placeholder:text-ink-3"
+            className="flex-1 min-w-0 bg-transparent border-0 outline-none text-xs md:text-sm text-ink placeholder:text-ink-3"
           />
         </div>
 

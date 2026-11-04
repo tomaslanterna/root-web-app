@@ -111,15 +111,15 @@ export function ChatList({ className, onBack, backButtonRef }: { className?: str
         </button>
       </header>
 
-      <div className="mx-4 mt-4 h-12 px-3.5 flex items-center gap-2.5 rounded-control bg-surface border border-white/10 text-ink-3 focus-within:border-accent">
-        <Search className="size-5 shrink-0" aria-hidden="true" />
+      <div className="mx-4 mt-4 h-9 md:h-10 px-3 flex items-center gap-2 rounded-xl bg-surface border border-white/10 text-ink-3 focus-within:border-accent">
+        <Search className="size-4 shrink-0" aria-hidden="true" />
         <input
           type="search"
           aria-label="Buscar conversaciones"
           placeholder="Buscar por nombre o @usuario"
           value={inboxFilter}
           onChange={(e) => setInboxFilter(e.target.value)}
-          className="flex-1 min-w-0 bg-transparent border-0 outline-none text-ink text-[15px] placeholder:text-ink-3"
+          className="flex-1 min-w-0 bg-transparent border-0 outline-none text-ink text-xs md:text-sm placeholder:text-ink-3"
         />
       </div>
 

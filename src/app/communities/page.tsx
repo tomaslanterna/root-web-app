@@ -8,6 +8,7 @@ import { useCommunityDirectory } from "@/hooks/useCommunities";
 import type { CommunityFilters } from "@/types/communities";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
+import { SearchButton } from "@/components/ui/SearchButton";
 
 const PAGE_SIZE = 12;
 const DEFAULT_FILTERS: CommunityFilters = {
@@ -93,26 +94,27 @@ export default function CommunitiesPage() {
   };
 
   const chipClass = (active: boolean) =>
-    `h-11 appearance-none rounded-full border pl-3.5 pr-9 text-sm outline-none transition-colors focus-visible:outline-2 focus-visible:outline-accent ${
+    `h-8 appearance-none rounded-full border pl-2.5 pr-7 text-xs outline-none transition-colors focus-visible:outline-2 focus-visible:outline-accent ${
       active ? "border-accent/40 bg-accent/12 font-semibold text-accent" : "border-white/10 bg-surface text-ink"
     }`;
 
   return (
     <div className="flex min-h-[100dvh] flex-col bg-bg pb-[calc(var(--root-mobile-nav-clearance)+1rem)] text-ink md:pb-16">
       <header className="sticky top-0 z-30 w-full bg-bg/95 backdrop-blur-md border-b border-line">
-        <div className="mx-auto w-full max-w-6xl px-4 pt-[calc(0.75rem+var(--root-safe-top))] pb-3 md:px-8 md:pt-6">
+        <div className="mx-auto w-full max-w-6xl px-4 pt-[calc(0.75rem+var(--root-safe-top))] pb-3 md:px-8 md:pt-6 flex items-center justify-between gap-3">
           <h1 className="font-display m-0 text-[32px]">Comunidades</h1>
+          <SearchButton />
         </div>
       </header>
 
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-3.5 px-4 pt-4 md:px-8">
-        <div role="tablist" aria-label="Comunidades" className="flex rounded-xl border border-line bg-surface p-[3px]">
-          {(["mine", "explore"] as const).map((tab) => <button key={tab} type="button" role="tab" aria-selected={scope === tab} disabled={isLoading} onClick={() => switchScope(tab)} className={`h-10 flex-1 rounded-[9px] text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-accent ${scope === tab ? "bg-ink text-bg" : "text-ink-2 hover:text-ink"}`}>{tab === "mine" ? "Mis comunidades" : "Explorar"}</button>)}
+        <div role="tablist" aria-label="Comunidades" className="flex rounded-lg border border-line bg-surface p-[2px]">
+          {(["mine", "explore"] as const).map((tab) => <button key={tab} type="button" role="tab" aria-selected={scope === tab} disabled={isLoading} onClick={() => switchScope(tab)} className={`h-7 flex-1 rounded-[6px] text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-accent ${scope === tab ? "bg-ink text-bg" : "text-ink-2 hover:text-ink"}`}>{tab === "mine" ? "Mis comunidades" : "Explorar"}</button>)}
         </div>
 
         {scope === "explore" && <section aria-label="Filtros" className="flex flex-col gap-3">
-          <div className="flex h-12 items-center gap-2.5 rounded-control border border-white/10 bg-surface px-3.5 text-ink-3 focus-within:border-accent">
-            <Search className="size-5 shrink-0" aria-hidden="true" />
+          <div className="flex h-9 md:h-10 items-center gap-2 rounded-xl border border-white/10 bg-surface px-3 text-ink-3 focus-within:border-accent">
+            <Search className="size-4 shrink-0" aria-hidden="true" />
             <input
               type="search"
               aria-label="Buscar comunidades"
@@ -121,7 +123,7 @@ export default function CommunitiesPage() {
               onKeyDown={(event) => event.key === "Enter" && applyFilters()}
               onBlur={() => draftFilters.query !== appliedFilters.query && applyFilters()}
               placeholder="Nombre o descripción"
-              className="min-w-0 flex-1 border-0 bg-transparent text-[15px] text-ink outline-none placeholder:text-ink-3"
+              className="min-w-0 flex-1 border-0 bg-transparent text-xs md:text-sm text-ink outline-none placeholder:text-ink-3"
             />
           </div>
 
@@ -135,7 +137,7 @@ export default function CommunitiesPage() {
                 <option value="reggaetón">Reggaetón</option>
                 <option value="general">Otros</option>
               </select>
-              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 opacity-80" aria-hidden="true" />
+              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 size-3.5 -translate-y-1/2 opacity-80" aria-hidden="true" />
             </label>
             <label className="relative">
               <span className="sr-only">País</span>
@@ -145,7 +147,7 @@ export default function CommunitiesPage() {
                 <option value="AR">Argentina</option>
                 <option value="BR">Brasil</option>
               </select>
-              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 opacity-80" aria-hidden="true" />
+              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 size-3.5 -translate-y-1/2 opacity-80" aria-hidden="true" />
             </label>
             {draftFilters.country === "UY" && (
               <label className="relative">
@@ -156,7 +158,7 @@ export default function CommunitiesPage() {
                     <option key={department} value={department}>{department}</option>
                   ))}
                 </select>
-                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 opacity-80" aria-hidden="true" />
+                <ChevronDown className="pointer-events-none absolute right-2 top-1/2 size-3.5 -translate-y-1/2 opacity-80" aria-hidden="true" />
               </label>
             )}
           </div>

@@ -1,5 +1,4 @@
 import { api } from "@/lib/api";
-import type { Event } from "@/types/events";
 
 export interface SurveyArtistRatingPayload {
   artist_id: string;
@@ -19,11 +18,6 @@ export interface SubmitSurveyPayload {
 }
 
 export const surveysApi = {
-  getPendingSurveys: async (): Promise<Event[]> => {
-    const { data } = await api.get("/v1/users/me/pending-surveys");
-    return data || [];
-  },
-
   submitSurvey: async (eventId: string, payload: SubmitSurveyPayload): Promise<{ status: string; message: string }> => {
     const { data } = await api.post(`/v1/events/${eventId}/surveys`, payload);
     return data;

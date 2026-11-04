@@ -6,9 +6,10 @@ import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button";
-import { Award, ChevronLeft, ChevronRight, Grid3X3, Loader2, Settings, ShieldCheck } from "lucide-react";
+import { Award, ChevronLeft, ChevronRight, Grid3X3, Loader2, Plus, ShieldCheck } from "lucide-react";
 import { MOCK_POSTS } from "@/lib/mocks";
-import { DanceStatsWidget } from "@/components/profile/DanceStatsWidget";
+import { CreatePhotoModal } from "@/components/profile/CreatePhotoModal";
+import { SearchButton } from "@/components/ui/SearchButton";
 import { cn, copyTextToClipboard, isValidImageUrl } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { usersApi } from "@/services/users";
@@ -38,8 +39,10 @@ export default function UserProfilePage() {
   const [isFollowing, setIsFollowing] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<string>("Posts");
+  const badgeToOpen = searchParams.get("badge");
+  const [activeTab, setActiveTab] = useState<string>(badgeToOpen ? "Insignias" : "Posts");
   const [shareCopied, setShareCopied] = useState(false);
+  const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
 
   const [userPosts, setUserPosts] = useState<Post[]>([]);
 
@@ -230,7 +233,8 @@ export default function UserProfilePage() {
 
   return (
     <div className="flex min-h-[100dvh] flex-col bg-bg pb-[calc(var(--root-mobile-nav-clearance)+1rem)] text-ink md:pb-16">
-      <header className="w-full max-w-3xl mx-auto px-4 pt-[calc(0.75rem+var(--root-safe-top))] md:pt-6 flex items-center gap-3">
+      <header className="sticky top-0 z-30 w-full bg-bg/95 backdrop-blur-md border-b border-line">
+        <div className="w-full max-w-3xl mx-auto px-4 pt-[calc(0.75rem+var(--root-safe-top))] pb-3 md:pt-6 flex items-center gap-3">
         {(fromSearch || fromCommunities) && (
           <button
             type="button"
@@ -241,12 +245,19 @@ export default function UserProfilePage() {
             <ChevronLeft className="size-[22px]" aria-hidden="true" />
           </button>
         )}
-        <span className="flex-1 min-w-0 text-[17px] font-semibold truncate">@{profileUser.username}</span>
+        <h1 className="font-display text-[32px] m-0 flex-1 min-w-0">Perfil</h1>
+        <SearchButton />
         {isMyProfile && (
-          <Link href="/settings" aria-label="Configuración" className={squareButton}>
-            <Settings className="size-5" aria-hidden="true" />
-          </Link>
+          <button
+            type="button"
+            onClick={() => setIsCreatePostOpen(true)}
+            aria-label="Subir foto"
+            className="size-11 shrink-0 rounded-control bg-accent text-on-accent flex items-center justify-center hover:bg-accent-hover transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            <Plus className="size-5" strokeWidth={2.4} aria-hidden="true" />
+          </button>
         )}
+        </div>
       </header>
 
       <div className="w-full max-w-3xl mx-auto px-4 pt-5 flex items-center gap-[18px]">
@@ -274,8 +285,9 @@ export default function UserProfilePage() {
 
         <div className="min-w-0 flex flex-col gap-2">
           <div className="flex flex-col gap-1">
-            <h1 className="m-0 text-[22px] font-bold truncate">{profileUser.name}</h1>
-            <span className="flex flex-wrap gap-1.5">
+            <h2 className="m-0 text-[22px] font-bold truncate">{profileUser.name}</h2>
+            <span className="text-sm text-ink-2 truncate">@{profileUser.username}</span>
+            <span className="mt-1 flex flex-wrap gap-1.5">
               <span className="label-mono px-2 py-1 rounded-full bg-surface-2 text-ink-2">{roleLabel}</span>
               {profileUser.isKycVerified ? (
                 <span className="label-mono px-2 py-1 rounded-full bg-info/12 text-info">Verificado</span>
@@ -350,12 +362,6 @@ export default function UserProfilePage() {
         </div>
       )}
 
-      {isMyProfile && (
-        <div className="w-full max-w-3xl mx-auto px-4 pt-5">
-          <DanceStatsWidget />
-        </div>
-      )}
-
       <div className="mt-6 w-full max-w-3xl mx-auto">
         <div role="tablist" aria-label="Contenido del perfil" className="flex border-b border-line">
           {tabs.map((tab) => {
@@ -382,20 +388,26 @@ export default function UserProfilePage() {
         </div>
       </div>
 
-      <div id={`profile-tab-${activeTab}`} role="tabpanel" aria-label={activeTab} className="w-full max-w-3xl mx-auto pt-0.5 md:px-4 md:pt-4">
+      <div id={`profile-tab-${activeTab}`} role="tabpanel" aria-label={activeTab} className={cn("w-full max-w-3xl mx-auto", activeTab === "Posts" ? "pt-0.5" : "px-4 pt-4")}>
         {activeTab === "Insignias" && (
-          <div className="px-4 pt-5 md:px-0">
-            <BadgeCollection key={`${username}:${currentUser?.id || "guest"}`} username={username} isOwner={isMyProfile} />
-          </div>
+          <BadgeCollection key={`${username}:${currentUser?.id || "guest"}`} username={username} isOwner={isMyProfile} initialBadgeId={isMyProfile ? badgeToOpen : null} />
         )}
         {activeTab === "Posts" && (
           <ProfilePostsGrid
             posts={userPosts}
             isMyProfile={isMyProfile}
-            onPostCreated={handlePostCreated}
+            onCreatePost={() => setIsCreatePostOpen(true)}
           />
         )}
       </div>
+
+      {isMyProfile && (
+        <CreatePhotoModal
+          isOpen={isCreatePostOpen}
+          onClose={() => setIsCreatePostOpen(false)}
+          onPostCreated={handlePostCreated}
+        />
+      )}
     </div>
   );
 }

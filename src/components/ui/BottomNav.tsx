@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Calendar,
+  Search,
   Users,
   User,
 } from "lucide-react";
@@ -219,8 +220,16 @@ export function BottomNav() {
             })}
           </nav>
 
-          {/* Lado Derecho: Perfil / Acceso (Limpio y minimalista, sin Crear ni buscador duplicado) */}
+          {/* Lado derecho: búsqueda y perfil / acceso */}
           <div className="flex items-center gap-2">
+            <Link
+              href="/search"
+              aria-label="Buscar"
+              title="Buscar"
+              className="size-9 rounded-full border border-white/10 bg-white/[0.04] text-neutral-300 flex items-center justify-center transition-colors hover:text-white hover:border-white/25 hover:bg-white/[0.08] focus-visible:outline-2 focus-visible:outline-accent"
+            >
+              <Search className="size-4" aria-hidden="true" />
+            </Link>
             {user ? (
               <Link
                 href={`/profile/${user.username || ""}`}

@@ -279,7 +279,7 @@ export default function CrewDetailPage() {
           </button>
         )}
 
-        <div role="tablist" aria-label="Crew" className="mt-5 flex p-[3px] rounded-xl bg-surface border border-line">
+        <div role="tablist" aria-label="Crew" className="mt-5 flex p-[2px] rounded-lg bg-surface border border-line">
           {(["ranking", "members"] as const).map((tab) => (
             <button
               key={tab}
@@ -288,7 +288,7 @@ export default function CrewDetailPage() {
               aria-selected={view === tab}
               onClick={() => setView(tab)}
               className={cn(
-                "flex-1 h-10 rounded-[9px] text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-accent",
+                "flex-1 h-7 rounded-[6px] text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-accent",
                 view === tab ? "bg-ink text-bg" : "text-ink-2 hover:text-ink",
               )}
             >
@@ -309,7 +309,7 @@ export default function CrewDetailPage() {
                     aria-checked={rankingType === type}
                     onClick={() => setRankingType(type)}
                     className={cn(
-                      "h-10 px-3.5 rounded-full text-[13px] font-semibold border transition-colors focus-visible:outline-2 focus-visible:outline-accent",
+                      "h-8 px-2.5 rounded-full text-xs font-medium border transition-colors focus-visible:outline-2 focus-visible:outline-accent",
                       rankingType === type
                         ? "border-accent/40 bg-accent/12 text-accent"
                         : "border-white/10 bg-surface text-ink-2 hover:text-ink",
@@ -331,7 +331,7 @@ export default function CrewDetailPage() {
                     aria-pressed={selectedEventId === ev.id}
                     onClick={() => void handleSelectEventRanking(ev.id)}
                     className={cn(
-                      "h-10 px-3.5 shrink-0 rounded-full text-[13px] font-medium whitespace-nowrap border transition-colors",
+                      "h-8 px-2.5 shrink-0 rounded-full text-xs font-medium whitespace-nowrap border transition-colors",
                       selectedEventId === ev.id
                         ? "bg-ink text-bg border-ink"
                         : "bg-surface text-ink-2 border-white/10 hover:text-ink",

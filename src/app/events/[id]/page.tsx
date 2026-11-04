@@ -21,12 +21,15 @@ import { useMutation } from "@/hooks/useMutation";
 import { eventsApi } from "@/services/events";
 import type { Event, RSVPResponse } from "@/types/events";
 import { cn, copyTextToClipboard } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext";
+import { badgeReviewHref } from "@/lib/badgeReviewLink";
 
 const fallbackBanner =
   "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=80&w=1200&auto=format&fit=crop";
 
 export default function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
+  const { user } = useAuth();
   const searchParams = useSearchParams();
   const origin = searchParams.get("origin");
   const { id: eventId } = use(params);
@@ -343,12 +346,12 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             ) : (
               <span className="text-sm text-ink-2">Sé el primero en confirmar</span>
             )}
-            <Link
-              href={`/events/${event.id}/survey`}
+            {user?.username && <Link
+              href={badgeReviewHref(user.username, event.id)}
               className="min-h-11 inline-flex items-center text-sm font-medium text-ink-2 hover:text-ink"
             >
               Dejar reseña
-            </Link>
+            </Link>}
           </div>
         </section>
 
@@ -362,7 +365,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             ref={tabsListRef}
             role="tablist"
             aria-label="Información del evento"
-            className="flex p-[3px] rounded-xl bg-surface border border-line"
+            className="flex p-[2px] rounded-lg bg-surface border border-line"
           >
             {tabs.map((tab) => (
               <button
@@ -374,7 +377,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 aria-controls={`event-panel-${tab.id}`}
                 onClick={(e) => handleTabChange(tab.id, e)}
                 className={cn(
-                  "flex-1 h-10 rounded-[9px] text-[13px] font-semibold whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-accent",
+                  "flex-1 h-7 rounded-[6px] text-xs font-semibold whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-accent",
                   activeTab === tab.id ? "bg-ink text-bg" : "text-ink-2 hover:text-ink",
                 )}
               >
