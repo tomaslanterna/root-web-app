@@ -3,7 +3,7 @@ import type {} from "@capacitor/push-notifications";
 
 const config: CapacitorConfig = {
   appId: "com.emnetwork.root",
-  appName: "root-electronic-network",
+  appName: "root",
   // Next uses dynamic routes: the native shell loads server.url, not a static export.
   webDir: "native-shell",
   server: {
