@@ -109,6 +109,15 @@
     line-height: 0.95;
   }
 
+  /* Logotipo: Archivo expandida en su peso máximo, más cerrada que los títulos. */
+  .root-logo-type {
+    font-family: var(--font-archivo), var(--font-geist-sans), sans-serif;
+    font-stretch: 125%;
+    font-weight: 900;
+    font-style: normal;
+    line-height: 1;
+  }
+
   /* Etiqueta mono: fechas, contadores y encabezados chicos. */
   .label-mono {
     font-family: var(--font-geist-mono), ui-monospace, monospace;

@@ -79,7 +79,7 @@ export function BadgeDetail({ badge, isOwner, heroRef, moving, closing, lineup, 
           : <>
             {lineupCard}
             <p className="m-0 text-center text-[13px] text-ink-3">Las puntuaciones y reseñas son personales y solo puede verlas su dueño.</p>
-            {!authLoading && !user && <Link href={`/login?next=${encodeURIComponent(`/events/${badge.eventId}/survey`)}`} className="flex h-12 items-center justify-center rounded-control bg-accent px-4 text-[15px] font-semibold text-on-accent">Iniciá sesión para reseñar</Link>}
+            {!authLoading && !user && <Link href="/login" className="flex h-12 items-center justify-center rounded-control bg-accent px-4 text-[15px] font-semibold text-on-accent">Iniciá sesión para reseñar</Link>}
           </>}
       </div>
     </div>

@@ -25,6 +25,7 @@ test("RRPP text is last in Explore, after pagination, and absent in My communiti
     if (key === "@/hooks/useCommunities") return { useCommunityDirectory: () => ({ communities: [], meta: { total: 20, hasMore: true }, load: async () => {}, isLoading: false, error: null }) };
     if (key === "@/context/AuthContext") return { useAuth: () => ({ user: { id: "test-user" } }) };
     if (key === "next/link") return { default: "link" };
+    if (key === "@/components/ui/SearchButton") return { SearchButton: "searchButton" };
     throw new Error(`Unexpected dependency: ${key}`);
   } });
   const render = () => { cursor = 0; return exported.default(); };

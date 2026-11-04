@@ -71,7 +71,7 @@ export default function RootLayout({
                         {/* Contenedor principal con max-w-[1360px] calibrado para desktop */}
                         <div className="flex-1 flex flex-col min-h-[100dvh] w-full pt-0 md:pt-24 pb-24 md:pb-16 bg-bg">
                           {/* Contenido principal - Ancho óptimo y simétrico en desktop */}
-                          <main className="flex-1 w-full min-w-0 max-w-md md:max-w-[1360px] mx-auto px-0 sm:px-4 md:px-8 lg:px-12 border-x border-white/10 md:border-x-0 shadow-2xl md:shadow-none transition-colors duration-300">
+                          <main className="flex-1 w-full min-w-0 max-w-md md:max-w-[1360px] mx-auto px-0 sm:px-4 md:px-8 lg:px-12 shadow-2xl md:shadow-none transition-colors duration-300">
                             {children}
                           </main>
                         </div>

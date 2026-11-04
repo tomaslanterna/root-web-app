@@ -86,13 +86,13 @@ export default function SearchPage() {
               type="button"
               onClick={() => router.back()}
               aria-label="Volver"
-              className="size-11 shrink-0 rounded-control bg-surface border border-line flex items-center justify-center hover:bg-surface-2 transition-colors focus-visible:outline-2 focus-visible:outline-accent cursor-pointer"
+              className="size-9 md:size-10 shrink-0 rounded-xl bg-surface border border-line flex items-center justify-center hover:bg-surface-2 transition-colors focus-visible:outline-2 focus-visible:outline-accent cursor-pointer"
             >
-              <ChevronLeft className="size-[22px]" aria-hidden="true" />
+              <ChevronLeft className="size-5" aria-hidden="true" />
             </button>
 
-            <div className="h-11 px-3.5 flex-1 min-w-0 flex items-center gap-2.5 rounded-control bg-surface border border-line focus-within:border-accent text-ink-3 transition-colors">
-              <Search className="size-4.5 shrink-0" aria-hidden="true" />
+            <div className="h-9 md:h-10 px-3 flex-1 min-w-0 flex items-center gap-2 rounded-xl bg-surface border border-line focus-within:border-accent text-ink-3 transition-colors">
+              <Search className="size-4 shrink-0" aria-hidden="true" />
               <input
                 ref={inputRef}
                 type="search"
@@ -100,7 +100,7 @@ export default function SearchPage() {
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Buscar eventos, usuarios o comunidades..."
                 aria-label="Buscar eventos, usuarios o comunidades"
-                className="flex-1 min-w-0 bg-transparent border-0 outline-none text-ink text-sm font-semibold placeholder:text-ink-3"
+                className="flex-1 min-w-0 bg-transparent border-0 outline-none text-ink text-xs md:text-sm placeholder:text-ink-3"
               />
               {query && (
                 <button

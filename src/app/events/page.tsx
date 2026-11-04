@@ -1,7 +1,6 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
@@ -26,11 +25,13 @@ import {
   Tag,
   X,
 } from "lucide-react";
-import { EventCard, formatEventPrice } from "@/components/ui/EventCard";
+import { EventCard } from "@/components/ui/EventCard";
 import { Button } from "@/components/ui/Button";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { RootLogo } from "@/components/ui/RootLogo";
+import { SearchButton } from "@/components/ui/SearchButton";
+import { useFeaturedEvents } from "@/hooks/useFeaturedEvents";
 import { PullToRefresh } from "@/components/ui/PullToRefresh";
-import { SurveyCard } from "@/components/ui/SurveyCard";
 import { QuickActionMenu } from "@/components/ui/QuickActionMenu";
 import { LiveEventBanner } from "@/components/LiveEventBanner";
 import { parseEventRealDate } from "@/hooks/useDanceSync";
@@ -39,7 +40,6 @@ import { useMutation } from "@/hooks/useMutation";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
 import { eventsApi } from "@/services/events";
-import { surveysApi } from "@/services/surveys";
 import { cn } from "@/lib/utils";
 import { useEventsInbox } from "@/context/FeedInboxContext";
 import { useHorizontalSwipe } from "@/hooks/useHorizontalSwipe";
@@ -63,6 +63,10 @@ const genreOptions = [
   { id: "Reggaetón", label: "Reggaetón" },
   { id: "Otros", label: "Otros" },
 ];
+
+// Alto del bloque de texto de una tarjeta de la grilla y lado del cuadrado compacto.
+const FEATURED_TEXT_HEIGHT = 137;
+const FEATURED_COMPACT_SIZE = 56;
 
 const viewOptions = [
   { id: "grid", label: "Grilla", icon: LayoutGrid },
@@ -157,8 +161,6 @@ function toQueryParams(
 
 type TemporalPreset = "all" | "weekend" | "week" | "month";
 
-const fallbackBanner =
-  "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=80&w=1200&auto=format&fit=crop";
 
 export interface ChronologicalGroup {
   id: string;
@@ -253,7 +255,6 @@ export default function EventsPage() {
   const inbox = useEventsInbox();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [events, setEvents] = useState<Event[]>([]);
-  const [pendingSurveys, setPendingSurveys] = useState<Event[]>([]);
   const [draftFilters, setDraftFilters] = useState<EventFilters>({ ...emptyFilters });
   const [appliedFilters, setAppliedFilters] = useState<EventFilters>({ ...emptyFilters });
   const [temporalPreset, setTemporalPreset] = useState<TemporalPreset>("all");
@@ -275,6 +276,51 @@ export default function EventsPage() {
   const bottomSheetRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLElement>(null);
+  const stickyBarRef = useRef<HTMLDivElement>(null);
+  const collapseAnchorRef = useRef<HTMLDivElement>(null);
+  const collapseSpacerRef = useRef<HTMLDivElement>(null);
+  const featuredRowRef = useRef<HTMLDivElement>(null);
+  const { featuredEvents, refresh: refreshFeatured } = useFeaturedEvents();
+
+  // Destacados que se achican con el scroll: la barra queda fija debajo del header y su altura
+  // baja exactamente lo que se scrolleó (hasta quedar en cuadrados de 56px). Un espaciador debajo
+  // recupera esa altura, así la lista avanza al mismo ritmo del dedo. El progreso va a la variable
+  // CSS --p para no re-renderizar la página en cada frame.
+  useEffect(() => {
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const bar = stickyBarRef.current;
+      const anchor = collapseAnchorRef.current;
+      const spacer = collapseSpacerRef.current;
+      const header = headerRef.current;
+      if (!bar || !anchor || !spacer || !header) return;
+      let range = 0;
+      const row = featuredRowRef.current;
+      if (row) {
+        const style = getComputedStyle(row);
+        const inner = row.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+        const cols = window.matchMedia("(min-width: 1280px)").matches ? 4 : window.matchMedia("(min-width: 768px)").matches ? 3 : 2;
+        const gap = cols > 2 ? 20 : 12;
+        const column = (inner - (cols - 1) * gap) / cols;
+        range = Math.max(0, column + FEATURED_TEXT_HEIGHT - FEATURED_COMPACT_SIZE);
+      }
+      const passed = header.getBoundingClientRect().bottom - anchor.getBoundingClientRect().top;
+      const collapse = Math.min(range, Math.max(0, passed));
+      bar.style.setProperty("--p", range > 0 ? String(collapse / range) : "0");
+      spacer.style.height = `${collapse}px`;
+    };
+    const schedule = () => { if (!frame) frame = requestAnimationFrame(update); };
+    update();
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+    return () => {
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [featuredEvents.length]);
+
   const [headerHeight, setHeaderHeight] = useState<number>(0);
 
   useEffect(() => {
@@ -296,32 +342,6 @@ export default function EventsPage() {
     openInbox,
     inbox ? { onProgress: inbox.move, onCancel: inbox.cancel } : undefined,
   );
-
-  const isEventFinished = (ev: Event) => {
-    const startDate = parseEventRealDate(ev.date).getTime();
-    const endDate = ev.endDate ? parseEventRealDate(ev.endDate).getTime() : 0;
-    const finishTime = endDate > startDate ? endDate : startDate + 4 * 60 * 60 * 1000;
-    return Date.now() >= finishTime;
-  };
-
-  const { mutate: fetchPendingSurveys } = useMutation<Event[], void>(
-    surveysApi.getPendingSurveys,
-    {
-      onSuccess: (data) => {
-        const endedSurveys = (data || []).filter(isEventFinished);
-        setPendingSurveys(endedSurveys);
-      },
-      onError: (err) => {
-        console.error("Error fetching pending surveys:", err);
-      },
-    }
-  );
-
-  useEffect(() => {
-    if (user) {
-      void fetchPendingSurveys().catch(() => undefined);
-    }
-  }, [fetchPendingSurveys, user]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -441,17 +461,6 @@ export default function EventsPage() {
     }).catch(() => undefined);
   }, [viewMode, hasLoaded, hasMore, isLoadingEvents, events.length, appliedFilters, debouncedQuery, fetchEvents]);
 
-  // Top trending event for Hero Banner (based on goingCount survey attendance)
-  const featuredEvent = useMemo(() => {
-    if (events.length === 0) return null;
-    const sorted = [...events].sort((a, b) => {
-      if (a.isFeatured && !b.isFeatured) return -1;
-      if (!a.isFeatured && b.isFeatured) return 1;
-      return (b.goingCount || 0) - (a.goingCount || 0);
-    });
-    return sorted[0];
-  }, [events]);
-
   // Events list sorted by date or by attendance survey votes ("Más votados")
   const displayEvents = useMemo(() => {
     if (sortBy === "popular") {
@@ -467,10 +476,10 @@ export default function EventsPage() {
 
   const handleRefresh = async () => {
     try {
-      await fetchEvents({ filters: appliedFilters, offset: 0, append: false, query: debouncedQuery });
-      if (user) {
-        await fetchPendingSurveys();
-      }
+      await Promise.all([
+        fetchEvents({ filters: appliedFilters, offset: 0, append: false, query: debouncedQuery }),
+        refreshFeatured(),
+      ]);
     } catch (e) {
       console.error(e);
     }
@@ -656,21 +665,19 @@ export default function EventsPage() {
       ref={swipeRef}
       className="feed-swipe events-swipe hide-scrollbar flex min-h-screen flex-col bg-bg text-ink"
     >
-      {/* Header fijo: marca, búsqueda y filtros */}
+      {/* Header: marca, búsqueda y mensajes (mismo formato que el resto de las pantallas) */}
       <header
         ref={headerRef}
         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-        className="fixed top-0 inset-x-0 z-40 mx-auto w-full max-w-md md:max-w-[1360px] bg-bg/95 backdrop-blur-md border-b border-line pt-[var(--root-safe-top)] md:pt-20 md:px-8 lg:px-12"
+        className="sticky top-0 z-40 w-full bg-bg/95 backdrop-blur-md border-b border-line"
       >
-        {/* Fila 1 (mobile): marca + mensajes */}
-        <div className="md:hidden px-4 pt-2 pb-3 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5 shrink-0">
-            <span aria-hidden="true" className="font-display size-8 rounded-thumb bg-accent text-on-accent flex items-center justify-center text-lg">
-              r
-            </span>
-            <h1 className="font-display text-2xl m-0">root</h1>
-          </div>
+        <div className="w-full max-w-7xl mx-auto px-4 md:px-6 pt-[calc(0.75rem+var(--root-safe-top))] pb-3 md:pt-6 flex items-center justify-between gap-3">
+          <h1 className="m-0 shrink-0 flex">
+            <RootLogo size={30} />
+          </h1>
 
+          <div className="flex items-center gap-2 shrink-0">
+          <SearchButton />
           <button
             type="button"
             aria-label={user ? "Abrir mensajes" : "Iniciar sesión para ver mensajes"}
@@ -686,29 +693,259 @@ export default function EventsPage() {
           >
             <MessageSquare className="size-5" aria-hidden="true" />
           </button>
+          </div>
         </div>
 
-        {/* Fila 2: búsqueda */}
-        <div
-          onClick={(event) => event.stopPropagation()}
-          className="px-4 md:px-6 pb-2 md:pb-2.5 max-w-7xl mx-auto w-full"
-        >
-          <button
-            type="button"
-            onClick={() => router.push("/search")}
-            className="w-full h-9 md:h-10 px-3 flex items-center gap-2 rounded-xl bg-surface border border-line text-ink-2 text-xs md:text-sm text-left hover:bg-surface-2 transition-colors focus-visible:outline-2 focus-visible:outline-accent"
-          >
-            <Search className="size-4 shrink-0" aria-hidden="true" />
-            <span className="truncate">Buscar eventos, artistas o lugares</span>
-          </button>
-        </div>
+      </header>
 
-        {/* Fila 3: Filtros a la izquierda (scroll horizontal) + Selector de layout compacto a la derecha en mobile */}
+      <PullToRefresh onRefresh={handleRefresh}>
+        <div className="space-y-7 px-4 md:px-6 pt-5 pb-28 w-full max-w-7xl mx-auto">
+          {/* Slide-over Drawer lateral para Filtros Avanzados (Cero Layout Shift) */}
+        {showFilters && (
+          <div className="fixed inset-0 z-50 flex justify-end">
+            <div
+              className="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity animate-fade-in"
+              onClick={() => setShowFilters(false)}
+            />
+
+            <div className="relative z-10 w-full max-w-md h-full bg-[#0B0D10] border-l border-white/10 shadow-2xl p-5 sm:p-6 flex flex-col justify-between overflow-y-auto animate-in slide-in-from-right duration-300">
+              <form onSubmit={applyFilters} className="flex flex-col h-full justify-between space-y-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                    <span className="flex items-center gap-2 text-sm font-black uppercase tracking-widest text-[#D4FF00]">
+                      <Filter className="h-4 w-4" /> Filtros avanzados
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowFilters(false)}
+                      className="rounded-full bg-white/5 p-1.5 text-neutral-400 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  <fieldset className="space-y-1.5">
+                    <legend className="flex items-center gap-1 text-[11px] font-extrabold uppercase tracking-wider text-neutral-400">
+                      <Flame className="h-3 w-3 text-[#D4FF00]" /> Ordenar por
+                    </legend>
+                    <div className="flex rounded-2xl border border-white/10 bg-[#14171F] p-1">
+                      <button
+                        type="button"
+                        onClick={() => setSortBy("date")}
+                        className={cn(
+                          "flex-1 rounded-xl py-1.5 text-xs font-extrabold transition-all cursor-pointer",
+                          sortBy === "date"
+                            ? "bg-[#D4FF00] text-neutral-950"
+                            : "text-neutral-400 hover:text-white",
+                        )}
+                      >
+                        Próximos
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSortBy("popular")}
+                        className={cn(
+                          "flex-1 rounded-xl py-1.5 text-xs font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5",
+                          sortBy === "popular"
+                            ? "bg-[#D4FF00] text-neutral-950"
+                            : "text-neutral-400 hover:text-white",
+                        )}
+                      >
+                        <Flame className={cn("h-3.5 w-3.5", sortBy === "popular" ? "text-neutral-950 fill-neutral-950" : "text-[#D4FF00]")} />
+                        Más votados
+                      </button>
+                    </div>
+                  </fieldset>
+
+                  <div className="space-y-1.5">
+                    <label className="flex items-center gap-1 text-[11px] font-extrabold uppercase tracking-wider text-neutral-400">
+                      <Music className="h-3 w-3 text-[#D4FF00]" /> Género
+                    </label>
+                    <select
+                      value={draftFilters.genre}
+                      onChange={(event) =>
+                        setDraftFilters((current) => ({ ...current, genre: event.target.value }))
+                      }
+                      className="w-full rounded-2xl border border-white/[0.08] border-t-white/[0.14] bg-[#14171F] px-3 py-2 text-xs font-semibold text-white focus:border-[#D4FF00] focus:outline-none transition-colors"
+                    >
+                      {genreOptions.map((option) => (
+                        <option key={option.id} value={option.id}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="flex items-center gap-1 text-[11px] font-extrabold uppercase tracking-wider text-neutral-400">
+                      <MapPin className="h-3 w-3 text-[#D4FF00]" /> Lugar / zona
+                    </label>
+                    <input
+                      value={draftFilters.location}
+                      onChange={(event) =>
+                        setDraftFilters((current) => ({ ...current, location: event.target.value }))
+                      }
+                      placeholder="Ej. Montevideo, Palermo..."
+                      className="w-full rounded-2xl border border-white/[0.08] border-t-white/[0.14] bg-[#14171F] px-3 py-2 text-xs font-semibold text-white placeholder-neutral-500 focus:border-[#D4FF00] focus:outline-none transition-colors"
+                    />
+                  </div>
+
+                  <fieldset className="space-y-1.5">
+                    <legend className="flex items-center gap-1 text-[11px] font-extrabold uppercase tracking-wider text-neutral-400">
+                      <Tag className="h-3 w-3 text-[#D4FF00]" /> Tipo de precio
+                    </legend>
+                    <div className="flex rounded-2xl border border-white/[0.06] bg-black/40 p-1">
+                      {[
+                        { id: "all", label: "Todos" },
+                        { id: "free", label: "Gratis" },
+                        { id: "paid", label: "De pago" },
+                      ].map((option) => (
+                        <button
+                          key={option.id}
+                          type="button"
+                          onClick={() =>
+                            setDraftFilters((current) => ({
+                              ...current,
+                              priceType: option.id as EventFilters["priceType"],
+                            }))
+                          }
+                          className={cn(
+                            "flex-1 rounded-xl py-1.5 text-xs font-extrabold transition-all cursor-pointer",
+                            draftFilters.priceType === option.id
+                              ? "bg-[#D4FF00] text-neutral-950 shadow-sm"
+                              : "text-neutral-400 hover:text-white",
+                          )}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </fieldset>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className="space-y-1.5 text-[11px] font-extrabold uppercase tracking-wider text-neutral-400">
+                      Precio mínimo
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={draftFilters.minPrice}
+                        onChange={(event) =>
+                          setDraftFilters((current) => ({ ...current, minPrice: event.target.value }))
+                        }
+                        className="w-full rounded-2xl border border-white/[0.08] border-t-white/[0.14] bg-[#14171F] px-3 py-2 text-xs text-white focus:border-[#D4FF00] focus:outline-none transition-colors"
+                      />
+                    </label>
+                    <label className="space-y-1.5 text-[11px] font-extrabold uppercase tracking-wider text-neutral-400">
+                      Precio máximo
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={draftFilters.maxPrice}
+                        onChange={(event) =>
+                          setDraftFilters((current) => ({ ...current, maxPrice: event.target.value }))
+                        }
+                        className="w-full rounded-2xl border border-white/[0.08] border-t-white/[0.14] bg-[#14171F] px-3 py-2 text-xs text-white focus:border-[#D4FF00] focus:outline-none transition-colors"
+                      />
+                    </label>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <label className="min-w-0 flex flex-col gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-neutral-400">
+                      <span>Desde</span>
+                      <input
+                        type="date"
+                        value={draftFilters.startDate}
+                        onChange={(event) =>
+                          setDraftFilters((current) => ({ ...current, startDate: event.target.value }))
+                        }
+                        className="block w-full max-w-[136px] sm:max-w-full min-w-0 box-border appearance-none rounded-2xl border border-white/[0.08] border-t-white/[0.14] bg-[#14171F] px-2.5 py-2 text-[11px] text-white focus:border-[#D4FF00] focus:outline-none transition-colors"
+                      />
+                    </label>
+                    <label className="min-w-0 flex flex-col gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-neutral-400">
+                      <span>Hasta</span>
+                      <input
+                        type="date"
+                        value={draftFilters.endDate}
+                        onChange={(event) =>
+                          setDraftFilters((current) => ({ ...current, endDate: event.target.value }))
+                        }
+                        className="block w-full max-w-[136px] sm:max-w-full min-w-0 box-border appearance-none rounded-2xl border border-white/[0.08] border-t-white/[0.14] bg-[#14171F] px-2.5 py-2 text-[11px] text-white focus:border-[#D4FF00] focus:outline-none transition-colors"
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-white/10 space-y-2">
+                  <Button type="submit" size="full" disabled={isLoadingEvents}>
+                    {isLoadingEvents ? <Loader2 className="h-4 w-4 animate-spin" /> : <Filter className="h-4 w-4" />}
+                    Aplicar filtros
+                  </Button>
+                  {activeFilters > 0 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="full"
+                      onClick={() => {
+                        clearFilters();
+                        setSortBy("date");
+                        setShowFilters(false);
+                      }}
+                    >
+                      Limpiar todos los filtros
+                    </Button>
+                  )}
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Live Activity Banner */}
+        <LiveEventBanner />
+
+        {/* Punto donde el bloque se fija bajo el header (sin margen propio) */}
+        <div ref={collapseAnchorRef} aria-hidden="true" className="!mb-0" />
+
+        {/* Bloque fijo: "Eventos destacados" (se achican con el scroll) + "Próximos eventos" y sus filtros */}
         <div
-          ref={filtersContainerRef}
-          onClick={(event) => event.stopPropagation()}
-          className="relative z-30 px-4 md:px-6 pb-2.5 md:pb-3 max-w-7xl mx-auto w-full"
+          ref={stickyBarRef}
+          style={{ top: headerHeight }}
+          className="sticky z-30 -mx-4 px-4 md:-mx-6 md:px-6 bg-bg/95 backdrop-blur-md !mb-0"
         >
+          {featuredEvents.length > 0 && (
+            <section aria-labelledby="events-featured" className="pb-4">
+              <h2 id="events-featured" className="font-display text-[22px] md:text-[28px] m-0 mb-3">
+                Eventos destacados
+              </h2>
+              <div
+                ref={featuredRowRef}
+                className="-mx-4 px-4 md:-mx-6 md:px-6 flex items-start overflow-x-auto hide-scrollbar snap-x snap-mandatory scroll-px-4 md:scroll-px-6 [--cols:2] md:[--cols:3] xl:[--cols:4] [--gap:12px] md:[--gap:20px]"
+                style={{ gap: "calc(var(--gap) * (1 - var(--p, 0)) + 8px * var(--p, 0))" }}
+              >
+                {featuredEvents.map((event) => (
+                  <EventCard key={event.id} event={event} variant="featured" />
+                ))}
+              </div>
+            </section>
+          )}
+
+          <div className="-mx-4 px-4 md:-mx-6 md:px-6 border-t border-line pt-3">
+            <div className="flex items-end justify-between gap-3">
+              <h2 className="font-display text-[22px] md:text-[28px] m-0 truncate">
+                {sortBy === "popular" ? "Más convocados" : "Próximos eventos"}
+              </h2>
+              <SegmentedControl
+                label="Vista"
+                className="hidden md:flex shrink-0"
+                options={viewOptions.map((option) => ({ ...option }))}
+                value={viewMode}
+                onChange={setViewMode}
+              />
+            </div>
+        {/* Filtros del listado: ¿Cuándo?, Ubicación y vista */}
+        <div ref={filtersContainerRef} className="relative pt-2.5 pb-3">
           <div className="flex items-center justify-between gap-2">
             <div className="flex-1 min-w-0 flex items-center gap-1.5 overflow-x-auto hide-scrollbar whitespace-nowrap py-0.5">
               {/* Filtro 1: ¿Cuándo? */}
@@ -1042,309 +1279,11 @@ export default function EventsPage() {
             </div>
           )}
         </div>
-      </header>
-
-      <PullToRefresh onRefresh={handleRefresh}>
-        <div
-          style={headerHeight > 0 ? { paddingTop: `${headerHeight + 20}px` } : undefined}
-          className="space-y-7 px-4 md:px-6 pt-[calc(var(--root-safe-top)+175px)] md:pt-[200px] pb-28 w-full max-w-7xl mx-auto"
-        >
-          {/* Slide-over Drawer lateral para Filtros Avanzados (Cero Layout Shift) */}
-        {showFilters && (
-          <div className="fixed inset-0 z-50 flex justify-end">
-            <div
-              className="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity animate-fade-in"
-              onClick={() => setShowFilters(false)}
-            />
-
-            <div className="relative z-10 w-full max-w-md h-full bg-[#0B0D10] border-l border-white/10 shadow-2xl p-5 sm:p-6 flex flex-col justify-between overflow-y-auto animate-in slide-in-from-right duration-300">
-              <form onSubmit={applyFilters} className="flex flex-col h-full justify-between space-y-6">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                    <span className="flex items-center gap-2 text-sm font-black uppercase tracking-widest text-[#D4FF00]">
-                      <Filter className="h-4 w-4" /> Filtros avanzados
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setShowFilters(false)}
-                      className="rounded-full bg-white/5 p-1.5 text-neutral-400 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-
-                  <fieldset className="space-y-1.5">
-                    <legend className="flex items-center gap-1 text-[11px] font-extrabold uppercase tracking-wider text-neutral-400">
-                      <Flame className="h-3 w-3 text-[#D4FF00]" /> Ordenar por
-                    </legend>
-                    <div className="flex rounded-2xl border border-white/10 bg-[#14171F] p-1">
-                      <button
-                        type="button"
-                        onClick={() => setSortBy("date")}
-                        className={cn(
-                          "flex-1 rounded-xl py-1.5 text-xs font-extrabold transition-all cursor-pointer",
-                          sortBy === "date"
-                            ? "bg-[#D4FF00] text-neutral-950"
-                            : "text-neutral-400 hover:text-white",
-                        )}
-                      >
-                        Próximos
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setSortBy("popular")}
-                        className={cn(
-                          "flex-1 rounded-xl py-1.5 text-xs font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5",
-                          sortBy === "popular"
-                            ? "bg-[#D4FF00] text-neutral-950"
-                            : "text-neutral-400 hover:text-white",
-                        )}
-                      >
-                        <Flame className={cn("h-3.5 w-3.5", sortBy === "popular" ? "text-neutral-950 fill-neutral-950" : "text-[#D4FF00]")} />
-                        Más votados
-                      </button>
-                    </div>
-                  </fieldset>
-
-                  <div className="space-y-1.5">
-                    <label className="flex items-center gap-1 text-[11px] font-extrabold uppercase tracking-wider text-neutral-400">
-                      <Music className="h-3 w-3 text-[#D4FF00]" /> Género
-                    </label>
-                    <select
-                      value={draftFilters.genre}
-                      onChange={(event) =>
-                        setDraftFilters((current) => ({ ...current, genre: event.target.value }))
-                      }
-                      className="w-full rounded-2xl border border-white/[0.08] border-t-white/[0.14] bg-[#14171F] px-3 py-2 text-xs font-semibold text-white focus:border-[#D4FF00] focus:outline-none transition-colors"
-                    >
-                      {genreOptions.map((option) => (
-                        <option key={option.id} value={option.id}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="flex items-center gap-1 text-[11px] font-extrabold uppercase tracking-wider text-neutral-400">
-                      <MapPin className="h-3 w-3 text-[#D4FF00]" /> Lugar / zona
-                    </label>
-                    <input
-                      value={draftFilters.location}
-                      onChange={(event) =>
-                        setDraftFilters((current) => ({ ...current, location: event.target.value }))
-                      }
-                      placeholder="Ej. Montevideo, Palermo..."
-                      className="w-full rounded-2xl border border-white/[0.08] border-t-white/[0.14] bg-[#14171F] px-3 py-2 text-xs font-semibold text-white placeholder-neutral-500 focus:border-[#D4FF00] focus:outline-none transition-colors"
-                    />
-                  </div>
-
-                  <fieldset className="space-y-1.5">
-                    <legend className="flex items-center gap-1 text-[11px] font-extrabold uppercase tracking-wider text-neutral-400">
-                      <Tag className="h-3 w-3 text-[#D4FF00]" /> Tipo de precio
-                    </legend>
-                    <div className="flex rounded-2xl border border-white/[0.06] bg-black/40 p-1">
-                      {[
-                        { id: "all", label: "Todos" },
-                        { id: "free", label: "Gratis" },
-                        { id: "paid", label: "De pago" },
-                      ].map((option) => (
-                        <button
-                          key={option.id}
-                          type="button"
-                          onClick={() =>
-                            setDraftFilters((current) => ({
-                              ...current,
-                              priceType: option.id as EventFilters["priceType"],
-                            }))
-                          }
-                          className={cn(
-                            "flex-1 rounded-xl py-1.5 text-xs font-extrabold transition-all cursor-pointer",
-                            draftFilters.priceType === option.id
-                              ? "bg-[#D4FF00] text-neutral-950 shadow-sm"
-                              : "text-neutral-400 hover:text-white",
-                          )}
-                        >
-                          {option.label}
-                        </button>
-                      ))}
-                    </div>
-                  </fieldset>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <label className="space-y-1.5 text-[11px] font-extrabold uppercase tracking-wider text-neutral-400">
-                      Precio mínimo
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={draftFilters.minPrice}
-                        onChange={(event) =>
-                          setDraftFilters((current) => ({ ...current, minPrice: event.target.value }))
-                        }
-                        className="w-full rounded-2xl border border-white/[0.08] border-t-white/[0.14] bg-[#14171F] px-3 py-2 text-xs text-white focus:border-[#D4FF00] focus:outline-none transition-colors"
-                      />
-                    </label>
-                    <label className="space-y-1.5 text-[11px] font-extrabold uppercase tracking-wider text-neutral-400">
-                      Precio máximo
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={draftFilters.maxPrice}
-                        onChange={(event) =>
-                          setDraftFilters((current) => ({ ...current, maxPrice: event.target.value }))
-                        }
-                        className="w-full rounded-2xl border border-white/[0.08] border-t-white/[0.14] bg-[#14171F] px-3 py-2 text-xs text-white focus:border-[#D4FF00] focus:outline-none transition-colors"
-                      />
-                    </label>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2.5">
-                    <label className="min-w-0 flex flex-col gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-neutral-400">
-                      <span>Desde</span>
-                      <input
-                        type="date"
-                        value={draftFilters.startDate}
-                        onChange={(event) =>
-                          setDraftFilters((current) => ({ ...current, startDate: event.target.value }))
-                        }
-                        className="block w-full max-w-[136px] sm:max-w-full min-w-0 box-border appearance-none rounded-2xl border border-white/[0.08] border-t-white/[0.14] bg-[#14171F] px-2.5 py-2 text-[11px] text-white focus:border-[#D4FF00] focus:outline-none transition-colors"
-                      />
-                    </label>
-                    <label className="min-w-0 flex flex-col gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-neutral-400">
-                      <span>Hasta</span>
-                      <input
-                        type="date"
-                        value={draftFilters.endDate}
-                        onChange={(event) =>
-                          setDraftFilters((current) => ({ ...current, endDate: event.target.value }))
-                        }
-                        className="block w-full max-w-[136px] sm:max-w-full min-w-0 box-border appearance-none rounded-2xl border border-white/[0.08] border-t-white/[0.14] bg-[#14171F] px-2.5 py-2 text-[11px] text-white focus:border-[#D4FF00] focus:outline-none transition-colors"
-                      />
-                    </label>
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-white/10 space-y-2">
-                  <Button type="submit" size="full" disabled={isLoadingEvents}>
-                    {isLoadingEvents ? <Loader2 className="h-4 w-4 animate-spin" /> : <Filter className="h-4 w-4" />}
-                    Aplicar filtros
-                  </Button>
-                  {activeFilters > 0 && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="full"
-                      onClick={() => {
-                        clearFilters();
-                        setSortBy("date");
-                        setShowFilters(false);
-                      }}
-                    >
-                      Limpiar todos los filtros
-                    </Button>
-                  )}
-                </div>
-              </form>
-            </div>
           </div>
-        )}
+        </div>
 
-        {/* Live Activity Banner */}
-        <LiveEventBanner />
-
-        {/* Encuestas pendientes */}
-        {pendingSurveys.length > 0 && (
-          <section aria-labelledby="events-surveys">
-            <div className="flex items-baseline justify-between gap-3 pb-3">
-              <h2 id="events-surveys" className="m-0 text-[17px] font-semibold">
-                Contanos cómo estuvo
-              </h2>
-              <span className="label-mono text-ink-3">
-                {pendingSurveys.length} {pendingSurveys.length === 1 ? "pendiente" : "pendientes"}
-              </span>
-            </div>
-            <div className="-mx-4 px-4 md:mx-0 md:px-0 flex gap-3 overflow-x-auto overflow-y-hidden touch-pan-x snap-x snap-mandatory hide-scrollbar scroll-px-4">
-              {pendingSurveys.map((surveyEvent) => (
-                <SurveyCard key={surveyEvent.id} surveyEvent={surveyEvent} />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Destacado de la semana */}
-        {!hasActiveChips && !debouncedQuery && !isDateActive && !isLocationActive && featuredEvent && (
-          <section aria-labelledby="events-featured">
-            <h2 id="events-featured" className="label-mono text-ink-2 m-0 mb-3">
-              Destacado de la semana
-            </h2>
-            <Link
-              href={`/events/${featuredEvent.id}?origin=/events`}
-              className="group block md:grid md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] rounded-hero overflow-hidden bg-surface border border-line text-ink transition-colors hover:border-line-strong focus-visible:outline-2 focus-visible:outline-accent"
-            >
-              <div
-                role="img"
-                aria-label={`Póster de ${featuredEvent.title}`}
-                className="relative h-[400px] md:h-[440px] bg-surface-2 bg-cover bg-center"
-                style={{ backgroundImage: `url(${featuredEvent.cinematicBannerUrl?.trim() || fallbackBanner})` }}
-              >
-                <div className="absolute top-3.5 inset-x-3.5 flex justify-between gap-2">
-                  {featuredEvent.genre ? (
-                    <span className="label-mono px-2.5 py-[7px] rounded-full bg-bg/80 text-accent">
-                      {featuredEvent.genre}
-                    </span>
-                  ) : <span />}
-                  {featuredEvent.goingCount > 0 && (
-                    <span className="px-2.5 py-1.5 rounded-full bg-bg/80 flex items-center gap-1.5 text-[13px] font-semibold">
-                      <span className="num-mono">{featuredEvent.goingCount}</span>
-                      <span className="text-ink-2 font-medium">confirmados</span>
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="p-[18px] md:p-7 flex flex-col gap-3 md:justify-end">
-                <h3 className="font-display text-[26px] md:text-4xl m-0 line-clamp-3">
-                  {featuredEvent.title}
-                </h3>
-                <div className="flex flex-col gap-1.5 text-sm text-ink-2">
-                  <span className="flex items-center gap-2">
-                    <Calendar className="size-4 text-accent shrink-0" aria-hidden="true" />
-                    <span className="capitalize">
-                      {new Intl.DateTimeFormat("es-AR", {
-                        weekday: "short",
-                        day: "numeric",
-                        month: "short",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        hour12: false,
-                        timeZone: "America/Montevideo",
-                      }).format(parseEventRealDate(featuredEvent.date))}
-                    </span>
-                  </span>
-                  {featuredEvent.location && (
-                    <span className="flex items-center gap-2 min-w-0">
-                      <MapPin className="size-4 shrink-0" aria-hidden="true" />
-                      <span className="truncate">{featuredEvent.location}</span>
-                    </span>
-                  )}
-                </div>
-                <div className="pt-1 flex items-center justify-between gap-3">
-                  {formatEventPrice(featuredEvent) ? (
-                    <span className="flex flex-col gap-0.5">
-                      <span className="label-mono text-ink-3">Desde</span>
-                      <span className="num-mono text-lg font-semibold">{formatEventPrice(featuredEvent)}</span>
-                    </span>
-                  ) : <span />}
-                  <span className="h-12 px-[18px] rounded-control bg-accent text-on-accent text-[15px] font-semibold flex items-center gap-2 transition-colors group-hover:bg-accent-hover">
-                    Conseguir entradas
-                    <ArrowRight className="size-[18px]" aria-hidden="true" strokeWidth={2.4} />
-                  </span>
-                </div>
-              </div>
-            </Link>
-          </section>
-        )}
+        {/* Recupera la altura que pierden los destacados al achicarse */}
+        <div ref={collapseSpacerRef} aria-hidden="true" />
 
         {/* Chips de Filtros Activos (solo para filtros adicionales no cubiertos directamente en la barra principal) */}
         {hasActiveChips && (
@@ -1425,25 +1364,6 @@ export default function EventsPage() {
             </button>
           </div>
         )}
-
-        {/* Encabezado de la lista + selector de vista (desktop) */}
-        <div className="flex items-end justify-between gap-3">
-          <div className="flex items-baseline gap-3 min-w-0">
-            <h2 className="font-display text-[22px] md:text-[28px] m-0 truncate">
-              {sortBy === "popular" ? "Más convocados" : "Próximos eventos"}
-            </h2>
-            <span className="label-mono text-ink-3 shrink-0">
-              {hasLoaded ? `${total} ${total === 1 ? "evento" : "eventos"}` : "Cargando"}
-            </span>
-          </div>
-          <SegmentedControl
-            label="Vista"
-            className="hidden md:flex shrink-0"
-            options={viewOptions.map((option) => ({ ...option }))}
-            value={viewMode}
-            onChange={setViewMode}
-          />
-        </div>
 
         {/* Contenedor Principal de Eventos (Grilla, Lista Cronológica o Calendario estilo BeReal) */}
         {!hasLoaded && isLoadingEvents ? (

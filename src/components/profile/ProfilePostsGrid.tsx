@@ -1,124 +1,87 @@
 "use client";
 
-import React, { useState } from "react";
-import Image from "next/image";
+import { useState } from "react";
 import Link from "next/link";
-import { Heart, MessageCircle, Plus, Camera } from "lucide-react";
+import { Camera, Heart, ImageOff, MessageCircle, Plus } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { CreatePhotoModal } from "@/components/profile/CreatePhotoModal";
 import { isValidImageUrl } from "@/lib/utils";
 import type { Post } from "@/types/posts";
 
 interface ProfilePostsGridProps {
   posts: Post[];
   isMyProfile: boolean;
-  onPostCreated?: (newPost: Post) => void;
+  /** Abre el modal de subir foto (vive en la página del perfil). */
+  onCreatePost?: () => void;
 }
 
-export function ProfilePostsGrid({
-  posts,
-  isMyProfile,
-  onPostCreated,
-}: ProfilePostsGridProps) {
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-
-  const handlePostCreated = (newPost: Post) => {
-    onPostCreated?.(newPost);
-  };
+export function ProfilePostsGrid({ posts, isMyProfile, onCreatePost }: ProfilePostsGridProps) {
+  if (posts.length === 0) {
+    return (
+      <div className="flex flex-col items-center py-12 px-6 text-center rounded-card border border-line bg-surface">
+        <Camera className="size-7 text-ink-3" aria-hidden="true" />
+        <h3 className="mt-3 mb-0 text-base font-semibold">
+          {isMyProfile ? "Compartí tus fotos" : "Todavía no hay publicaciones"}
+        </h3>
+        <p className="mt-1 mb-0 max-w-xs text-sm text-ink-2">
+          {isMyProfile
+            ? "Las fotos que subas aparecen acá para que tus amigos las vean."
+            : "Esta persona todavía no compartió fotos."}
+        </p>
+        {isMyProfile && onCreatePost && (
+          <Button type="button" onClick={onCreatePost} className="mt-5">
+            <Plus className="size-4" strokeWidth={2.4} aria-hidden="true" />
+            Subir foto
+          </Button>
+        )}
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-4">
-      {/* Barra de acción si es mi perfil */}
-      {isMyProfile && (
-        <div className="flex items-center justify-between pb-2">
-          <div className="text-xs font-black uppercase tracking-wider text-neutral-400">
-            {posts.length} {posts.length === 1 ? "publicación" : "publicaciones"}
+    // Grilla tipo Instagram: 3 por fila, formato vertical 9:16 y separación mínima.
+    <div className="grid grid-cols-3 gap-0.5">
+      {posts.map((post) => (
+        <Link
+          key={post.id}
+          href={`/posts/${post.id}`}
+          aria-label={post.title || post.content || "Ver publicación"}
+          className="group relative aspect-[9/16] overflow-hidden bg-surface-2 block focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
+        >
+          <PostThumbnail url={post.headerImageUrl} />
+
+          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-3 sm:gap-6 text-white">
+            <span className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm font-semibold">
+              <Heart className="size-3.5 sm:size-4 fill-white" aria-hidden="true" />
+              <span className="num-mono">{post.likesCount || 0}</span>
+            </span>
+            <span className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm font-semibold">
+              <MessageCircle className="size-3.5 sm:size-4 fill-white" aria-hidden="true" />
+              <span className="num-mono">0</span>
+            </span>
           </div>
-          <Button
-            type="button"
-            variant="primary"
-            size="sm"
-            onClick={() => setIsCreateOpen(true)}
-            className="rounded-full px-4 h-9 gap-1.5 text-xs font-black uppercase tracking-wider shadow-[0_6px_20px_rgba(212,255,0,0.18)]"
-          >
-            <Plus className="h-4 w-4 stroke-[3]" />
-            <span>Subir foto</span>
-          </Button>
-        </div>
-      )}
-
-      {/* Grilla 3x3 estilo Instagram: Cada foto navega a la pantalla del post */}
-      {posts.length > 0 ? (
-        <div className="grid grid-cols-3 gap-1 sm:gap-2">
-          {posts.map((post) => (
-            <Link
-              key={post.id}
-              href={`/posts/${post.id}`}
-              className="group relative aspect-square cursor-pointer overflow-hidden rounded-lg sm:rounded-xl bg-neutral-900 shadow-sm block"
-            >
-              {isValidImageUrl(post.headerImageUrl) ? (
-                <img
-                  src={post.headerImageUrl.trim()}
-                  alt={post.title || "Foto de perfil"}
-                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                  loading="lazy"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center p-2 text-center text-[10px] text-neutral-500 bg-neutral-950 font-bold">
-                  {post.content || "Sin imagen"}
-                </div>
-              )}
-
-              {/* Overlay oscuro en hover / selección estilo Instagram */}
-              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-3 sm:gap-6 text-white select-none">
-                <span className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm font-black">
-                  <Heart className="h-3.5 w-3.5 sm:h-4 sm:w-4 fill-white" />
-                  <span className="num-display">{post.likesCount || 0}</span>
-                </span>
-                <span className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm font-black">
-                  <MessageCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 fill-white" />
-                  <span className="num-display">0</span>
-                </span>
-              </div>
-            </Link>
-          ))}
-        </div>
-      ) : (
-        /* Estado vacío */
-        <div className="flex flex-col items-center justify-center py-14 px-4 text-center rounded-3xl border-0 bg-[#111114] shadow-xl">
-          <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/5 text-neutral-500">
-            <Camera className="h-7 w-7" />
-          </div>
-          <h3 className="text-sm font-black uppercase tracking-wider text-white">
-            {isMyProfile ? "Compartí tus fotos" : "Aún no hay publicaciones"}
-          </h3>
-          <p className="mt-1 text-xs text-neutral-400 max-w-xs">
-            {isMyProfile
-              ? "Las fotos que subas aparecerán en la grilla de tu perfil para que tus amigos interactúen."
-              : "Este usuario todavía no ha compartido fotos en su perfil."}
-          </p>
-          {isMyProfile && (
-            <div className="mt-5">
-              <Button
-                type="button"
-                variant="primary"
-                onClick={() => setIsCreateOpen(true)}
-                className="gap-2 rounded-full px-5 text-xs font-black uppercase tracking-wider shadow-[0_8px_25px_rgba(212,255,0,0.2)]"
-              >
-                <Plus className="h-4 w-4 stroke-[3]" />
-                Subir mi primera foto
-              </Button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Modal para Crear Publicación (2 pasos: foto -> pie de foto) */}
-      <CreatePhotoModal
-        isOpen={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
-        onPostCreated={handlePostCreated}
-      />
+        </Link>
+      ))}
     </div>
+  );
+}
+
+/** Llena el cuadro recortando desde el centro; si la imagen no carga, queda el fondo con un ícono. */
+function PostThumbnail({ url }: { url?: string | null }) {
+  const [failed, setFailed] = useState(false);
+  if (!isValidImageUrl(url) || failed) {
+    return (
+      <span aria-hidden="true" className="absolute inset-0 flex items-center justify-center text-ink-3">
+        <ImageOff className="size-5" />
+      </span>
+    );
+  }
+  return (
+    <img
+      src={url.trim()}
+      alt=""
+      loading="lazy"
+      onError={() => setFailed(true)}
+      className="absolute inset-0 size-full object-cover object-center"
+    />
   );
 }

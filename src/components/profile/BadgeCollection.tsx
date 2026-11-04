@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, Loader2, Share } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ChevronLeft, Loader2, Share } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Modal, ConfirmModal } from "@/components/ui/Modal";
 import { useBadgeCollection, useBadgeLineup } from "@/hooks/useBadges";
@@ -20,7 +20,7 @@ const shortDate = (value: string) => badgeRingDate(value).replace(/\.\d{2}(\d{2}
 const headerButton =
   "size-11 rounded-control bg-surface border border-line text-ink flex items-center justify-center hover:bg-surface-2 transition-colors focus-visible:outline-2 focus-visible:outline-accent disabled:opacity-50";
 
-export function BadgeCollection({ username, isOwner }: { username: string; isOwner: boolean }) {
+export function BadgeCollection({ username, isOwner, initialBadgeId = null }: { username: string; isOwner: boolean; initialBadgeId?: string | null }) {
   const collection = useBadgeCollection(username);
   const [formState, setFormState] = useState<ReviewFormState>({ dirty: false, saving: false });
   const [confirmDiscard, setConfirmDiscard] = useState(false);
@@ -45,63 +45,44 @@ export function BadgeCollection({ username, isOwner }: { username: string; isOwn
   }, [selected, formState.dirty]);
 
   const groups = groupBadges(visibleBadges);
-  const unreviewed = isOwner ? visibleBadges.filter(badge => badge.review == null) : [];
   const openBadge = (id: string, element: HTMLElement) => {
     setFormState({ dirty: false, saving: false });
     open(id, element);
   };
 
+  // Llegada desde un recordatorio o un link de reseña: abre esa insignia una sola vez.
+  const openedInitial = useRef(false);
+  const initialBadgeLoaded = !!initialBadgeId && visibleBadges.some(badge => badge.eventId === initialBadgeId);
+  useEffect(() => {
+    if (openedInitial.current || !initialBadgeLoaded || phase !== "closed") return;
+    const tile = document.querySelector<HTMLElement>(`[data-badge-id="${CSS.escape(initialBadgeId!)}"]`);
+    if (!tile) return;
+    openedInitial.current = true;
+    tile.scrollIntoView({ block: "center" });
+    open(initialBadgeId!, (tile.firstElementChild as HTMLElement) ?? tile);
+  }, [initialBadgeLoaded, initialBadgeId, phase, open]);
+
   return (
-    <section className="mx-auto max-w-xl" aria-labelledby="badges-title">
-      <div className="flex items-end justify-between gap-3">
-        <div className="flex flex-col gap-1.5">
-          <span className="label-mono text-accent">Archivo personal</span>
-          <h2 id="badges-title" className="font-display m-0 text-[30px]">Tus noches</h2>
-        </div>
-        <span className="flex flex-col items-end gap-0.5">
-          <span className="num-mono text-2xl font-semibold">{collection.page?.meta.total ?? "…"}</span>
-          <span className="label-mono text-ink-3">insignias</span>
-        </span>
-      </div>
-      <p className="mt-2 mb-0 text-[15px] leading-normal text-ink-2">Cada insignia guarda un lugar, una fecha y una historia.</p>
-
-      {unreviewed.length > 0 && (
-        <button
-          type="button"
-          disabled={phase !== "closed"}
-          onClick={event => openBadge(unreviewed[0].eventId, event.currentTarget)}
-          className="mt-4 w-full p-3.5 flex items-center gap-3 rounded-card bg-accent/[0.08] border border-accent/35 text-left hover:bg-accent/[0.12] transition-colors focus-visible:outline-2 focus-visible:outline-accent"
-        >
-          <span className="num-mono size-10 shrink-0 rounded-full bg-accent text-on-accent flex items-center justify-center text-base font-semibold">
-            {unreviewed.length}
-          </span>
-          <span className="flex-1 min-w-0 flex flex-col gap-0.5">
-            <span className="text-[15px] font-semibold">{unreviewed.length === 1 ? "Noche sin reseñar" : "Noches sin reseñar"}</span>
-            <span className="text-[13px] text-ink-2">Puntualas y completá el arco de cada insignia</span>
-          </span>
-          <ChevronRight className="size-5 shrink-0 text-accent" aria-hidden="true" />
-        </button>
-      )}
-
+    <section className="mx-auto max-w-xl" aria-label="Insignias">
       {visibleBadges.some(badge => badge.stepsPreview) && (
-        <p className="mt-3 mb-0 text-[13px] leading-relaxed text-ink-3">Vista de prueba: los pasos de estas insignias son ficticios. No se guardan como actividad real.</p>
+        <p className="m-0 mb-4 text-[13px] leading-relaxed text-ink-3">Vista de prueba: los pasos de estas insignias son ficticios. No se guardan como actividad real.</p>
       )}
       {collection.error && (
-        <div role="alert" className="mt-6 rounded-card border border-line bg-surface p-5 text-center text-[15px] text-ink-2">
+        <div role="alert" className="rounded-card border border-line bg-surface p-5 text-center text-[15px] text-ink-2">
           <p className="m-0">No pudimos cargar las insignias.</p>
           <Button variant="secondary" className="mt-3" onClick={() => void collection.load().catch(() => undefined)}>Reintentar</Button>
         </div>
       )}
-      {collection.isLoading && !collection.page && <Loader2 aria-label="Cargando insignias" className="mx-auto mt-8 size-6 animate-spin text-accent" />}
+      {collection.isLoading && !collection.page && <Loader2 aria-label="Cargando insignias" className="mx-auto my-8 size-6 animate-spin text-accent" />}
       {collection.page?.data.length === 0 && !collection.error && (
-        <div className="mt-6 rounded-card border border-line bg-surface px-6 py-10 text-center">
+        <div className="rounded-card border border-line bg-surface px-6 py-10 text-center">
           <h3 className="m-0 text-base font-semibold">Tu colección empieza con tu próxima fiesta</h3>
           <p className="mx-auto mt-2 mb-0 max-w-sm text-sm leading-relaxed text-ink-2">Cada presencia confirmada se transforma en una insignia para guardar esa noche. No hace falta dejar una reseña para obtenerla.</p>
         </div>
       )}
 
-      {groups.map(group => (
-        <section key={group.key} aria-label={group.label.replace(" de ", " ")} className="pt-7">
+      {groups.map((group, index) => (
+        <section key={group.key} aria-label={group.label.replace(" de ", " ")} className={index === 0 ? undefined : "pt-7"}>
           <h3 className="m-0 mb-4 flex items-baseline justify-between">
             <span className="font-display text-lg">{group.label.replace(" de ", " ")}</span>
             <span className="label-mono text-ink-3">{group.badges.length} {group.badges.length === 1 ? "noche" : "noches"}</span>
@@ -111,6 +92,7 @@ export function BadgeCollection({ username, isOwner }: { username: string; isOwn
               <button
                 key={badge.eventId}
                 type="button"
+                data-badge-id={badge.eventId}
                 onClick={event => openBadge(badge.eventId, event.currentTarget.firstElementChild as HTMLElement)}
                 aria-label={`Ver insignia: ${badgeRingLabel(badge)}${isOwner && badge.review == null ? ", sin reseñar" : ""}${badge.mostDanced ? ", la más bailada" : ""}`}
                 disabled={phase !== "closed"}

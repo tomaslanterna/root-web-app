@@ -9,7 +9,8 @@ import { parseEventRealDate } from "@/hooks/useDanceSync";
 
 interface EventCardProps {
   event: Event;
-  variant?: "swimlane" | "full" | "list";
+  /** "featured": tarjeta de la fila de destacados que se achica según la variable CSS --p (0 a 1). */
+  variant?: "swimlane" | "full" | "list" | "featured";
   className?: string;
 }
 
@@ -84,27 +85,48 @@ export function EventCard({ event, variant = "swimlane", className }: EventCardP
     );
   }
 
+  const isFeatured = variant === "featured";
+
   return (
     <Link
       href={href}
+      aria-label={isFeatured ? event.title : undefined}
       className={cn(
-        "group flex flex-col rounded-card overflow-hidden bg-surface border border-line text-ink transition-[border-color,transform] duration-200 hover:border-line-strong active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-accent",
+        "group flex flex-col overflow-hidden bg-surface border border-line text-ink transition-[border-color,transform] duration-200 hover:border-line-strong active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-accent",
+        isFeatured ? "shrink-0 snap-start" : "rounded-card",
         variant === "swimlane" && "w-[200px] shrink-0 snap-start",
         className,
       )}
+      style={isFeatured ? {
+        // Ancho de una columna de la grilla → cuadrado de 56px.
+        width: "calc((100% - (var(--cols) - 1) * var(--gap)) / var(--cols) * (1 - var(--p, 0)) + 56px * var(--p, 0))",
+        borderRadius: "calc(16px - 4px * var(--p, 0))",
+      } : undefined}
     >
       <div
         className="aspect-square p-3 flex items-start bg-surface-2 bg-cover bg-center"
         style={{ backgroundImage: `url(${image})` }}
       >
         {event.genre && (
-          <span className="label-mono px-2 py-[5px] rounded-full bg-bg/80 text-ink">
+          <span
+            className="label-mono px-2 py-[5px] rounded-full bg-bg/80 text-ink"
+            style={isFeatured ? { opacity: "calc(1 - var(--p, 0) * 3)" } : undefined}
+          >
             {event.genre}
           </span>
         )}
       </div>
 
-      <div className="flex-1 p-3 flex flex-col gap-[5px]">
+      <div
+        aria-hidden={isFeatured ? true : undefined}
+        className={cn("p-3 flex flex-col gap-[5px]", isFeatured ? "flex-none overflow-hidden" : "flex-1")}
+        style={isFeatured ? {
+          // El texto se cierra y se desvanece: al final solo queda la imagen.
+          height: "calc(137px * (1 - var(--p, 0)))",
+          paddingBlock: "calc(12px * (1 - var(--p, 0)))",
+          opacity: "calc(1 - var(--p, 0) * 2.5)",
+        } : undefined}
+      >
         <span className="label-mono text-accent">{whenLabel}</span>
         <h3 className="m-0 text-[15px] font-semibold leading-tight line-clamp-2">{event.title}</h3>
         {event.location && (

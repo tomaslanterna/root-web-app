@@ -5,8 +5,6 @@ import { useMutation } from "./useMutation";
 import { getBadges, getBadgeLineup, getMyEventBadge } from "@/services/badges";
 import { surveysApi, type SubmitSurveyPayload } from "@/services/surveys";
 import type { BadgePage, BadgeLineup, EventBadge } from "@/types/badges";
-import { eventsApi } from "@/services/events";
-import type { Event } from "@/types/events";
 
 export function useBadgeCollection(username: string) {
   const [page, setPage] = useState<BadgePage | null>(null);
@@ -66,19 +64,6 @@ export function useEventReview(eventId: string) {
   });
   return { load: detail.mutate, badge: save.data || detail.data, isLoading: detail.isLoading, error: detail.error,
     save: save.mutate, isSaving: save.isLoading, saveError: save.error };
-}
-
-export function useSurveyDetail(eventId: string) {
-  return useMutation<{ event: Event; badge: EventBadge | null }, void>(async () => {
-    const event: Event = await eventsApi.getEventById(eventId);
-    let badge: EventBadge | null = null;
-    try {
-      badge = await getMyEventBadge(eventId);
-    } catch {
-      // Badge may be unavailable or unobtained, but survey can still be completed
-    }
-    return { event, badge };
-  });
 }
 
 export function useBadgeLineup(eventId: string | null, isOwner: boolean, username: string) {

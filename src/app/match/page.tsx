@@ -7,6 +7,8 @@ import { CreateCrewModal } from "@/components/match/CreateCrewModal";
 import { ChevronRight, Loader2, MessageSquare, Plus, Search } from "lucide-react";
 import Link from "next/link";
 import { CrewMonogram } from "@/components/match/CrewMonogram";
+import { SearchButton } from "@/components/ui/SearchButton";
+import { DanceStatsWidget } from "@/components/profile/DanceStatsWidget";
 import { Avatar } from "@/components/ui/Avatar";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
@@ -74,6 +76,8 @@ export default function MatchPage() {
       <header className="sticky top-0 z-30 w-full bg-bg/95 backdrop-blur-md border-b border-line">
         <div className="w-full max-w-2xl mx-auto px-4 pt-[calc(0.75rem+var(--root-safe-top))] pb-3 md:pt-6 flex items-center justify-between gap-3">
           <h1 className="font-display text-[32px] m-0">Crews</h1>
+          <div className="flex items-center gap-2">
+          <SearchButton />
           <Link
             href="/chat"
             aria-label="Mensajes de crews"
@@ -81,11 +85,16 @@ export default function MatchPage() {
           >
             <MessageSquare className="size-5" aria-hidden="true" />
           </Link>
+          </div>
         </div>
       </header>
 
       <div className="w-full max-w-2xl mx-auto px-4 pt-4">
-        <div role="tablist" aria-label="Crews" className="flex p-[3px] rounded-xl bg-surface border border-line">
+        <div className="mb-4">
+          <DanceStatsWidget />
+        </div>
+
+        <div role="tablist" aria-label="Crews" className="flex p-[2px] rounded-lg bg-surface border border-line">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -94,7 +103,7 @@ export default function MatchPage() {
               aria-selected={activeTab === tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "flex-1 h-10 rounded-[9px] text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-accent",
+                "flex-1 h-7 rounded-[6px] text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-accent",
                 activeTab === tab.id ? "bg-ink text-bg" : "text-ink-2 hover:text-ink",
               )}
             >
@@ -240,15 +249,15 @@ export default function MatchPage() {
         {activeTab === "crews" && (
           <div className="pt-4 flex flex-col gap-3.5 animate-fade-in">
             <label htmlFor="crews-search" className="sr-only">Buscar crew</label>
-            <div className="h-12 px-3.5 flex items-center gap-2.5 rounded-control bg-surface border border-white/10 text-ink-3 focus-within:border-accent">
-              <Search className="size-5 shrink-0" aria-hidden="true" />
+            <div className="h-9 md:h-10 px-3 flex items-center gap-2 rounded-xl bg-surface border border-white/10 text-ink-3 focus-within:border-accent">
+              <Search className="size-4 shrink-0" aria-hidden="true" />
               <input
                 id="crews-search"
                 type="search"
                 value={searchCrewsQuery}
                 onChange={(e) => setSearchCrewsQuery(e.target.value)}
                 placeholder="Buscar crew por nombre o ciudad"
-                className="flex-1 min-w-0 bg-transparent border-0 outline-none text-ink text-[15px] placeholder:text-ink-3"
+                className="flex-1 min-w-0 bg-transparent border-0 outline-none text-ink text-xs md:text-sm placeholder:text-ink-3"
               />
             </div>
             <span className="label-mono text-ink-3">Crews registradas · {allCrews.length}</span>
