@@ -453,6 +453,16 @@ input, textarea, [contenteditable="true"] {
 
 
 
+/* Punto "en vivo": late con un halo que se expande y se desvanece. */
+@keyframes live-dot-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(255, 90, 54, 0.55); }
+  100% { box-shadow: 0 0 0 8px rgba(255, 90, 54, 0); }
+}
+.live-dot { animation: live-dot-pulse 1.6s ease-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .live-dot { animation: none; box-shadow: 0 0 0 3px rgba(255, 90, 54, 0.25); }
+}
+
 @keyframes animateIn {
   from {
     opacity: 0;

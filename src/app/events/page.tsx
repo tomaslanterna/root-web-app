@@ -699,7 +699,7 @@ export default function EventsPage() {
       </header>
 
       <PullToRefresh onRefresh={handleRefresh}>
-        <div className="space-y-7 px-4 md:px-6 pt-5 pb-28 w-full max-w-7xl mx-auto">
+        <div className="space-y-7 px-4 md:px-6 pt-4 pb-28 w-full max-w-7xl mx-auto">
           {/* Slide-over Drawer lateral para Filtros Avanzados (Cero Layout Shift) */}
         {showFilters && (
           <div className="fixed inset-0 z-50 flex justify-end">
