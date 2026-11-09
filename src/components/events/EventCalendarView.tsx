@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -19,6 +18,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { Event } from "@/types/events";
 import { EventCard } from "@/components/ui/EventCard";
+import { BottomSheet } from "@/components/ui/BottomSheet";
 import { parseEventRealDate } from "@/hooks/useDanceSync";
 
 interface EventCalendarViewProps {
@@ -168,195 +168,6 @@ export function EventCalendarView({ events }: EventCalendarViewProps) {
       month: "long",
     }).format(dateObj);
   }, [activeDayKey]);
-
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // BottomSheet en Portal con los mismos estilos y animación que los filtros de /events
-  const modalContent = (
-    <div
-      aria-hidden={!isDaySheetOpen}
-      className={cn(
-        "fixed inset-0 z-[9999] flex flex-col justify-end sm:items-center sm:justify-center p-0 sm:p-4",
-        isDaySheetOpen ? "pointer-events-auto" : "pointer-events-none",
-      )}
-    >
-      {/* Backdrop con blur */}
-      <div
-        className={cn(
-          "fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
-          isDaySheetOpen ? "opacity-100" : "opacity-0",
-        )}
-        onClick={(event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          setSelectedDayKey(null);
-        }}
-      />
-
-      {/* Contenedor de la BottomSheet */}
-      <div
-        onClick={(event) => event.stopPropagation()}
-        className={cn(
-          "relative z-10 w-full sm:max-w-2xl max-h-[85dvh] sm:max-h-[90dvh] rounded-t-3xl sm:rounded-3xl border-t sm:border border-white/10 bg-[#14171F] px-5 pt-3 pb-[calc(1.5rem+var(--root-safe-bottom))] sm:p-6 shadow-[0_-20px_50px_rgba(0,0,0,0.85)] flex flex-col overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
-          isDaySheetOpen ? "translate-y-0 opacity-100" : "translate-y-full opacity-0",
-        )}
-      >
-        {/* Indicador superior de arrastre */}
-        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20 sm:hidden shrink-0" />
-
-        {/* Cabecera de la BottomSheet */}
-        <div className="flex items-center justify-between border-b border-white/10 pb-3 shrink-0">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <CalendarIcon className="h-5 w-5 text-[#D4FF00] shrink-0" />
-            <div className="min-w-0">
-              <h4 className="text-sm sm:text-base font-black uppercase tracking-widest text-white capitalize truncate">
-                {selectedDayFormatted}
-              </h4>
-              <p className="text-[10px] sm:text-xs font-bold text-[#D4FF00] uppercase tracking-wider">
-                {selectedDayEvents.length === 0
-                  ? "Sin eventos programados"
-                  : selectedDayEvents.length === 1
-                    ? "1 evento programado"
-                    : `${selectedDayEvents.length} eventos programados`}
-              </p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setSelectedDayKey(null)}
-            className="rounded-full bg-white/5 p-1.5 text-neutral-400 hover:bg-white/10 hover:text-white transition-colors cursor-pointer shrink-0"
-            aria-label="Cerrar modal"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        {/* Lista de eventos del día (formato item horizontal) o estado vacío */}
-        {selectedDayEvents.length === 0 ? (
-          <div className="py-12 text-center space-y-3">
-            <CalendarIcon className="w-10 h-10 mx-auto text-neutral-600 stroke-[1.5]" />
-            <p className="text-sm font-bold uppercase tracking-wider text-neutral-400">
-              No hay fiestas ni eventos agendados para este día
-            </p>
-            <p className="text-xs text-neutral-600">
-              Revisá los días marcados con fotos o el próximo fin de semana.
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-y-auto space-y-3 pt-4 pb-2 hide-scrollbar">
-            {selectedDayEvents.map((ev) => {
-              const banner = ev.cinematicBannerUrl?.trim() || fallbackBanner;
-              const priceLabel =
-                ev.price == null
-                  ? null
-                  : ev.price === 0
-                    ? "Gratis"
-                    : `$${ev.price.toLocaleString("es-AR")}`;
-
-              const evDate = parseEventRealDate(ev.date);
-              const timeString = !Number.isNaN(evDate.getTime())
-                ? new Intl.DateTimeFormat("es-AR", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    hour12: false,
-                  }).format(evDate)
-                : null;
-
-              return (
-                <Link
-                  key={ev.id}
-                  href={`/events/${ev.id}?origin=/events`}
-                  className="group relative flex items-stretch gap-3 sm:gap-4 p-2.5 sm:p-3 rounded-2xl sm:rounded-3xl bg-[#111114] hover:bg-[#16171D] border-0 transition-all duration-300 shadow-md active:scale-[0.98]"
-                >
-                  {/* IMAGEN A LA IZQUIERDA (Poster / Thumbnail) */}
-                  <div className="relative w-24 sm:w-32 aspect-[3/4] rounded-xl sm:rounded-2xl overflow-hidden shrink-0 bg-neutral-900 shadow-md">
-                    <div
-                      role="img"
-                      aria-label={`Flyer de ${ev.title}`}
-                      className="w-full h-full bg-cover bg-center transition-transform duration-500 ease-out group-hover:scale-110"
-                      style={{ backgroundImage: `url(${banner})` }}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
-
-                    {/* Badge de género / categoría flotante sobre el flyer */}
-                    {ev.genre && (
-                      <div className="absolute bottom-1.5 left-1.5 right-1.5 z-10">
-                        <span className="block truncate text-center px-1.5 py-0.5 rounded-md bg-black/80 backdrop-blur-md text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-[#D4FF00]">
-                          {ev.genre}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* DATA A LA DERECHA */}
-                  <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
-                    {/* Arriba: Horario y Precio */}
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between gap-2">
-                        {timeString ? (
-                          <span className="tech-mono flex items-center gap-1 text-[10px] sm:text-xs font-bold text-neutral-400">
-                            <Clock className="w-3 h-3 text-[#D4FF00] shrink-0" />
-                            <span>{timeString} HS</span>
-                          </span>
-                        ) : (
-                          <span className="tech-label text-neutral-500">
-                            Noche
-                          </span>
-                        )}
-
-                        {priceLabel && (
-                          <span className="num-display px-2 py-0.5 rounded-full bg-[#D4FF00]/15 text-[#D4FF00] text-[10px] sm:text-xs">
-                            {priceLabel}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Título del evento */}
-                      <h5 className="text-sm sm:text-base font-black uppercase tracking-tight text-white line-clamp-2 group-hover:text-[#D4FF00] transition-colors pt-0.5">
-                        {ev.title}
-                      </h5>
-
-                      {/* Ubicación */}
-                      {ev.location && (
-                        <div className="flex items-center gap-1.5 text-neutral-400 text-[11px] sm:text-xs pt-0.5">
-                          <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#D4FF00] shrink-0" />
-                          <span className="truncate font-semibold">{ev.location}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Abajo: Asistentes confirmados y flecha Call-To-Action */}
-                    <div className="flex items-center justify-between pt-2 border-t border-white/5 mt-1">
-                      {ev.goingCount > 0 ? (
-                        <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-extrabold uppercase text-neutral-300">
-                          <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#D4FF00] shrink-0" />
-                          <span className="num-display text-xs text-white">{ev.goingCount}</span>
-                          <span className="tech-label text-[9px] text-neutral-400">confirmados</span>
-                        </div>
-                      ) : (
-                        <span className="tech-label text-neutral-500">
-                          Fiesta confirmada
-                        </span>
-                      )}
-
-                      <span className="tech-label flex items-center gap-1 text-[#D4FF00] group-hover:translate-x-1 transition-transform">
-                        <span>Ver</span>
-                        <ArrowRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 stroke-[2.5]" />
-                      </span>
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </div>
-  );
 
   return (
     <div className="space-y-10 animate-in fade-in duration-300">
@@ -574,8 +385,142 @@ export function EventCalendarView({ events }: EventCalendarViewProps) {
         </section>
       ))}
 
-      {/* Montamos el modal mediante createPortal para que escape de cualquier stacking context y PullToRefresh */}
-      {mounted && typeof document !== "undefined" && createPortal(modalContent, document.body)}
+      {/* BottomSheet de eventos del día con resize manual y diseño Nocturno Editorial */}
+      <BottomSheet
+        isOpen={isDaySheetOpen}
+        onClose={() => setSelectedDayKey(null)}
+        icon={<CalendarIcon className="h-5 w-5 text-accent shrink-0" />}
+        title={
+          <span className="capitalize">{selectedDayFormatted}</span>
+        }
+        subtitle={
+          selectedDayEvents.length === 0
+            ? "Sin eventos programados"
+            : selectedDayEvents.length === 1
+              ? "1 evento programado"
+              : `${selectedDayEvents.length} eventos programados`
+        }
+        ariaLabel={`Eventos del día ${selectedDayFormatted}`}
+      >
+        {selectedDayEvents.length === 0 ? (
+          <div className="py-12 text-center space-y-3">
+            <CalendarIcon className="w-10 h-10 mx-auto text-ink-3 stroke-[1.5]" />
+            <p className="text-sm font-bold uppercase tracking-wider text-ink-2">
+              No hay fiestas ni eventos agendados para este día
+            </p>
+            <p className="text-xs text-ink-3">
+              Revisá los días marcados con fotos o el próximo fin de semana.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3 pt-1 pb-2">
+            {selectedDayEvents.map((ev) => {
+              const banner = ev.cinematicBannerUrl?.trim() || fallbackBanner;
+              const priceLabel =
+                ev.price == null
+                  ? null
+                  : ev.price === 0
+                    ? "Gratis"
+                    : `$${ev.price.toLocaleString("es-AR")}`;
+
+              const evDate = parseEventRealDate(ev.date);
+              const timeString = !Number.isNaN(evDate.getTime())
+                ? new Intl.DateTimeFormat("es-AR", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: false,
+                  }).format(evDate)
+                : null;
+
+              return (
+                <Link
+                  key={ev.id}
+                  href={`/events/${ev.id}?origin=/events`}
+                  className="group relative flex items-stretch gap-3 sm:gap-4 p-2.5 sm:p-3 rounded-card bg-surface-2 border border-line hover:border-line-strong hover:bg-surface-2/80 transition-all duration-200 shadow-sm active:scale-[0.99]"
+                >
+                  {/* IMAGEN A LA IZQUIERDA (Poster / Thumbnail) */}
+                  <div className="relative w-24 sm:w-32 aspect-[3/4] rounded-thumb overflow-hidden shrink-0 bg-surface shadow-sm">
+                    <div
+                      role="img"
+                      aria-label={`Flyer de ${ev.title}`}
+                      className="w-full h-full bg-cover bg-center transition-transform duration-500 ease-out group-hover:scale-105"
+                      style={{ backgroundImage: `url(${banner})` }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
+
+                    {/* Badge de género / categoría flotante sobre el flyer */}
+                    {ev.genre && (
+                      <div className="absolute bottom-1.5 left-1.5 right-1.5 z-10">
+                        <span className="block truncate text-center px-1.5 py-0.5 rounded-md bg-black/80 backdrop-blur-md text-[8px] sm:text-[9px] font-bold uppercase tracking-wider text-accent">
+                          {ev.genre}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* DATA A LA DERECHA */}
+                  <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+                    {/* Arriba: Horario y Precio */}
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between gap-2">
+                        {timeString ? (
+                          <span className="tech-mono flex items-center gap-1 text-[10px] sm:text-xs font-semibold text-ink-2">
+                            <Clock className="w-3 h-3 text-accent shrink-0" />
+                            <span>{timeString} HS</span>
+                          </span>
+                        ) : (
+                          <span className="tech-label text-ink-3">
+                            Noche
+                          </span>
+                        )}
+
+                        {priceLabel && (
+                          <span className="num-display px-2 py-0.5 rounded-full bg-accent/15 text-accent text-[10px] sm:text-xs font-bold">
+                            {priceLabel}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Título del evento */}
+                      <h5 className="text-sm sm:text-base font-semibold uppercase tracking-tight text-ink line-clamp-2 group-hover:text-accent transition-colors pt-0.5">
+                        {ev.title}
+                      </h5>
+
+                      {/* Ubicación */}
+                      {ev.location && (
+                        <div className="flex items-center gap-1.5 text-ink-2 text-[11px] sm:text-xs pt-0.5">
+                          <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-accent shrink-0" />
+                          <span className="truncate font-medium">{ev.location}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Abajo: Asistentes confirmados y flecha Call-To-Action */}
+                    <div className="flex items-center justify-between pt-2 border-t border-line mt-1">
+                      {ev.goingCount > 0 ? (
+                        <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold uppercase text-ink-2">
+                          <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-accent shrink-0" />
+                          <span className="num-display text-xs text-ink font-bold">{ev.goingCount}</span>
+                          <span className="tech-label text-[9px] text-ink-3">confirmados</span>
+                        </div>
+                      ) : (
+                        <span className="tech-label text-ink-3">
+                          Fiesta confirmada
+                        </span>
+                      )}
+
+                      <span className="tech-label flex items-center gap-1 text-accent group-hover:translate-x-1 transition-transform font-bold">
+                        <span>Ver</span>
+                        <ArrowRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 stroke-[2.5]" />
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </BottomSheet>
     </div>
   );
 }

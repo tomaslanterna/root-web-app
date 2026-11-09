@@ -30,6 +30,7 @@ import { Button } from "@/components/ui/Button";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { RootLogo } from "@/components/ui/RootLogo";
 import { SearchButton } from "@/components/ui/SearchButton";
+import { BottomSheet } from "@/components/ui/BottomSheet";
 import { useFeaturedEvents } from "@/hooks/useFeaturedEvents";
 import { PullToRefresh } from "@/components/ui/PullToRefresh";
 import { QuickActionMenu } from "@/components/ui/QuickActionMenu";
@@ -712,7 +713,7 @@ export default function EventsPage() {
       </header>
 
       <PullToRefresh onRefresh={handleRefresh}>
-        <div className="space-y-7 px-4 md:px-6 pt-5 pb-28 w-full max-w-7xl mx-auto">
+        <div className="space-y-7 px-4 md:px-6 pt-0 pb-28 w-full max-w-7xl mx-auto">
           {/* Slide-over Drawer lateral para Filtros Avanzados (Cero Layout Shift) */}
         {showFilters && (
           <div className="fixed inset-0 z-50 flex justify-end">
@@ -919,16 +920,16 @@ export default function EventsPage() {
         <LiveEventBanner />
 
         {/* Punto donde el bloque se fija bajo el header (sin margen propio) */}
-        <div ref={collapseAnchorRef} aria-hidden="true" className="!mb-0" />
+        <div ref={collapseAnchorRef} aria-hidden="true" className="!my-0 !p-0 h-0" />
 
         {/* Bloque fijo: "Eventos destacados" (se achican con el scroll) + "Próximos eventos" y sus filtros */}
         <div
           ref={stickyBarRef}
           style={{ top: headerHeight }}
-          className="sticky z-30 -mx-4 px-4 md:-mx-6 md:px-6 bg-bg/95 backdrop-blur-md !mb-0"
+          className="sticky z-30 -mx-4 px-4 md:-mx-6 md:px-6 bg-bg/95 backdrop-blur-md !mt-0 !mb-0"
         >
           {featuredEvents.length > 0 && (
-            <section aria-labelledby="events-featured" className="py-4">
+            <section aria-labelledby="events-featured" className="pt-4 md:pt-6 pb-4">
               <h2 id="events-featured" className="font-display text-[22px] md:text-[28px] m-0 mb-3">
                 Eventos destacados
               </h2>
@@ -952,7 +953,7 @@ export default function EventsPage() {
         </div>
 
         {/* Recupera la altura que pierden los destacados al achicarse */}
-        <div ref={collapseSpacerRef} aria-hidden="true" className="!mb-0" />
+        <div ref={collapseSpacerRef} aria-hidden="true" className="!my-0 !p-0" />
 
         {/* Filtros del listado: ¿Cuándo?, Ubicación y vista */}
         <div ref={filtersContainerRef} className="relative pt-2.5">
@@ -1489,267 +1490,225 @@ export default function EventsPage() {
         </div>
       </PullToRefresh>
 
-      {/* BottomSheet de Filtros (Solo Mobile - Ancho completo con transición de abajo hacia arriba y de arriba hacia abajo) */}
-      <div
-        role="dialog"
-        aria-modal={isWhenOpen || isGenreOpen}
-        aria-hidden={!(isWhenOpen || isGenreOpen)}
-        aria-label={activeSheetType === "when" ? "Filtrar por fecha" : "Filtrar por ubicación"}
-        className={cn(
-          "md:hidden fixed inset-0 z-[70] flex flex-col justify-end transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
-          isWhenOpen || isGenreOpen ? "pointer-events-auto" : "pointer-events-none",
-        )}
+      {/* BottomSheet de Filtros con resize manual y diseño Nocturno Editorial */}
+      <BottomSheet
+        isOpen={isWhenOpen || isGenreOpen}
+        onClose={() => {
+          setIsWhenOpen(false);
+          setIsGenreOpen(false);
+          setIsDatesOpen(false);
+        }}
+        icon={
+          activeSheetType === "when" ? (
+            <Calendar className="h-4 w-4 text-accent" />
+          ) : (
+            <MapPin className="h-4 w-4 text-accent" />
+          )
+        }
+        title={activeSheetType === "when" ? "¿Cuándo?" : "Ubicación"}
+        subtitle={
+          activeSheetType === "when"
+            ? "Filtro temporal"
+            : "Filtrar por ciudad o zona"
+        }
+        ariaLabel={activeSheetType === "when" ? "Filtrar por fecha" : "Filtrar por ubicación"}
+        initialHeight={520}
       >
-        <div
-          className={cn(
-            "fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
-            isWhenOpen || isGenreOpen ? "opacity-100" : "opacity-0",
-          )}
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            setIsWhenOpen(false);
-            setIsGenreOpen(false);
-            setIsDatesOpen(false);
-          }}
-        />
+        {activeSheetType === "when" ? (
+          <div className="space-y-2 pt-1">
+            {[
+              { id: "weekend", label: "Este finde", desc: "Vie a Dom" },
+              { id: "week", label: "Próximos 7 días", desc: "Semana entrante" },
+              { id: "month", label: "Este mes", desc: "Mes en curso" },
+            ].map((opt) => {
+              const isSelected = temporalPreset === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => {
+                    setIsDatesOpen(false);
+                    handleSelectTemporal(opt.id as TemporalPreset);
+                  }}
+                  className={cn(
+                    "flex w-full items-center justify-between rounded-control px-4 py-3 text-sm font-semibold transition-colors cursor-pointer border",
+                    isSelected
+                      ? "bg-accent/15 text-accent border-accent/40 font-bold"
+                      : "bg-surface-2 border-line text-ink hover:bg-surface-2/80",
+                  )}
+                >
+                  <div className="flex flex-col text-left">
+                    <span>{opt.label}</span>
+                    <span className="text-[11px] font-normal text-ink-3">{opt.desc}</span>
+                  </div>
+                  {isSelected && <Check className="h-4 w-4 text-accent" />}
+                </button>
+              );
+            })}
 
-        <div
-          ref={bottomSheetRef}
-          className={cn(
-            "relative z-10 w-full rounded-t-3xl border-t border-white/10 bg-[#14171F] px-5 pt-3 pb-[calc(1.5rem+var(--root-safe-bottom))] shadow-[0_-20px_50px_rgba(0,0,0,0.85)] transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
-            isWhenOpen || isGenreOpen
-              ? "translate-y-0 opacity-100"
-              : "translate-y-full opacity-0",
-          )}
-        >
-          {/* Indicador superior de arrastre */}
-          <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" />
-
-          <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-3">
-            <span className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[#D4FF00]">
-              {activeSheetType === "when" ? (
-                <>
-                  <Calendar className="h-4 w-4" />
-                  ¿Cuándo?
-                </>
-              ) : (
-                <>
-                  <MapPin className="h-4 w-4" />
-                  Ubicación
-                </>
-              )}
-            </span>
+            {/* Opción para seleccionar fechas específicas */}
             <button
               type="button"
-              onClick={() => {
-                setIsWhenOpen(false);
-                setIsGenreOpen(false);
-                setIsDatesOpen(false);
-              }}
-              className="rounded-full bg-white/5 p-1.5 text-neutral-400 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
-              aria-label="Cerrar"
+              onClick={() => setIsDatesOpen((prev) => !prev)}
+              className={cn(
+                "flex w-full items-center justify-between rounded-control px-4 py-3 text-sm font-semibold transition-colors cursor-pointer border",
+                isCustomDateActive || isDatesOpen
+                  ? "bg-accent/15 text-accent border-accent/40 font-bold"
+                  : "bg-surface-2 border-line text-ink hover:bg-surface-2/80",
+              )}
             >
-              <X className="h-4 w-4" />
+              <div className="flex flex-col text-left">
+                <span>Seleccionar fechas</span>
+                <span className="text-[11px] font-normal text-ink-3">Elegir rango en el calendario</span>
+              </div>
+              <ChevronDown
+                className={cn(
+                  "h-4 w-4 text-ink-2 transition-transform duration-200",
+                  isDatesOpen && "rotate-180",
+                )}
+              />
             </button>
-          </div>
 
-          {activeSheetType === "when" ? (
+            {isDatesOpen && (
+              <div className="mt-2 rounded-control border border-line bg-bg p-3.5 space-y-3 animate-fade-in">
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="min-w-0 flex flex-col gap-1 text-[10px] font-bold uppercase tracking-wider text-ink-3">
+                    <span>Desde</span>
+                    <input
+                      type="date"
+                      value={draftFilters.startDate}
+                      onChange={(event) =>
+                        setDraftFilters((current) => ({ ...current, startDate: event.target.value }))
+                      }
+                      className="block w-full min-w-0 box-border appearance-none rounded-xl border border-line bg-surface-2 px-2.5 py-2 text-xs text-ink focus:border-accent focus:outline-none transition-colors"
+                    />
+                  </label>
+                  <label className="min-w-0 flex flex-col gap-1 text-[10px] font-bold uppercase tracking-wider text-ink-3">
+                    <span>Hasta</span>
+                    <input
+                      type="date"
+                      value={draftFilters.endDate}
+                      onChange={(event) =>
+                        setDraftFilters((current) => ({ ...current, endDate: event.target.value }))
+                      }
+                      className="block w-full min-w-0 box-border appearance-none rounded-xl border border-line bg-surface-2 px-2.5 py-2 text-xs text-ink focus:border-accent focus:outline-none transition-colors"
+                    />
+                  </label>
+                </div>
+                <button
+                  type="button"
+                  onClick={applyCustomDates}
+                  className="w-full rounded-control bg-accent py-2.5 text-xs font-bold uppercase tracking-wider text-on-accent hover:bg-accent-hover transition-colors cursor-pointer"
+                >
+                  Aplicar fechas
+                </button>
+              </div>
+            )}
+
+            {isDateActive && (
+              <button
+                type="button"
+                onClick={clearDateFilter}
+                className="mt-2 flex w-full items-center justify-center gap-2 rounded-control border border-line bg-surface-2 py-2.5 text-xs font-semibold text-ink-2 hover:bg-white/10 hover:text-ink transition-colors cursor-pointer"
+              >
+                <span>Limpiar filtro de fecha</span>
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-3 pt-1">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                applyLocationFilter(cityQuery);
+              }}
+              className="flex items-center gap-2.5 rounded-control bg-bg px-3.5 py-2.5 border border-line focus-within:border-accent transition-colors"
+            >
+              <Search className="h-4 w-4 text-accent shrink-0" />
+              <input
+                type="text"
+                value={cityQuery}
+                onChange={(e) => setCityQuery(e.target.value)}
+                placeholder="Buscar ciudad (ej. Montevideo, Punta del Este)..."
+                className="w-full bg-transparent text-sm font-medium text-ink placeholder-ink-3 focus:outline-none"
+              />
+              {cityQuery && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setCityQuery("");
+                    if (isLocationActive) {
+                      const next = { ...appliedFilters, location: "" };
+                      setDraftFilters(next);
+                      setAppliedFilters(next);
+                      void fetchEvents({
+                        filters: next,
+                        offset: 0,
+                        append: false,
+                        query: debouncedQuery,
+                      }).catch(() => undefined);
+                    }
+                  }}
+                  className="p-1 text-ink-3 hover:text-ink cursor-pointer touch-manipulation"
+                  aria-label="Limpiar ubicación"
+                >
+                  <X className="h-4 w-4 pointer-events-none" />
+                </button>
+              )}
+            </form>
+
             <div className="space-y-1.5">
-              {[
-                { id: "weekend", label: "Este finde", desc: "Vie a Dom" },
-                { id: "week", label: "Próximos 7 días", desc: "Semana entrante" },
-                { id: "month", label: "Este mes", desc: "Mes en curso" },
-              ].map((opt) => {
-                const isSelected = temporalPreset === opt.id;
+              {filteredCitySuggestions.map((city) => {
+                const isSelected =
+                  appliedFilters.location.toLowerCase() === city.toLowerCase();
                 return (
                   <button
-                    key={opt.id}
+                    key={city}
                     type="button"
-                    onClick={() => {
-                      setIsDatesOpen(false);
-                      handleSelectTemporal(opt.id as TemporalPreset);
-                    }}
+                    onClick={() => applyLocationFilter(city)}
                     className={cn(
-                      "flex w-full items-center justify-between rounded-2xl px-3.5 py-3 text-sm font-bold transition-all cursor-pointer",
+                      "flex w-full items-center justify-between rounded-control px-4 py-3 text-sm font-semibold transition-colors cursor-pointer border",
                       isSelected
-                        ? "bg-[#D4FF00]/15 text-[#D4FF00]"
-                        : "bg-white/[0.03] text-neutral-200 hover:bg-white/5 hover:text-white",
+                        ? "bg-accent/15 text-accent border-accent/40 font-bold"
+                        : "bg-surface-2 border-line text-ink hover:bg-surface-2/80",
                     )}
                   >
-                    <div className="flex flex-col text-left">
-                      <span>{opt.label}</span>
-                      <span className="text-[11px] font-normal text-neutral-400">{opt.desc}</span>
-                    </div>
-                    {isSelected && <Check className="h-4 w-4 text-[#D4FF00]" />}
+                    <span className="flex items-center gap-2.5">
+                      <MapPin className={cn("h-4 w-4", isSelected ? "text-accent" : "text-ink-3")} />
+                      {city}
+                    </span>
+                    {isSelected && <Check className="h-4 w-4 text-accent" />}
                   </button>
                 );
               })}
+            </div>
 
-              {/* Opción para seleccionar fechas específicas */}
+            {cityQuery.trim() && (
               <button
                 type="button"
-                onClick={() => setIsDatesOpen((prev) => !prev)}
-                className={cn(
-                  "flex w-full items-center justify-between rounded-2xl px-3.5 py-3 text-sm font-bold transition-all cursor-pointer",
-                  isCustomDateActive || isDatesOpen
-                    ? "bg-[#D4FF00]/15 text-[#D4FF00]"
-                    : "bg-white/[0.03] text-neutral-200 hover:bg-white/5 hover:text-white",
-                )}
+                onClick={() => applyLocationFilter(cityQuery)}
+                className="w-full rounded-control bg-accent py-3 text-xs font-bold uppercase tracking-wider text-on-accent hover:bg-accent-hover transition-colors cursor-pointer"
               >
-                <div className="flex flex-col text-left">
-                  <span>Seleccionar fechas</span>
-                  <span className="text-[11px] font-normal text-neutral-400">Elegir rango en el calendario</span>
-                </div>
-                <ChevronDown
-                  className={cn(
-                    "h-4 w-4 transition-transform duration-200",
-                    isDatesOpen && "rotate-180",
-                  )}
-                />
+                Buscar en "{cityQuery.trim()}"
               </button>
+            )}
 
-              {isDatesOpen && (
-                <div className="mt-2 rounded-2xl border border-white/10 bg-[#0B0D10]/60 p-3 space-y-3 animate-fade-in">
-                  <div className="grid grid-cols-2 gap-2">
-                    <label className="min-w-0 flex flex-col gap-1 text-[10px] font-extrabold uppercase tracking-wider text-neutral-400">
-                      <span>Desde</span>
-                      <input
-                        type="date"
-                        value={draftFilters.startDate}
-                        onChange={(event) =>
-                          setDraftFilters((current) => ({ ...current, startDate: event.target.value }))
-                        }
-                        className="block w-full max-w-[136px] sm:max-w-full min-w-0 box-border appearance-none rounded-xl border border-white/10 bg-[#14171F] px-2.5 py-2 text-[11px] text-white focus:border-[#D4FF00] focus:outline-none transition-colors"
-                      />
-                    </label>
-                    <label className="min-w-0 flex flex-col gap-1 text-[10px] font-extrabold uppercase tracking-wider text-neutral-400">
-                      <span>Hasta</span>
-                      <input
-                        type="date"
-                        value={draftFilters.endDate}
-                        onChange={(event) =>
-                          setDraftFilters((current) => ({ ...current, endDate: event.target.value }))
-                        }
-                        className="block w-full max-w-[136px] sm:max-w-full min-w-0 box-border appearance-none rounded-xl border border-white/10 bg-[#14171F] px-2.5 py-2 text-[11px] text-white focus:border-[#D4FF00] focus:outline-none transition-colors"
-                      />
-                    </label>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={applyCustomDates}
-                    className="w-full rounded-xl bg-[#D4FF00] py-2.5 text-xs font-black uppercase tracking-wider text-neutral-950 hover:bg-[#bce400] transition-colors cursor-pointer"
-                  >
-                    Aplicar fechas
-                  </button>
-                </div>
-              )}
-
-              {isDateActive && (
-                <button
-                  type="button"
-                  onClick={clearDateFilter}
-                  className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 py-2.5 text-xs font-bold text-neutral-300 hover:bg-white/10 hover:text-white transition-all cursor-pointer"
-                >
-                  <span>Limpiar filtro de fecha</span>
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  applyLocationFilter(cityQuery);
-                }}
-                className="flex items-center gap-2.5 rounded-2xl bg-[#0B0D10] px-4 py-3 border border-white/10 focus-within:border-[#D4FF00] transition-colors"
+            {isLocationActive && (
+              <button
+                type="button"
+                onClick={clearLocationFilter}
+                className="flex w-full items-center justify-center gap-2 rounded-control border border-line bg-surface-2 py-2.5 text-xs font-semibold text-ink-2 hover:bg-white/10 hover:text-ink transition-colors cursor-pointer"
               >
-                <Search className="h-4 w-4 text-[#D4FF00] shrink-0" />
-                <input
-                  type="text"
-                  value={cityQuery}
-                  onChange={(e) => setCityQuery(e.target.value)}
-                  placeholder="Buscar ciudad (ej. Montevideo, Punta del Este)..."
-                  className="w-full bg-transparent text-sm font-medium text-white placeholder-neutral-500 focus:outline-none"
-                />
-                {cityQuery && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setCityQuery("");
-                      if (isLocationActive) {
-                        const next = { ...appliedFilters, location: "" };
-                        setDraftFilters(next);
-                        setAppliedFilters(next);
-                        void fetchEvents({
-                          filters: next,
-                          offset: 0,
-                          append: false,
-                          query: debouncedQuery,
-                        }).catch(() => undefined);
-                      }
-                    }}
-                    className="p-1 text-neutral-400 hover:text-white cursor-pointer touch-manipulation"
-                    aria-label="Limpiar ubicación"
-                  >
-                    <X className="h-4 w-4 pointer-events-none" />
-                  </button>
-                )}
-              </form>
-
-              <div className="max-h-56 overflow-y-auto space-y-1.5 hide-scrollbar">
-                {filteredCitySuggestions.map((city) => {
-                  const isSelected =
-                    appliedFilters.location.toLowerCase() === city.toLowerCase();
-                  return (
-                    <button
-                      key={city}
-                      type="button"
-                      onClick={() => applyLocationFilter(city)}
-                      className={cn(
-                        "flex w-full items-center justify-between rounded-2xl px-3.5 py-3 text-sm font-bold transition-all cursor-pointer",
-                        isSelected
-                          ? "bg-[#D4FF00]/15 text-[#D4FF00]"
-                          : "bg-white/[0.03] text-neutral-200 hover:bg-white/5 hover:text-white",
-                      )}
-                    >
-                      <span className="flex items-center gap-2.5">
-                        <MapPin className={cn("h-4 w-4", isSelected ? "text-[#D4FF00]" : "text-neutral-400")} />
-                        {city}
-                      </span>
-                      {isSelected && <Check className="h-4 w-4 text-[#D4FF00]" />}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {cityQuery.trim() && (
-                <button
-                  type="button"
-                  onClick={() => applyLocationFilter(cityQuery)}
-                  className="w-full rounded-2xl bg-[#D4FF00] py-3 text-xs font-black uppercase tracking-wider text-neutral-950 hover:bg-[#bce400] transition-colors cursor-pointer"
-                >
-                  Buscar en "{cityQuery.trim()}"
-                </button>
-              )}
-
-              {isLocationActive && (
-                <button
-                  type="button"
-                  onClick={clearLocationFilter}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 py-2.5 text-xs font-bold text-neutral-300 hover:bg-white/10 hover:text-white transition-all cursor-pointer"
-                >
-                  <span>Limpiar filtro de ubicación</span>
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
+                <span>Limpiar filtro de ubicación</span>
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+        )}
+      </BottomSheet>
 
       <QuickActionMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
     </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -43,10 +43,30 @@ export default function UserProfilePage() {
   const [activeTab, setActiveTab] = useState<string>(badgeToOpen ? "Insignias" : "Posts");
   const [shareCopied, setShareCopied] = useState(false);
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [userPosts, setUserPosts] = useState<Post[]>([]);
 
   const isMyProfile = Boolean(currentUser?.id && profileUser?.id === currentUser.id);
+
+  const handleStartUpload = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith("image/")) {
+        return;
+      }
+      setSelectedFile(file);
+      setIsCreatePostOpen(true);
+    }
+  };
 
   const handlePostCreated = (newPost: Post) => {
     setUserPosts((prev) => {
@@ -250,7 +270,7 @@ export default function UserProfilePage() {
         {isMyProfile && (
           <button
             type="button"
-            onClick={() => setIsCreatePostOpen(true)}
+            onClick={handleStartUpload}
             aria-label="Subir foto"
             className="size-11 shrink-0 rounded-control bg-accent text-on-accent flex items-center justify-center hover:bg-accent-hover transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
@@ -396,17 +416,31 @@ export default function UserProfilePage() {
           <ProfilePostsGrid
             posts={userPosts}
             isMyProfile={isMyProfile}
-            onCreatePost={() => setIsCreatePostOpen(true)}
+            onCreatePost={handleStartUpload}
           />
         )}
       </div>
 
       {isMyProfile && (
-        <CreatePhotoModal
-          isOpen={isCreatePostOpen}
-          onClose={() => setIsCreatePostOpen(false)}
-          onPostCreated={handlePostCreated}
-        />
+        <>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+          <CreatePhotoModal
+            isOpen={isCreatePostOpen}
+            initialFile={selectedFile}
+            onClose={() => {
+              setIsCreatePostOpen(false);
+              setSelectedFile(null);
+            }}
+            onPostCreated={handlePostCreated}
+            onPickAnother={handleStartUpload}
+          />
+        </>
       )}
     </div>
   );
