@@ -17,6 +17,7 @@ import { EventLiveRankingCard } from "@/components/events/EventLiveRankingModal"
 import { CommentSection } from "@/components/ui/CommentSection";
 import { EventAttendanceVote } from "@/components/ui/EventAttendanceVote";
 import { Button } from "@/components/ui/Button";
+import { Avatar } from "@/components/ui/Avatar";
 import { useMutation } from "@/hooks/useMutation";
 import { eventsApi } from "@/services/events";
 import type { Event, RSVPResponse } from "@/types/events";
@@ -387,33 +388,52 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           </div>
 
           {activeTab === "info" && (
-            <div role="tabpanel" id="event-panel-info" aria-labelledby="event-tab-info" className="pt-[18px] flex flex-col gap-[18px]">
+            <div role="tabpanel" id="event-panel-info" aria-labelledby="event-tab-info" className="pt-[18px] flex flex-col gap-6">
               {hasLineup && (
-                <div className="flex flex-col">
-                  {event.artists && event.artists.length > 0
-                    ? event.artists.map((ea) => (
-                        <div key={ea.artistId} className="flex items-center gap-3.5 py-3 border-b border-line">
-                          <span className="num-mono w-[52px] shrink-0 text-sm font-semibold text-accent">
-                            {ea.performanceTime || "—"}
-                          </span>
-                          <span className="flex-1 min-w-0 text-base font-semibold truncate">
-                            {ea.artist?.name}
-                          </span>
-                          <span className="label-mono text-ink-3 shrink-0">
-                            {ea.isHeadliner ? "Headliner" : ea.artist?.artistType || "DJ set"}
-                          </span>
-                        </div>
-                      ))
-                    : event.lineup.map((artist) => (
-                        <div key={artist} className="flex items-center gap-3.5 py-3 border-b border-line">
-                          <span className="num-mono w-[52px] shrink-0 text-sm font-semibold text-ink-3">—</span>
-                          <span className="flex-1 min-w-0 text-base font-semibold truncate">{artist}</span>
-                        </div>
-                      ))}
+                <div className="flex flex-col gap-3">
+                  <h3 className="m-0 text-[17px] font-semibold">Lineup</h3>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-x-2.5 sm:gap-x-4 gap-y-6">
+                    {event.artists && event.artists.length > 0
+                      ? event.artists.map((ea) => (
+                          <div key={ea.artistId} className="min-w-0 flex flex-col items-center gap-2 text-center">
+                            <Avatar
+                              src={ea.artist?.avatarUrl}
+                              fallback={ea.artist?.name || "DJ"}
+                              className="size-24 sm:size-28 rounded-full border border-line bg-surface-2 text-ink-2 text-xl sm:text-2xl font-bold shadow-sm"
+                            />
+                            <span className="flex flex-col items-center gap-0.5 text-center w-full px-1">
+                              <span className="text-[13px] font-semibold leading-tight line-clamp-2 text-ink">
+                                {ea.artist?.name}
+                              </span>
+                              <span className="label-mono text-xs text-ink-3">
+                                {ea.isHeadliner ? (
+                                  <span className="text-accent font-semibold">
+                                    {ea.performanceTime ? `★ ${ea.performanceTime}` : "Headliner"}
+                                  </span>
+                                ) : (
+                                  ea.performanceTime || ea.artist?.artistType || "DJ set"
+                                )}
+                              </span>
+                            </span>
+                          </div>
+                        ))
+                      : event.lineup.map((artist) => (
+                          <div key={artist} className="min-w-0 flex flex-col items-center gap-2 text-center">
+                            <Avatar
+                              fallback={artist}
+                              className="size-24 sm:size-28 rounded-full border border-line bg-surface-2 text-ink-2 text-xl sm:text-2xl font-bold shadow-sm"
+                            />
+                            <span className="flex flex-col items-center gap-0.5 text-center w-full px-1">
+                              <span className="text-[13px] font-semibold leading-tight line-clamp-2 text-ink">
+                                {artist}
+                              </span>
+                              <span className="label-mono text-xs text-ink-3">DJ set</span>
+                            </span>
+                          </div>
+                        ))}
+                  </div>
+                  <p className="m-0 text-[13px] text-ink-3">Horarios sujetos a confirmación de la organización.</p>
                 </div>
-              )}
-              {hasLineup && (
-                <p className="m-0 text-[13px] text-ink-3">Horarios sujetos a confirmación de la organización.</p>
               )}
               <div className="flex flex-col gap-2">
                 <h3 className="m-0 text-[17px] font-semibold">Concepto</h3>
