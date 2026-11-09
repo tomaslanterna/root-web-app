@@ -282,10 +282,12 @@ export default function EventsPage() {
   const featuredRowRef = useRef<HTMLDivElement>(null);
   const { featuredEvents, refresh: refreshFeatured } = useFeaturedEvents();
 
-  // Destacados que se achican con el scroll: la barra queda fija debajo del header y su altura
-  // baja exactamente lo que se scrolleó (hasta quedar en cuadrados de 56px). Un espaciador debajo
-  // recupera esa altura, así la lista avanza al mismo ritmo del dedo. El progreso va a la variable
-  // CSS --p para no re-renderizar la página en cada frame.
+  // Destacados que se achican con el scroll en 2 fases:
+  // 1) Primero se reduce el height del footer hasta 0 (dejando solo la imagen cuadrada de ancho columna).
+  // 2) Una vez muerto el footer, ese cuadrado se achica proporcionalmente hasta 56px.
+  // La barra queda fija debajo del header y su altura baja exactamente lo que se scrolleó.
+  // Un espaciador debajo recupera esa altura, así la lista avanza al mismo ritmo del dedo.
+  // Los progresos van a las variables CSS --p, --p-footer y --p-card para no re-renderizar en cada frame.
   useEffect(() => {
     let frame = 0;
     const update = () => {
@@ -296,6 +298,8 @@ export default function EventsPage() {
       const header = headerRef.current;
       if (!bar || !anchor || !spacer || !header) return;
       let range = 0;
+      let textRange = 0;
+      let squareRange = 0;
       const row = featuredRowRef.current;
       if (row) {
         const style = getComputedStyle(row);
@@ -303,11 +307,20 @@ export default function EventsPage() {
         const cols = window.matchMedia("(min-width: 1280px)").matches ? 4 : window.matchMedia("(min-width: 768px)").matches ? 3 : 2;
         const gap = cols > 2 ? 20 : 12;
         const column = (inner - (cols - 1) * gap) / cols;
-        range = Math.max(0, column + FEATURED_TEXT_HEIGHT - FEATURED_COMPACT_SIZE);
+        textRange = FEATURED_TEXT_HEIGHT;
+        squareRange = Math.max(0, column - FEATURED_COMPACT_SIZE);
+        range = Math.max(0, textRange + squareRange);
       }
       const passed = header.getBoundingClientRect().bottom - anchor.getBoundingClientRect().top;
       const collapse = Math.min(range, Math.max(0, passed));
+      const collapseFooter = Math.min(textRange, collapse);
+      const pFooter = textRange > 0 ? collapseFooter / textRange : 0;
+      const collapseSquare = Math.max(0, collapse - textRange);
+      const pCard = squareRange > 0 ? collapseSquare / squareRange : 0;
+
       bar.style.setProperty("--p", range > 0 ? String(collapse / range) : "0");
+      bar.style.setProperty("--p-footer", String(pFooter));
+      bar.style.setProperty("--p-card", String(pCard));
       spacer.style.height = `${collapse}px`;
     };
     const schedule = () => { if (!frame) frame = requestAnimationFrame(update); };
@@ -922,7 +935,7 @@ export default function EventsPage() {
               <div
                 ref={featuredRowRef}
                 className="-mx-4 px-4 md:-mx-6 md:px-6 flex items-start overflow-x-auto hide-scrollbar snap-x snap-mandatory scroll-px-4 md:scroll-px-6 [--cols:2] md:[--cols:3] xl:[--cols:4] [--gap:12px] md:[--gap:20px]"
-                style={{ gap: "calc(var(--gap) * (1 - var(--p, 0)) + 8px * var(--p, 0))" }}
+                style={{ gap: "calc(var(--gap) * (1 - var(--p-card, 0)) + 8px * var(--p-card, 0))" }}
               >
                 {featuredEvents.map((event) => (
                   <EventCard key={event.id} event={event} variant="featured" />
