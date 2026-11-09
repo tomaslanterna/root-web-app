@@ -34,17 +34,61 @@ export function DanceStatsWidget() {
           if (aggregatedMap.has(session.eventId)) {
             const existing = aggregatedMap.get(session.eventId)!;
             existing.stepsCount += session.stepsCount;
+            if (new Date(session.startTime).getTime() > new Date(existing.startTime).getTime()) {
+              existing.startTime = session.startTime;
+            }
           } else {
             aggregatedMap.set(session.eventId, { ...session });
           }
         });
 
-        // Orden cronológico: la fiesta más reciente queda a la derecha.
-        setSessions(Array.from(aggregatedMap.values()).reverse());
+        // Orden cronológico ascendente: fiesta más antigua a la izquierda, más reciente a la derecha.
+        const sorted = Array.from(aggregatedMap.values()).sort(
+          (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+        );
+        setSessions(sorted);
       })
       .catch((err) => console.error("Error fetching sessions for widget:", err))
       .finally(() => setIsLoading(false));
   }, []);
+
+  // Siempre mantener el scroll hacia la derecha (mostrando lo más reciente) por defecto
+  useEffect(() => {
+    if (isLoading || sessions.length === 0 || !scrollRef.current) return;
+    const el = scrollRef.current;
+    let userHasScrolled = false;
+
+    const onScroll = () => {
+      // Si el usuario hace scroll hacia la izquierda, respetamos su interacción
+      if (el.scrollLeft < el.scrollWidth - el.clientWidth - 10) {
+        userHasScrolled = true;
+      }
+    };
+
+    const scrollToRight = () => {
+      if (!userHasScrolled) {
+        el.scrollLeft = el.scrollWidth - el.clientWidth;
+      }
+    };
+
+    scrollToRight();
+    const frame = requestAnimationFrame(scrollToRight);
+    const timer = setTimeout(scrollToRight, 60);
+
+    const observer = new ResizeObserver(() => {
+      scrollToRight();
+    });
+    observer.observe(el);
+
+    el.addEventListener("scroll", onScroll, { passive: true });
+
+    return () => {
+      cancelAnimationFrame(frame);
+      clearTimeout(timer);
+      observer.disconnect();
+      el.removeEventListener("scroll", onScroll);
+    };
+  }, [isLoading, sessions]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!scrollRef.current) return;

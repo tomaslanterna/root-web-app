@@ -1,23 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Activity, ChevronDown, ChevronLeft, ChevronRight, Flame, Loader2, MapPin, Plus, Users } from "lucide-react";
+import { Activity, ChevronDown, ChevronLeft, ChevronRight, Loader2, MapPin, Plus, Users } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useDanceContext } from "@/context/DanceContext";
 import { useDanceStats } from "@/hooks/useDanceStats";
 import { EventLiveRankingCard } from "@/components/events/EventLiveRankingModal";
-import { BadgeCrown } from "@/components/profile/BadgeMedal";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import type { DanceSession } from "@/services/dance";
 
 const timeZone = "America/Montevideo";
 const DAY = 86_400_000;
-// Estimación de kcal: MET 6,5 (baile electrónico intenso) × 70 kg.
-const MET = 6.5;
-const WEIGHT_KG = 70;
 const STEP_METERS = 0.75;
 const STEPS_PER_MINUTE = 120;
 
@@ -33,7 +29,10 @@ interface Point { label: string; steps: number }
 
 function buildChart(period: Period, parties: DanceSession[], now: number): { points: Point[]; caption: string } {
   if (period === "fiestas") {
-    const allParties = [...parties].reverse();
+    // Orden cronológico: fiesta más antigua a la izquierda, más reciente a la derecha
+    const allParties = [...parties].sort(
+      (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+    );
     return {
       points: allParties.map((party) => ({ label: partyName(party.eventTitle), steps: party.stepsCount })),
       caption: `pasos en tus ${allParties.length} fiestas`,
@@ -90,14 +89,74 @@ export default function DanceRankerPage() {
   const [crewsOpen, setCrewsOpen] = useState(true);
   const [now] = useState(() => Date.now());
 
+  const chartScrollRef = useRef<HTMLDivElement>(null);
+  const isDraggingChart = useRef(false);
+  const startChartX = useRef(0);
+  const scrollChartLeft = useRef(0);
+
   const last = parties[0];
   useEffect(() => {
     if (crewsOpen && last && crews.length) loadCrewRankings(crews, last.eventId);
   }, [crewsOpen, last, crews, loadCrewRankings]);
 
+  // Mantener el scroll del gráfico hacia la derecha mostrando lo más reciente
+  useEffect(() => {
+    if (isLoading || !chartScrollRef.current) return;
+    const el = chartScrollRef.current;
+    let userHasScrolled = false;
+
+    const onScroll = () => {
+      if (el.scrollLeft < el.scrollWidth - el.clientWidth - 10) {
+        userHasScrolled = true;
+      }
+    };
+
+    const scrollToRight = () => {
+      if (!userHasScrolled) {
+        el.scrollLeft = el.scrollWidth - el.clientWidth;
+      }
+    };
+
+    scrollToRight();
+    const frame = requestAnimationFrame(scrollToRight);
+    const timer = setTimeout(scrollToRight, 60);
+
+    const observer = new ResizeObserver(() => {
+      scrollToRight();
+    });
+    observer.observe(el);
+
+    el.addEventListener("scroll", onScroll, { passive: true });
+
+    return () => {
+      cancelAnimationFrame(frame);
+      clearTimeout(timer);
+      observer.disconnect();
+      el.removeEventListener("scroll", onScroll);
+    };
+  }, [isLoading, period, parties.length]);
+
+  const handleChartMouseDown = (e: React.MouseEvent) => {
+    if (!chartScrollRef.current) return;
+    isDraggingChart.current = true;
+    startChartX.current = e.pageX - chartScrollRef.current.offsetLeft;
+    scrollChartLeft.current = chartScrollRef.current.scrollLeft;
+  };
+
+  const handleChartMouseLeaveOrUp = () => {
+    isDraggingChart.current = false;
+  };
+
+  const handleChartMouseMove = (e: React.MouseEvent) => {
+    if (!isDraggingChart.current || !chartScrollRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - chartScrollRef.current.offsetLeft;
+    const walk = (x - startChartX.current) * 1.5;
+    chartScrollRef.current.scrollLeft = scrollChartLeft.current - walk;
+  };
+
   const totalSteps = parties.reduce((acc, party) => acc + party.stepsCount, 0);
   const activeMinutes = Math.round(totalSteps / STEPS_PER_MINUTE);
-  const kcal = Math.round(MET * WEIGHT_KG * (activeMinutes / 60));
   const km = (totalSteps * STEP_METERS) / 1000;
 
   const lastDate = last ? new Date(last.startTime) : null;
@@ -106,11 +165,6 @@ export default function DanceRankerPage() {
     ? `${clean(new Intl.DateTimeFormat("es-AR", { weekday: "short", timeZone }).format(lastDate))} ${new Intl.DateTimeFormat("es-AR", { day: "numeric", timeZone }).format(lastDate)}/${new Intl.DateTimeFormat("es-AR", { month: "numeric", timeZone }).format(lastDate)}`
     : "";
   const wasLastNight = lastDate ? now - lastDate.getTime() < 1.5 * DAY : false;
-  const bestOfMonth = last
-    ? last.stepsCount > 0 && parties
-        .filter((party) => monthKey(new Date(party.startTime)) === monthKey(new Date(last.startTime)))
-        .every((party) => party.stepsCount <= last.stepsCount)
-    : false;
 
   const { points, caption } = buildChart(period, parties, now);
   const chartTotal = points.reduce((acc, point) => acc + point.steps, 0);
@@ -150,27 +204,21 @@ export default function DanceRankerPage() {
         ) : (
           <>
             {isAtLiveEvent && liveEvent && (
-              <div className="px-4 pt-5 not-italic font-normal tracking-normal">
+              <div className="px-4 mb-4 not-italic font-normal tracking-normal">
                 <EventLiveRankingCard eventId={liveEvent.id} eventTitle={liveEvent.title} eventLocation={liveEvent.location} />
               </div>
             )}
 
             {last ? (
-              <section aria-labelledby="dance-hero" className="px-5 pt-7 flex flex-col">
+              <section aria-labelledby="dance-hero" className="px-4 flex flex-col">
                 <h2 id="dance-hero" className="m-0 flex flex-col font-[inherit]">
-                  <span className="text-[15px] text-ink-2">{wasLastNight ? "anoche tiraste" : "en tu última fiesta tiraste"}</span>
+                  <span className="text-[15px] text-ink-2">{wasLastNight ? "Anoche tiraste" : "En tu última fiesta tiraste"}</span>
                   <span className="text-[clamp(72px,28vw,112px)] leading-[0.95] tracking-[-0.07em] text-accent">{fmt(last.stepsCount)}</span>
                   <span className="mt-1.5 text-[22px] leading-tight">pasos en {last.eventTitle}.</span>
                 </h2>
-                {bestOfMonth && (
-                  <span className="mt-4 self-start min-h-10 px-3.5 rounded-xl bg-accent/10 border border-accent/35 text-accent text-sm flex items-center gap-2">
-                    <BadgeCrown className="w-4" />
-                    Tu noche más bailada del mes
-                  </span>
-                )}
               </section>
             ) : (
-              <p className={cn(card, "mx-4 mt-7 p-6 text-center text-base")}>
+              <p className={cn(card, "mx-4 p-6 text-center text-base")}>
                 Todavía no registraste pasos. Activá el contador en tu próxima fiesta.
               </p>
             )}
@@ -184,19 +232,14 @@ export default function DanceRankerPage() {
                 </span>
               </div>
               <div className="bg-surface px-4 py-3.5 flex items-center gap-2.5">
-                <Flame className="size-[18px] text-accent shrink-0" aria-hidden="true" />
-                <span className="flex flex-col"><span className="text-lg">{fmt(kcal)}</span><span className="text-[13px] text-ink-2">kcal</span></span>
-              </div>
-              <div className="bg-surface px-4 py-3.5 flex items-center gap-2.5">
                 <MapPin className="size-[18px] text-accent shrink-0" aria-hidden="true" />
                 <span className="flex flex-col"><span className="text-lg">{km.toLocaleString("es-UY", { maximumFractionDigits: 1 })}</span><span className="text-[13px] text-ink-2">km</span></span>
               </div>
-              <div className="col-span-2 bg-surface px-4 py-3.5 flex items-center gap-2.5">
+              <div className="bg-surface px-4 py-3.5 flex items-center gap-2.5">
                 <Activity className="size-[18px] text-accent shrink-0" aria-hidden="true" />
-                <span className="flex items-baseline gap-1.5"><span className="text-lg">{fmt(activeMinutes)}</span><span className="text-[13px] text-ink-2">min activos</span></span>
+                <span className="flex flex-col"><span className="text-lg">{fmt(activeMinutes)}</span><span className="text-[13px] text-ink-2">min activos</span></span>
               </div>
             </section>
-            <p className="mx-4 mt-2.5 mb-0 text-xs leading-normal text-ink-3">Las kcal se estiman con MET 6,5 (baile electrónico intenso) × 70 kg.</p>
 
             <section aria-labelledby="dance-activity" className={cn(card, "mx-4 mt-6 p-4 flex flex-col gap-[18px]")}>
               <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-3">
@@ -225,7 +268,14 @@ export default function DanceRankerPage() {
               </div>
               {chartTotal > 0 ? (
                 <>
-                  <div className="overflow-x-auto hide-scrollbar scrollbar-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pb-1 -mx-2 px-2">
+                  <div
+                    ref={chartScrollRef}
+                    onMouseDown={handleChartMouseDown}
+                    onMouseLeave={handleChartMouseLeaveOrUp}
+                    onMouseUp={handleChartMouseLeaveOrUp}
+                    onMouseMove={handleChartMouseMove}
+                    className="overflow-x-auto hide-scrollbar scrollbar-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pb-1 -mx-2 px-2 overscroll-x-contain touch-pan-x cursor-grab active:cursor-grabbing select-none"
+                  >
                     <div className={cn("flex flex-col gap-2.5", points.length > 6 ? "min-w-max" : "w-full")}>
                       <div
                         role="img"
