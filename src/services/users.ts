@@ -1,4 +1,14 @@
 import { api } from "@/lib/api";
+import type { AuthUser } from "@/types/auth";
+
+export interface UpdateMeInput {
+  name?: string;
+  username?: string;
+  avatarUrl?: string;
+  documentId?: string;
+  dob?: string;
+  country?: string;
+}
 
 export const usersApi = {
   checkUsername: async (username: string) => {
@@ -6,8 +16,8 @@ export const usersApi = {
     return data;
   },
   
-  updateMe: async (userData: any) => {
-    const { data } = await api.put("/v1/users/me", userData);
+  updateMe: async (userData: UpdateMeInput): Promise<AuthUser> => {
+    const { data } = await api.put<AuthUser>("/v1/users/me", userData);
     return data;
   },
 

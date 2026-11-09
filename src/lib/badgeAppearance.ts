@@ -39,7 +39,7 @@ export function badgeProducer(badge: Pick<EventBadge, "producerName" | "title">)
   const title = badge.title.toLocaleUpperCase("es-UY");
   if (title.includes("REVERB")) return "REVERB";
   if (title.includes("KEY") || title.includes("MUSIC ON")) return "KEY";
-  return "ROOT";
+  return "root";
 }
 export function badgeRingDate(value: string) {
   const normalized = typeof value === "string" ? value.trim().replace(/(?:Z|[+-]00(?::?00)?)$/i, "-03:00") : value;

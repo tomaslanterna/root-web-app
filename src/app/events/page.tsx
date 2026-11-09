@@ -6,7 +6,6 @@ import {
   ArrowRight,
   Calendar,
   Check,
-  CheckCircle2,
   ChevronDown,
   Film,
   Filter,
@@ -17,12 +16,10 @@ import {
   MapPin,
   MessageSquare,
   Music,
-  Plus,
   RefreshCw,
   Search,
-  SlidersHorizontal,
-  Sparkles,
   Tag,
+  UserCheck,
   X,
 } from "lucide-react";
 import { EventCard } from "@/components/ui/EventCard";
@@ -38,7 +35,6 @@ import { parseEventRealDate } from "@/hooks/useDanceSync";
 import { EventCalendarView } from "@/components/events/EventCalendarView";
 import { useMutation } from "@/hooks/useMutation";
 import { useAuth } from "@/context/AuthContext";
-import { api } from "@/lib/api";
 import { eventsApi } from "@/services/events";
 import { cn } from "@/lib/utils";
 import { useEventsInbox } from "@/context/FeedInboxContext";
@@ -72,7 +68,10 @@ const viewOptions = [
   { id: "grid", label: "Grilla", icon: LayoutGrid },
   { id: "list", label: "Agenda", icon: List },
   { id: "calendar", label: "Mes", icon: Calendar },
+  { id: "going", label: "Voy", icon: UserCheck },
 ] as const;
+
+type EventView = (typeof viewOptions)[number]["id"];
 
 const citySuggestions = [
   "Montevideo",
@@ -260,12 +259,10 @@ export default function EventsPage() {
   const [temporalPreset, setTemporalPreset] = useState<TemporalPreset>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
-  const [isSearchOpenMobile, setIsSearchOpenMobile] = useState(false);
-  const [total, setTotal] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-  const [viewMode, setViewMode] = useState<"grid" | "list" | "calendar">("grid");
+  const [viewMode, setViewMode] = useState<EventView>("grid");
   const [sortBy, setSortBy] = useState<"date" | "popular">("date");
   const [isWhenOpen, setIsWhenOpen] = useState(false);
   const [isGenreOpen, setIsGenreOpen] = useState(false);
@@ -280,6 +277,7 @@ export default function EventsPage() {
   const collapseAnchorRef = useRef<HTMLDivElement>(null);
   const collapseSpacerRef = useRef<HTMLDivElement>(null);
   const featuredRowRef = useRef<HTMLDivElement>(null);
+  const lastFetchedQueryRef = useRef("");
   const { featuredEvents, refresh: refreshFeatured } = useFeaturedEvents();
 
   // Destacados que se achican con el scroll: la barra queda fija debajo del header y su altura
@@ -392,7 +390,6 @@ export default function EventsPage() {
           const uniqueNew = response.data.filter((ev) => !existingIds.has(ev.id));
           return [...current, ...uniqueNew];
         });
-        setTotal(response.meta.total);
         setHasMore(response.data.length > 0 && response.meta.hasMore);
         setHasLoaded(true);
       },
@@ -414,14 +411,15 @@ export default function EventsPage() {
 
   // Trigger search fetch when debounced query changes
   useEffect(() => {
-    if (!hasLoaded) return;
+    if (!hasLoaded || lastFetchedQueryRef.current === debouncedQuery) return;
+    lastFetchedQueryRef.current = debouncedQuery;
     void fetchEvents({
       filters: appliedFilters,
       offset: 0,
       append: false,
       query: debouncedQuery,
     }).catch(() => undefined);
-  }, [debouncedQuery]);
+  }, [appliedFilters, debouncedQuery, fetchEvents, hasLoaded]);
 
   // Infinite Scroll via IntersectionObserver
   useEffect(() => {
@@ -449,9 +447,9 @@ export default function EventsPage() {
     };
   }, [hasLoaded, hasMore, isLoadingEvents, events.length, appliedFilters, debouncedQuery, fetchEvents]);
 
-  // Carga automática progresiva de las páginas restantes al activar la vista Calendario
+  // Calendario y "Voy" necesitan el conjunto completo para no ocultar resultados paginados.
   useEffect(() => {
-    if (viewMode !== "calendar" || !hasLoaded || !hasMore || isLoadingEvents) return;
+    if ((viewMode !== "calendar" && viewMode !== "going") || !hasLoaded || !hasMore || isLoadingEvents) return;
     void fetchEvents({
       filters: appliedFilters,
       offset: events.length,
@@ -463,11 +461,14 @@ export default function EventsPage() {
 
   // Events list sorted by date or by attendance survey votes ("Más votados")
   const displayEvents = useMemo(() => {
+    const visibleEvents = viewMode === "going"
+      ? events.filter((event) => event.userRsvp === "going")
+      : events;
     if (sortBy === "popular") {
-      return [...events].sort((a, b) => (b.goingCount || 0) - (a.goingCount || 0));
+      return [...visibleEvents].sort((a, b) => (b.goingCount || 0) - (a.goingCount || 0));
     }
-    return events;
-  }, [events, sortBy]);
+    return visibleEvents;
+  }, [events, sortBy, viewMode]);
 
   // Chronological grouping for Agenda / List view
   const chronologicalGroups = useMemo(() => {
@@ -506,13 +507,6 @@ export default function EventsPage() {
     setIsDatesOpen(false);
     void fetchEvents({ filters: cleared, offset: 0, append: false, query: "" })
       .catch(() => undefined);
-  };
-
-  const selectGenre = (genre: string) => {
-    const next = { ...draftFilters, genre };
-    setDraftFilters(next);
-    setAppliedFilters(next);
-    void fetchEvents({ filters: next, offset: 0, append: false, query: debouncedQuery }).catch(() => undefined);
   };
 
   const selectTemporalPreset = (preset: TemporalPreset) => {
@@ -1262,7 +1256,7 @@ export default function EventsPage() {
                       onClick={() => applyLocationFilter(cityQuery)}
                       className="flex w-full items-center justify-between rounded-xl bg-[#D4FF00]/15 px-2.5 py-2 text-xs font-bold text-[#D4FF00] cursor-pointer"
                     >
-                      <span>Buscar "{cityQuery.trim()}"</span>
+                      <span>Buscar &ldquo;{cityQuery.trim()}&rdquo;</span>
                       <ArrowRight className="h-3.5 w-3.5" />
                     </button>
                   )}
@@ -1344,7 +1338,7 @@ export default function EventsPage() {
             )}
             {debouncedQuery && (
               <span className="inline-flex items-center gap-1 h-9 pl-3 pr-1 rounded-full border border-accent/40 bg-accent/12 text-[13px] font-semibold text-accent">
-                "{debouncedQuery}"
+                &ldquo;{debouncedQuery}&rdquo;
                 <button
                   type="button"
                   onClick={() => setSearchQuery("")}
@@ -1456,10 +1450,16 @@ export default function EventsPage() {
           <div className="space-y-3 rounded-card border border-line bg-surface p-8 text-center">
             <Film className="mx-auto size-8 text-ink-3" aria-hidden="true" />
             <p className="text-base font-semibold">
-              No hay próximos eventos con esos filtros
+              {viewMode === "going" ? "Todavía no marcaste que vas a un evento" : "No hay próximos eventos con esos filtros"}
             </p>
-            <p className="text-sm text-ink-2">Probá ampliar el rango o limpiar los filtros.</p>
-            <Button size="sm" onClick={clearFilters}>Limpiar filtros</Button>
+            <p className="text-sm text-ink-2">
+              {viewMode === "going" ? (user ? "Cuando marques “Voy”, lo vas a encontrar acá." : "Iniciá sesión para ver tus eventos confirmados.") : "Probá ampliar el rango o limpiar los filtros."}
+            </p>
+            {viewMode === "going" ? (
+              <Button size="sm" onClick={() => user ? setViewMode("grid") : router.push("/login")}>{user ? "Explorar eventos" : "Iniciar sesión"}</Button>
+            ) : (
+              <Button size="sm" onClick={clearFilters}>Limpiar filtros</Button>
+            )}
           </div>
         )}
 
@@ -1719,7 +1719,7 @@ export default function EventsPage() {
                   onClick={() => applyLocationFilter(cityQuery)}
                   className="w-full rounded-2xl bg-[#D4FF00] py-3 text-xs font-black uppercase tracking-wider text-neutral-950 hover:bg-[#bce400] transition-colors cursor-pointer"
                 >
-                  Buscar en "{cityQuery.trim()}"
+                  Buscar en &ldquo;{cityQuery.trim()}&rdquo;
                 </button>
               )}
 

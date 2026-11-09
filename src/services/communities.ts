@@ -13,6 +13,7 @@ import type {
   CommunityChatReaction,
   CommunityChatSettings,
   CommunityMember,
+  CreateCommunityInput,
 } from "@/types/communities";
 import type { Post } from "@/types/posts";
 import type { Event } from "@/types/events";
@@ -23,6 +24,11 @@ export async function getCommunities(
   const { data } = await api.get<CommunitiesResponse>("/v1/communities", {
     params: filters,
   });
+  return data;
+}
+
+export async function createCommunity(input: CreateCommunityInput): Promise<Community> {
+  const { data } = await api.post<Community>("/v1/communities", input);
   return data;
 }
 
@@ -162,6 +168,7 @@ export async function sendCommunityMessage(
     role: "RRPP" | "ADMIN" | "MEMBER";
   },
 ): Promise<CommunityChatMessage> {
+  void _sender;
   const { data } = await api.post<CommunityChatMessage>(
     `${communityPath(communityId)}/messages`,
     { content },
@@ -175,6 +182,7 @@ export async function toggleMessageReaction(
   emoji: string,
   _userId?: string,
 ): Promise<{ messageId: string; reactions: CommunityChatReaction[] }> {
+  void _userId;
   const { data } = await api.post<{ messageId: string; reactions: CommunityChatReaction[] }>(
     `${communityPath(communityId)}/messages/${encodeURIComponent(messageId)}/reactions`,
     { emoji },

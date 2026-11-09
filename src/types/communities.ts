@@ -32,6 +32,14 @@ export interface CommunityFilters {
   scope?: "mine" | "explore";
 }
 
+export interface CreateCommunityInput {
+  name: string;
+  category: string;
+  zone: string;
+  countryId: string;
+  description: string;
+}
+
 export interface CommunityReportInput {
   targetType: "post" | "comment";
   targetId: string;

@@ -6,7 +6,7 @@ import { Check, LogIn } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useDanceContext } from "@/context/DanceContext";
 import { useMutation } from "@/hooks/useMutation";
-import { api } from "@/lib/api";
+import { eventsApi } from "@/services/events";
 import { cn } from "@/lib/utils";
 import type { EventRSVPStatus, RSVPResponse } from "@/types/events";
 
@@ -40,20 +40,17 @@ export function EventAttendanceVote({
   const totalVotes = goingCount + notGoingCount;
   const goingPercentage = totalVotes > 0 ? Math.round((goingCount / totalVotes) * 100) : 0;
 
-  const rsvp = useMutation<RSVPResponse, EventRSVPStatus>(async (nextStatus) => {
-    const response = await api.post<RSVPResponse>(`/v1/events/${eventId}/rsvp`, {
-      status: nextStatus,
-    });
-    return response.data;
+  const rsvp = useMutation<RSVPResponse, EventRSVPStatus | null>((nextStatus) => {
+    return nextStatus === null
+      ? eventsApi.clearRsvp(eventId)
+      : eventsApi.rsvpEvent(eventId, nextStatus);
   }, {
     onSuccess: (response) => {
       setGoingCount(response.goingCount);
       setNotGoingCount(response.notGoingCount);
       setStatus(response.userRsvp);
       onChange?.(response);
-      if (response.userRsvp === "going") {
-        void refreshLiveStatus?.().catch(() => undefined);
-      }
+      void refreshLiveStatus?.().catch(() => undefined);
     },
   });
 
@@ -62,8 +59,8 @@ export function EventAttendanceVote({
       setShowLogin(true);
       return;
     }
-    if (!rsvp.isLoading && status !== nextStatus) {
-      void rsvp.mutate(nextStatus).catch(() => undefined);
+    if (!rsvp.isLoading) {
+      void rsvp.mutate(status === nextStatus ? null : nextStatus).catch(() => undefined);
     }
   };
 
@@ -72,6 +69,7 @@ export function EventAttendanceVote({
       <div role="group" aria-label="¿Vas a ir?" className="grid grid-cols-2 gap-2">
         <button
           type="button"
+          aria-label={status === "going" ? "Desmarcar Voy" : "Marcar Voy"}
           aria-pressed={status === "going"}
           onClick={() => selectStatus("going")}
           disabled={rsvp.isLoading}
@@ -100,6 +98,12 @@ export function EventAttendanceVote({
           No voy
         </button>
       </div>
+
+      {status && (
+        <p className="m-0 text-center text-[12px] text-ink-3">
+          Tocá nuevamente la opción activa para desmarcarla.
+        </p>
+      )}
 
       {showMetrics && totalVotes > 0 && (
         <div className="space-y-1.5">

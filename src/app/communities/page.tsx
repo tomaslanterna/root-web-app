@@ -1,212 +1,148 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { ChevronDown, Loader2, Search } from "lucide-react";
+import { FormEvent, useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Loader2, Plus, UsersRound, X } from "lucide-react";
 import { CommunityList } from "@/components/communities/CommunityList";
 import { Button } from "@/components/ui/Button";
-import { useCommunityDirectory } from "@/hooks/useCommunities";
-import type { CommunityFilters } from "@/types/communities";
-import { useAuth } from "@/context/AuthContext";
-import Link from "next/link";
 import { SearchButton } from "@/components/ui/SearchButton";
+import { useAuth } from "@/context/AuthContext";
+import { useCommunityDirectory, useCreateCommunity } from "@/hooks/useCommunities";
+import type { CommunityFilters, CreateCommunityInput } from "@/types/communities";
 
 const PAGE_SIZE = 12;
-const DEFAULT_FILTERS: CommunityFilters = {
-  country: "UY",
-  query: "",
-  category: "",
-  department: "",
-  limit: PAGE_SIZE,
-  offset: 0,
+const emptyCommunity: CreateCommunityInput = {
+  name: "",
+  category: "electrónica",
+  zone: "",
+  countryId: "UY",
+  description: "",
 };
 
-const URUGUAY_DEPARTMENTS = [
-  "Artigas",
-  "Canelones",
-  "Cerro Largo",
-  "Colonia",
-  "Durazno",
-  "Flores",
-  "Florida",
-  "Lavalleja",
-  "Maldonado",
-  "Montevideo",
-  "Paysandú",
-  "Río Negro",
-  "Rivera",
-  "Rocha",
-  "Salto",
-  "San José",
-  "Soriano",
-  "Tacuarembó",
-  "Treinta y Tres",
-] as const;
-
 export default function CommunitiesPage() {
+  const router = useRouter();
   const { user } = useAuth();
   const [scope, setScope] = useState<"mine" | "explore">("explore");
-  const [draftFilters, setDraftFilters] = useState<CommunityFilters>(DEFAULT_FILTERS);
-  const [appliedFilters, setAppliedFilters] = useState<CommunityFilters>(DEFAULT_FILTERS);
+  const [showCreate, setShowCreate] = useState(false);
+  const [form, setForm] = useState<CreateCommunityInput>(emptyCommunity);
   const { communities, meta, load, isLoading, error } = useCommunityDirectory();
+  const canCreate = ["RRPP", "ADMIN"].includes(user?.role?.toUpperCase() ?? "");
 
   useEffect(() => {
     if (scope === "mine" && !user) return;
-    void load({ ...appliedFilters, scope }).catch(() => undefined);
-  }, [load, appliedFilters, scope, user]);
+    void load({ scope, limit: PAGE_SIZE, offset: 0 }).catch(() => undefined);
+  }, [load, scope, user]);
 
-  const applyFilters = () => {
-    if (scope !== "explore") return;
-    const next = { ...draftFilters, limit: PAGE_SIZE, offset: 0 };
-    setAppliedFilters(next);
-  };
+  const directoryFilters: CommunityFilters = { scope, limit: PAGE_SIZE, offset: 0 };
 
-  const clearFilters = () => {
-    const defaults = { ...DEFAULT_FILTERS, country: scope === "mine" ? "" : DEFAULT_FILTERS.country };
-    setDraftFilters(defaults);
-    setAppliedFilters(defaults);
-  };
+  const creator = useCreateCommunity((community) => {
+    setShowCreate(false);
+    setForm(emptyCommunity);
+    router.push(`/communities/${community.slug || community.id}?origin=%2Fcommunities`);
+  });
 
   const loadMore = () => {
-    void load(
-      { ...appliedFilters, scope, limit: PAGE_SIZE, offset: communities.length },
-      true,
-    ).catch(() => undefined);
+    void load({ ...directoryFilters, offset: communities.length }, true).catch(() => undefined);
   };
 
-  const activeFilterCount = [
-    appliedFilters.query,
-    appliedFilters.category,
-    appliedFilters.department,
-  ].filter(Boolean).length;
-
-  const switchScope = (tab: "mine" | "explore") => {
-    setScope(tab);
-    const defaults = { ...DEFAULT_FILTERS, country: tab === "mine" ? "" : DEFAULT_FILTERS.country };
-    setDraftFilters(defaults);
-    setAppliedFilters(defaults);
+  const submitCommunity = (event: FormEvent) => {
+    event.preventDefault();
+    void creator.create(form).catch(() => undefined);
   };
-
-  // Los selects aplican al cambiar; la búsqueda, al confirmar con Enter.
-  const applyNow = (patch: Partial<CommunityFilters>) => {
-    const next = { ...draftFilters, ...patch, limit: PAGE_SIZE, offset: 0 };
-    setDraftFilters(next);
-    setAppliedFilters(next);
-  };
-
-  const chipClass = (active: boolean) =>
-    `h-8 appearance-none rounded-full border pl-2.5 pr-7 text-xs outline-none transition-colors focus-visible:outline-2 focus-visible:outline-accent ${
-      active ? "border-accent/40 bg-accent/12 font-semibold text-accent" : "border-white/10 bg-surface text-ink"
-    }`;
 
   return (
     <div className="flex min-h-[100dvh] flex-col bg-bg pb-[calc(var(--root-mobile-nav-clearance)+1rem)] text-ink md:pb-16">
-      <header className="sticky top-0 z-30 w-full bg-bg/95 backdrop-blur-md border-b border-line">
-        <div className="mx-auto w-full max-w-6xl px-4 pt-[calc(0.75rem+var(--root-safe-top))] pb-3 md:px-8 md:pt-6 flex items-center justify-between gap-3">
-          <h1 className="font-display m-0 text-[32px]">Comunidades</h1>
-          <SearchButton />
+      <header className="sticky top-0 z-30 border-b border-line bg-bg/92 backdrop-blur-xl">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 pb-4 pt-[calc(0.75rem+var(--root-safe-top))] md:px-8 md:pt-6">
+          <div className="min-w-0">
+            <h1 className="m-0 font-display text-[32px]">Comunidades</h1>
+            <p className="mt-1 text-sm text-ink-2">Encontrá tu escena y mantenete cerca de lo que pasa.</p>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            {canCreate && (
+              <button type="button" onClick={() => setShowCreate(true)} className="flex size-11 items-center justify-center rounded-control bg-accent text-on-accent transition-transform active:scale-95 focus-visible:outline-2 focus-visible:outline-accent" aria-label="Crear comunidad">
+                <Plus className="size-5" strokeWidth={2.6} aria-hidden="true" />
+              </button>
+            )}
+            <SearchButton />
+          </div>
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-6xl flex-col gap-3.5 px-4 pt-4 md:px-8">
-        <div role="tablist" aria-label="Comunidades" className="flex rounded-lg border border-line bg-surface p-[2px]">
-          {(["mine", "explore"] as const).map((tab) => <button key={tab} type="button" role="tab" aria-selected={scope === tab} disabled={isLoading} onClick={() => switchScope(tab)} className={`h-7 flex-1 rounded-[6px] text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-accent ${scope === tab ? "bg-ink text-bg" : "text-ink-2 hover:text-ink"}`}>{tab === "mine" ? "Mis comunidades" : "Explorar"}</button>)}
+      <main className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 pt-5 md:px-8">
+        <div className="flex items-end justify-between gap-4 border-b border-line">
+          <div role="tablist" aria-label="Comunidades" className="flex min-w-0 gap-5">
+            {(["explore", "mine"] as const).map((tab) => (
+              <button key={tab} type="button" role="tab" aria-selected={scope === tab} disabled={isLoading} onClick={() => setScope(tab)} className={`relative h-11 whitespace-nowrap text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-accent ${scope === tab ? "text-ink" : "text-ink-3 hover:text-ink-2"}`}>
+                {tab === "mine" ? "Las tuyas" : "Descubrir"}
+                {scope === tab && <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-accent" />}
+              </button>
+            ))}
+          </div>
+          {!isLoading && <span className="label-mono mb-3 shrink-0 text-ink-3">{meta.total} {meta.total === 1 ? "comunidad" : "comunidades"}</span>}
         </div>
 
-        {scope === "explore" && <section aria-label="Filtros" className="flex flex-col gap-3">
-          <div className="flex h-9 md:h-10 items-center gap-2 rounded-xl border border-white/10 bg-surface px-3 text-ink-3 focus-within:border-accent">
-            <Search className="size-4 shrink-0" aria-hidden="true" />
-            <input
-              type="search"
-              aria-label="Buscar comunidades"
-              value={draftFilters.query ?? ""}
-              onChange={(event) => setDraftFilters((current) => ({ ...current, query: event.target.value }))}
-              onKeyDown={(event) => event.key === "Enter" && applyFilters()}
-              onBlur={() => draftFilters.query !== appliedFilters.query && applyFilters()}
-              placeholder="Nombre o descripción"
-              className="min-w-0 flex-1 border-0 bg-transparent text-xs md:text-sm text-ink outline-none placeholder:text-ink-3"
-            />
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <label className="relative">
-              <span className="sr-only">Estilo</span>
-              <select value={draftFilters.category ?? ""} onChange={(event) => applyNow({ category: event.target.value })} className={chipClass(!!appliedFilters.category)}>
-                <option value="">Estilo</option>
-                <option value="electrónica">Electrónica</option>
-                <option value="cachengue">Cachengue</option>
-                <option value="reggaetón">Reggaetón</option>
-                <option value="general">Otros</option>
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 size-3.5 -translate-y-1/2 opacity-80" aria-hidden="true" />
-            </label>
-            <label className="relative">
-              <span className="sr-only">País</span>
-              <select value={draftFilters.country ?? ""} onChange={(event) => applyNow({ country: event.target.value, department: event.target.value === "UY" ? draftFilters.department : "" })} className={chipClass(!!appliedFilters.country)}>
-                <option value="">Todos los países</option>
-                <option value="UY">Uruguay</option>
-                <option value="AR">Argentina</option>
-                <option value="BR">Brasil</option>
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 size-3.5 -translate-y-1/2 opacity-80" aria-hidden="true" />
-            </label>
-            {draftFilters.country === "UY" && (
-              <label className="relative">
-                <span className="sr-only">Departamento</span>
-                <select value={draftFilters.department ?? ""} onChange={(event) => applyNow({ department: event.target.value })} className={chipClass(!!appliedFilters.department)}>
-                  <option value="">Departamento</option>
-                  {URUGUAY_DEPARTMENTS.map((department) => (
-                    <option key={department} value={department}>{department}</option>
-                  ))}
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-2 top-1/2 size-3.5 -translate-y-1/2 opacity-80" aria-hidden="true" />
-              </label>
-            )}
-          </div>
-
-          <div className="flex items-center justify-between">
-            <span className="label-mono text-ink-3">
-              {activeFilterCount > 0 ? `${activeFilterCount} ${activeFilterCount === 1 ? "filtro" : "filtros"} · ` : ""}
-              {meta.total} comunidades
-            </span>
-            {activeFilterCount > 0 && (
-              <button type="button" onClick={clearFilters} disabled={isLoading} className="h-11 px-1 text-sm font-semibold text-accent hover:text-accent-hover">
-                Limpiar
-              </button>
-            )}
-          </div>
-        </section>}
-
-        {scope === "mine" && !user ? <p className="m-0 rounded-card border border-line bg-surface p-6 text-center text-[15px]"><Link href="/login" className="font-semibold text-accent">Iniciá sesión para ver tus comunidades</Link></p> : error && communities.length === 0 ? (
-          <section className="rounded-card border border-danger/30 bg-surface p-8 text-center">
+        {scope === "mine" && !user ? (
+          <section className="flex flex-col items-center gap-3 py-16 text-center">
+            <UsersRound className="size-8 text-accent" aria-hidden="true" />
+            <p className="m-0 text-base font-semibold">Tus comunidades viven acá</p>
+            <Link href="/login" className="flex h-11 items-center rounded-xl bg-accent px-5 text-sm font-semibold text-on-accent">Iniciar sesión</Link>
+          </section>
+        ) : error && communities.length === 0 ? (
+          <section className="py-16 text-center">
             <p className="m-0 text-base font-semibold">No pudimos cargar las comunidades.</p>
-            <Button
-              variant="secondary"
-              size="sm"
-              className="mt-4"
-              onClick={() => void load({ ...appliedFilters, scope }).catch(() => undefined)}
-            >
-              Reintentar
-            </Button>
+            <Button variant="secondary" size="sm" className="mt-4" onClick={() => void load(directoryFilters).catch(() => undefined)}>Reintentar</Button>
           </section>
         ) : (
-          <CommunityList communities={communities} isLoading={isLoading && communities.length === 0} emptyMessage={scope === "mine" ? "Todavía no pertenecés a ninguna comunidad. Descubrí una en Explorar." : "No hay comunidades con estos filtros."} />
+          <CommunityList communities={communities} isLoading={isLoading && communities.length === 0} emptyMessage={scope === "mine" ? "Todavía no te sumaste a ninguna comunidad." : "Todavía no hay comunidades para descubrir."} />
         )}
 
         {meta.hasMore && (
           <div className="flex justify-center pt-2">
             <Button variant="secondary" onClick={loadMore} disabled={isLoading}>
               {isLoading && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
-              Cargar más
+              Ver más
             </Button>
           </div>
         )}
-
-        {scope === "explore" && (
-          <p className="m-0 border-t border-line px-2 pt-6 text-center text-sm leading-relaxed text-ink-2">
-            si sos RRPP y queres tener tu comunidad, contactanos!
-          </p>
-        )}
       </main>
+
+      {showCreate && canCreate && (
+        <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/75 backdrop-blur-sm sm:items-center sm:p-4" role="presentation">
+          <section role="dialog" aria-modal="true" aria-labelledby="create-community-title" className="max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-[28px] border border-white/10 bg-[#111419] p-5 pb-[calc(1.25rem+var(--root-safe-bottom))] shadow-2xl sm:rounded-[28px] sm:p-6">
+            <div className="mb-6 flex items-start justify-between gap-4">
+              <div>
+                <span className="label-mono text-accent">Nueva escena</span>
+                <h2 id="create-community-title" className="mt-1 text-2xl font-bold tracking-tight">Crear comunidad</h2>
+                <p className="mt-1 text-sm text-ink-2">Vas a quedar como RRPP y primer integrante.</p>
+              </div>
+              <button type="button" onClick={() => setShowCreate(false)} className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white/5 text-ink-2 hover:text-ink" aria-label="Cerrar"><X className="size-5" aria-hidden="true" /></button>
+            </div>
+
+            <form onSubmit={submitCommunity} className="space-y-4">
+              <label className="block space-y-1.5 text-sm font-semibold">Nombre
+                <input required minLength={3} maxLength={80} value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} placeholder="Ej. Techno del Este" className="h-12 w-full rounded-xl border border-line-strong bg-bg px-4 text-ink outline-none placeholder:text-ink-3 focus:border-accent" />
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block space-y-1.5 text-sm font-semibold">Estilo
+                  <select value={form.category} onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))} className="h-12 w-full rounded-xl border border-line-strong bg-bg px-3 text-ink outline-none focus:border-accent">
+                    <option value="electrónica">Electrónica</option><option value="cachengue">Cachengue</option><option value="reggaetón">Reggaetón</option><option value="general">General</option>
+                  </select>
+                </label>
+                <label className="block space-y-1.5 text-sm font-semibold">Zona
+                  <input maxLength={80} value={form.zone} onChange={(event) => setForm((current) => ({ ...current, zone: event.target.value }))} placeholder="Montevideo" className="h-12 w-full rounded-xl border border-line-strong bg-bg px-4 text-ink outline-none placeholder:text-ink-3 focus:border-accent" />
+                </label>
+              </div>
+              <label className="block space-y-1.5 text-sm font-semibold">Descripción
+                <textarea required maxLength={500} value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} placeholder="Contá de qué se trata y qué van a encontrar." className="min-h-28 w-full resize-none rounded-xl border border-line-strong bg-bg px-4 py-3 text-ink outline-none placeholder:text-ink-3 focus:border-accent" />
+              </label>
+              {creator.error && <p role="alert" className="text-sm text-danger">No pudimos crear la comunidad. Revisá los datos e intentá de nuevo.</p>}
+              <Button type="submit" size="full" disabled={creator.isCreating}>{creator.isCreating && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}Crear comunidad</Button>
+            </form>
+          </section>
+        </div>
+      )}
     </div>
   );
 }

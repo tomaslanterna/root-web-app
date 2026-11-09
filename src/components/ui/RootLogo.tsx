@@ -7,8 +7,7 @@ interface RootLogoProps {
 }
 
 /**
- * Logo de root: la "R" negra sobre un cuadrado lima, seguida de "OOT".
- * Proporciones de la lámina "Logo · ROOT" (versión para tamaños chicos: 30px).
+ * Logo de root: la "r" negra sobre un cuadrado lima, seguida de "oot".
  */
 export function RootLogo({ size = 30, className }: RootLogoProps) {
   return (
@@ -23,14 +22,14 @@ export function RootLogo({ size = 30, className }: RootLogoProps) {
         className="root-logo-type shrink-0 bg-accent text-on-accent flex items-center justify-center"
         style={{ width: size, height: size, borderRadius: Math.round(size * 0.26), fontSize: Math.round(size * 0.74) }}
       >
-        R
+        r
       </span>
       <span
         aria-hidden="true"
         className="root-logo-type text-ink tracking-[0.02em]"
         style={{ fontSize: Math.round(size * 0.9) }}
       >
-        OOT
+        oot
       </span>
     </span>
   );

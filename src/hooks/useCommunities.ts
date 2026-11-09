@@ -24,6 +24,7 @@ import {
   getCommunityPromotedEvents,
   updateCommunityPromotedEvents,
   getPlatformEventsCatalog,
+  createCommunity,
 } from "@/services/communities";
 import type {
   Community,
@@ -37,6 +38,7 @@ import type {
   CommunityChatReaction,
   CommunityMember,
   CommunityRoleState,
+  CreateCommunityInput,
 } from "@/types/communities";
 import type { Post } from "@/types/posts";
 import type { Event } from "@/types/events";
@@ -88,6 +90,17 @@ export function useCommunityDirectory() {
     meta,
     load,
     isLoading: mutation.isLoading,
+    error: mutation.error,
+  };
+}
+
+export function useCreateCommunity(onCreated?: (community: Community) => void) {
+  const mutation = useMutation<Community, CreateCommunityInput>(createCommunity, {
+    onSuccess: (community) => onCreated?.(community),
+  });
+  return {
+    create: mutation.mutate,
+    isCreating: mutation.isLoading,
     error: mutation.error,
   };
 }

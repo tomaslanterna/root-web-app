@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Loader2, ArrowDown } from 'lucide-react';
 
 interface PullToRefreshProps {
   onRefresh: () => Promise<void>;
@@ -91,24 +90,24 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
       onMouseLeave={handleTouchEnd}
       className="relative w-full h-full"
     >
-      {/* Indicador de carga (spinner o flecha) */}
+      {/* La marca baja con el gesto; no usa cápsula ni spinner circular. */}
       <div 
-        className="absolute top-0 left-0 w-full flex justify-center z-50 pointer-events-none transition-transform"
+        role="status"
+        aria-live="polite"
+        aria-label={refreshing ? "Actualizando eventos" : "Deslizá para actualizar"}
+        className="pointer-events-none absolute left-0 top-0 z-50 flex w-full justify-center"
         style={{ 
-          transform: `translateY(${pullY > 0 ? pullY - 40 : -40}px)`,
-          opacity: pullY / 60 
+          transform: `translateY(${pullY > 0 ? pullY - 34 : -34}px)`,
+          opacity: Math.min(1, pullY / 42),
         }}
       >
-        <div className="w-10 h-10 rounded-full bg-[#14171F] flex items-center justify-center border border-[#D4FF00]/20 shadow-[0_0_15px_rgba(212,255,0,0.15)]">
-          {refreshing ? (
-            <Loader2 className="w-5 h-5 animate-spin text-[#D4FF00]" />
-          ) : (
-            <ArrowDown 
-              className="w-5 h-5 text-[#D4FF00] transition-transform duration-200" 
-              style={{ transform: `rotate(${Math.min(pullY * 3, 180)}deg)` }} 
-            />
-          )}
-        </div>
+        <span
+          aria-hidden="true"
+          className={`root-logo-type text-3xl lowercase text-accent drop-shadow-[0_0_10px_rgba(212,255,0,0.35)] motion-safe:animate-pulse ${refreshing ? "opacity-100" : ""}`}
+          style={{ transform: `scale(${0.78 + Math.min(pullY, 60) / 270})` }}
+        >
+          r
+        </span>
       </div>
 
       {/* Contenido principal animado hacia abajo */}

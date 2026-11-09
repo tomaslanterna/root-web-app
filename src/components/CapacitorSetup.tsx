@@ -80,6 +80,6 @@ export function CapacitorSetup() {
   }, [router]);
 
   return <ConfirmModal isOpen={confirmExit} onClose={cancelExit} onConfirm={exit}
-    title="¿Salir de Root?" message="¿Querés salir de la aplicación?"
-    confirmText="Salir" cancelText="Seguir en Root" />;
+    title="¿Salir de root?" message="¿Querés salir de la aplicación?"
+    confirmText="Salir" cancelText="Seguir en root" />;
 }
