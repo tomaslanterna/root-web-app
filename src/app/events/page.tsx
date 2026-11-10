@@ -19,7 +19,6 @@ import {
   RefreshCw,
   Search,
   Tag,
-  UserCheck,
   X,
 } from "lucide-react";
 import { EventCard } from "@/components/ui/EventCard";
@@ -68,7 +67,6 @@ const viewOptions = [
   { id: "grid", label: "Grilla", icon: LayoutGrid },
   { id: "list", label: "Agenda", icon: List },
   { id: "calendar", label: "Mes", icon: Calendar },
-  { id: "going", label: "Voy", icon: UserCheck },
 ] as const;
 
 type EventView = (typeof viewOptions)[number]["id"];
@@ -263,6 +261,7 @@ export default function EventsPage() {
   const [hasLoaded, setHasLoaded] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<EventView>("grid");
+  const [showGoingOnly, setShowGoingOnly] = useState(false);
   const [sortBy, setSortBy] = useState<"date" | "popular">("date");
   const [isWhenOpen, setIsWhenOpen] = useState(false);
   const [isGenreOpen, setIsGenreOpen] = useState(false);
@@ -447,9 +446,9 @@ export default function EventsPage() {
     };
   }, [hasLoaded, hasMore, isLoadingEvents, events.length, appliedFilters, debouncedQuery, fetchEvents]);
 
-  // Calendario y "Voy" necesitan el conjunto completo para no ocultar resultados paginados.
+  // Calendario y el filtro "voy!" necesitan el conjunto completo para no ocultar resultados paginados.
   useEffect(() => {
-    if ((viewMode !== "calendar" && viewMode !== "going") || !hasLoaded || !hasMore || isLoadingEvents) return;
+    if ((viewMode !== "calendar" && !showGoingOnly) || !hasLoaded || !hasMore || isLoadingEvents) return;
     void fetchEvents({
       filters: appliedFilters,
       offset: events.length,
@@ -457,18 +456,18 @@ export default function EventsPage() {
       query: debouncedQuery,
       limit: 50,
     }).catch(() => undefined);
-  }, [viewMode, hasLoaded, hasMore, isLoadingEvents, events.length, appliedFilters, debouncedQuery, fetchEvents]);
+  }, [viewMode, showGoingOnly, hasLoaded, hasMore, isLoadingEvents, events.length, appliedFilters, debouncedQuery, fetchEvents]);
 
   // Events list sorted by date or by attendance survey votes ("Más votados")
   const displayEvents = useMemo(() => {
-    const visibleEvents = viewMode === "going"
+    const visibleEvents = showGoingOnly
       ? events.filter((event) => event.userRsvp === "going")
       : events;
     if (sortBy === "popular") {
       return [...visibleEvents].sort((a, b) => (b.goingCount || 0) - (a.goingCount || 0));
     }
     return visibleEvents;
-  }, [events, sortBy, viewMode]);
+  }, [events, sortBy, showGoingOnly]);
 
   // Chronological grouping for Agenda / List view
   const chronologicalGroups = useMemo(() => {
@@ -501,6 +500,7 @@ export default function EventsPage() {
     setAppliedFilters(cleared);
     setTemporalPreset("all");
     setSortBy("date");
+    setShowGoingOnly(false);
     setSearchQuery("");
     setIsWhenOpen(false);
     setIsGenreOpen(false);
@@ -645,13 +645,15 @@ export default function EventsPage() {
     (appliedFilters.priceType !== "all" ? 1 : 0) +
     (appliedFilters.minPrice || appliedFilters.maxPrice ? 1 : 0) +
     (appliedFilters.startDate || appliedFilters.endDate ? 1 : 0) +
-    (sortBy === "popular" ? 1 : 0);
+    (sortBy === "popular" ? 1 : 0) +
+    (showGoingOnly ? 1 : 0);
 
   const hasActiveChips =
     appliedFilters.priceType !== "all" ||
     !!appliedFilters.minPrice ||
     !!appliedFilters.maxPrice ||
     sortBy === "popular" ||
+    showGoingOnly ||
     !!debouncedQuery;
 
   return (
@@ -935,11 +937,31 @@ export default function EventsPage() {
         {/* Recupera la altura que pierden los destacados al achicarse */}
         <div ref={collapseSpacerRef} aria-hidden="true" className="!mb-0" />
 
-        {/* Filtros del listado: ¿Cuándo?, Ubicación y vista */}
+        {/* Filtros del listado: voy!, ¿Cuándo?, Ubicación y vista */}
         <div ref={filtersContainerRef} className="relative pt-2.5">
           <div className="flex items-center justify-between gap-2">
             <div className="flex-1 min-w-0 flex items-center gap-1.5 overflow-x-auto hide-scrollbar whitespace-nowrap py-0.5">
-              {/* Filtro 1: ¿Cuándo? */}
+              {/* Filtro 1: voy! */}
+              <button
+                type="button"
+                aria-pressed={showGoingOnly}
+                onClick={() => {
+                  setShowGoingOnly((current) => !current);
+                  setIsWhenOpen(false);
+                  setIsGenreOpen(false);
+                  setIsDatesOpen(false);
+                }}
+                className={cn(
+                  "root-logo-type shrink-0 h-8 md:h-8.5 inline-flex items-center rounded-full border px-3 text-[11px] lowercase tracking-[-0.04em] transition-colors select-none focus-visible:outline-2 focus-visible:outline-accent",
+                  showGoingOnly
+                    ? "bg-accent/12 text-accent border-accent/40"
+                    : "border-white/10 bg-surface text-ink hover:bg-surface-2",
+                )}
+              >
+                voy!
+              </button>
+
+              {/* Filtro 2: ¿Cuándo? */}
               <div
                 className={cn(
                   "shrink-0 h-8 md:h-8.5 flex items-center rounded-full border transition-colors select-none text-xs",
@@ -957,7 +979,7 @@ export default function EventsPage() {
                     setIsDatesOpen(false);
                   }}
                   className={cn(
-                    "h-full flex items-center gap-1.5 text-xs font-medium",
+                    "root-logo-type h-full flex items-center gap-1.5 text-[11px] tracking-[-0.04em]",
                     isDateActive ? "pl-2.5 pr-1" : "pl-2.5 pr-2.5",
                   )}
                 >
@@ -992,7 +1014,7 @@ export default function EventsPage() {
                 )}
               </div>
 
-              {/* Filtro 2: Ubicación */}
+              {/* Filtro 3: Ubicación */}
               <div
                 className={cn(
                   "shrink-0 h-8 md:h-8.5 flex items-center rounded-full border transition-colors select-none text-xs",
@@ -1011,7 +1033,7 @@ export default function EventsPage() {
                     setIsDatesOpen(false);
                   }}
                   className={cn(
-                    "h-full flex items-center gap-1.5 text-xs font-medium",
+                    "root-logo-type h-full flex items-center gap-1.5 text-[11px] tracking-[-0.04em]",
                     isLocationActive ? "pl-2.5 pr-1" : "pl-2.5 pr-2.5",
                   )}
                 >
@@ -1070,7 +1092,7 @@ export default function EventsPage() {
                     viewMode === id ? "bg-ink text-bg" : "text-ink-2 hover:text-ink",
                   )}
                 >
-                  <Icon className="size-3.5" aria-hidden="true" />
+                  <Icon className="size-3.5" aria-hidden={true} />
                 </button>
               ))}
             </div>
@@ -1450,13 +1472,13 @@ export default function EventsPage() {
           <div className="space-y-3 rounded-card border border-line bg-surface p-8 text-center">
             <Film className="mx-auto size-8 text-ink-3" aria-hidden="true" />
             <p className="text-base font-semibold">
-              {viewMode === "going" ? "Todavía no marcaste que vas a un evento" : "No hay próximos eventos con esos filtros"}
+              {showGoingOnly ? "Todavía no marcaste que vas a un evento" : "No hay próximos eventos con esos filtros"}
             </p>
             <p className="text-sm text-ink-2">
-              {viewMode === "going" ? (user ? "Cuando marques “Voy”, lo vas a encontrar acá." : "Iniciá sesión para ver tus eventos confirmados.") : "Probá ampliar el rango o limpiar los filtros."}
+              {showGoingOnly ? (user ? "Cuando marques “Voy”, lo vas a encontrar acá." : "Iniciá sesión para ver tus eventos confirmados.") : "Probá ampliar el rango o limpiar los filtros."}
             </p>
-            {viewMode === "going" ? (
-              <Button size="sm" onClick={() => user ? setViewMode("grid") : router.push("/login")}>{user ? "Explorar eventos" : "Iniciar sesión"}</Button>
+            {showGoingOnly ? (
+              <Button size="sm" onClick={() => user ? setShowGoingOnly(false) : router.push("/login")}>{user ? "Explorar eventos" : "Iniciar sesión"}</Button>
             ) : (
               <Button size="sm" onClick={clearFilters}>Limpiar filtros</Button>
             )}

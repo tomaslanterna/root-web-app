@@ -53,7 +53,7 @@ export function SegmentedControl<T extends string = string>({
                 : "text-ink-2 font-medium hover:text-ink"
             )}
           >
-            {Icon && <Icon className="size-4" aria-hidden="true" />}
+            {Icon && <Icon className="size-4" aria-hidden={true} />}
             <span>{option.label}</span>
             {option.count !== undefined && (
               <span className="num-mono text-xs opacity-80">{option.count}</span>

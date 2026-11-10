@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
+import { RootMark } from '@/components/ui/RootLogo';
 
 interface PullToRefreshProps {
   onRefresh: () => Promise<void>;
@@ -101,13 +102,10 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
           opacity: Math.min(1, pullY / 42),
         }}
       >
-        <span
-          aria-hidden="true"
-          className={`root-logo-type text-3xl lowercase text-accent drop-shadow-[0_0_10px_rgba(212,255,0,0.35)] motion-safe:animate-pulse ${refreshing ? "opacity-100" : ""}`}
-          style={{ transform: `scale(${0.78 + Math.min(pullY, 60) / 270})` }}
-        >
-          r
-        </span>
+        <RootMark
+          size={30}
+          className={`shadow-[0_0_14px_rgba(212,255,0,0.28)] motion-safe:animate-pulse ${refreshing ? "opacity-100" : ""}`}
+        />
       </div>
 
       {/* Contenido principal animado hacia abajo */}

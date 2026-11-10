@@ -1,9 +1,36 @@
 import { cn } from "@/lib/utils";
 
 interface RootLogoProps {
-  /** Lado del cuadrado de la "R" en px; el resto del logo escala en proporción. */
+  /** Lado del cuadrado de la "r" en px; el resto del logo escala en proporción. */
   size?: number;
   className?: string;
+}
+
+interface RootMarkProps {
+  /** Lado del isotipo cuadrado en px. */
+  size?: number;
+  className?: string;
+}
+
+/** Isotipo de root: la "r" negra dentro del cuadrado lima. */
+export function RootMark({ size = 30, className }: RootMarkProps) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        "root-logo-type inline-flex shrink-0 items-center justify-center bg-accent text-on-accent",
+        className,
+      )}
+      style={{
+        width: size,
+        height: size,
+        borderRadius: Math.round(size * 0.26),
+        fontSize: Math.round(size * 0.7),
+      }}
+    >
+      r
+    </span>
+  );
 }
 
 /**
@@ -17,13 +44,7 @@ export function RootLogo({ size = 30, className }: RootLogoProps) {
       className={cn("inline-flex items-center", className)}
       style={{ gap: Math.max(2, Math.round(size * 0.1)) }}
     >
-      <span
-        aria-hidden="true"
-        className="root-logo-type shrink-0 bg-accent text-on-accent flex items-center justify-center"
-        style={{ width: size, height: size, borderRadius: Math.round(size * 0.26), fontSize: Math.round(size * 0.74) }}
-      >
-        r
-      </span>
+      <RootMark size={size} />
       <span
         aria-hidden="true"
         className="root-logo-type text-ink tracking-[0.02em]"

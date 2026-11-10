@@ -48,8 +48,9 @@ export function EventAttendanceVote({
     onSuccess: (response) => {
       setGoingCount(response.goingCount);
       setNotGoingCount(response.notGoingCount);
-      setStatus(response.userRsvp);
-      onChange?.(response);
+      const normalizedStatus = response.userRsvp || null;
+      setStatus(normalizedStatus);
+      onChange?.({ ...response, userRsvp: normalizedStatus });
       void refreshLiveStatus?.().catch(() => undefined);
     },
   });
@@ -59,9 +60,20 @@ export function EventAttendanceVote({
       setShowLogin(true);
       return;
     }
-    if (!rsvp.isLoading) {
-      void rsvp.mutate(status === nextStatus ? null : nextStatus).catch(() => undefined);
-    }
+    if (rsvp.isLoading) return;
+
+    const previous = { status, goingCount, notGoingCount };
+    const targetStatus = status === nextStatus ? null : nextStatus;
+
+    setStatus(targetStatus);
+    setGoingCount((count) => Math.max(0, count + (targetStatus === "going" ? 1 : 0) - (status === "going" ? 1 : 0)));
+    setNotGoingCount((count) => Math.max(0, count + (targetStatus === "not_going" ? 1 : 0) - (status === "not_going" ? 1 : 0)));
+
+    void rsvp.mutate(targetStatus).catch(() => {
+      setStatus(previous.status);
+      setGoingCount(previous.goingCount);
+      setNotGoingCount(previous.notGoingCount);
+    });
   };
 
   return (
@@ -85,6 +97,7 @@ export function EventAttendanceVote({
         </button>
         <button
           type="button"
+          aria-label={status === "not_going" ? "Desmarcar No voy" : "Marcar No voy"}
           aria-pressed={status === "not_going"}
           onClick={() => selectStatus("not_going")}
           disabled={rsvp.isLoading}
