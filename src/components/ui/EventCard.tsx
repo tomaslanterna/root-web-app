@@ -9,7 +9,7 @@ import { parseEventRealDate } from "@/hooks/useDanceSync";
 
 interface EventCardProps {
   event: Event;
-  /** "featured": tarjeta de la fila de destacados que se achica según la variable CSS --p (0 a 1). */
+  /** "featured": tarjeta de la fila de destacados que se achica en 2 fases con el scroll (--p-footer y --p-card). */
   variant?: "swimlane" | "full" | "list" | "featured";
   className?: string;
 }
@@ -98,9 +98,9 @@ export function EventCard({ event, variant = "swimlane", className }: EventCardP
         className,
       )}
       style={isFeatured ? {
-        // Ancho de una columna de la grilla → cuadrado de 56px.
-        width: "calc((100% - (var(--cols) - 1) * var(--gap)) / var(--cols) * (1 - var(--p, 0)) + 56px * var(--p, 0))",
-        borderRadius: "calc(16px - 4px * var(--p, 0))",
+        // Fase 2: el cuadrado de la imagen se achica de ancho de columna → cuadrado de 56px.
+        width: "calc((100% - (var(--cols) - 1) * var(--gap)) / var(--cols) * (1 - var(--p-card, 0)) + 56px * var(--p-card, 0))",
+        borderRadius: "calc(16px - 4px * var(--p-card, 0))",
       } : undefined}
     >
       <div
@@ -110,7 +110,7 @@ export function EventCard({ event, variant = "swimlane", className }: EventCardP
         {event.genre && (
           <span
             className="label-mono px-2 py-[5px] rounded-full bg-bg/80 text-ink"
-            style={isFeatured ? { opacity: "calc(1 - var(--p, 0) * 3)" } : undefined}
+            style={isFeatured ? { opacity: "calc(1 - var(--p-footer, 0) * 3)" } : undefined}
           >
             {event.genre}
           </span>
@@ -121,10 +121,10 @@ export function EventCard({ event, variant = "swimlane", className }: EventCardP
         aria-hidden={isFeatured ? true : undefined}
         className={cn("p-3 flex flex-col gap-[5px]", isFeatured ? "flex-none overflow-hidden" : "flex-1")}
         style={isFeatured ? {
-          // El texto se cierra y se desvanece: al final solo queda la imagen.
-          height: "calc(137px * (1 - var(--p, 0)))",
-          paddingBlock: "calc(12px * (1 - var(--p, 0)))",
-          opacity: "calc(1 - var(--p, 0) * 2.5)",
+          // Fase 1: el footer de la card se achica y se desvanece hasta que queda solo el cuadrado de la imagen.
+          height: "calc(137px * (1 - var(--p-footer, 0)))",
+          paddingBlock: "calc(12px * (1 - var(--p-footer, 0)))",
+          opacity: "calc(1 - var(--p-footer, 0) * 2.5)",
         } : undefined}
       >
         <span className="label-mono text-accent">{whenLabel}</span>

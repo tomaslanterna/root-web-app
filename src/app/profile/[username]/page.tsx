@@ -1,15 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button";
-import { Award, ChevronLeft, ChevronRight, Grid3X3, Loader2, Plus, ShieldCheck } from "lucide-react";
+import { Award, Check, ChevronLeft, ChevronRight, Grid3X3, Loader2, Plus, Settings, Share2, ShieldCheck } from "lucide-react";
 import { MOCK_POSTS } from "@/lib/mocks";
 import { CreatePhotoModal } from "@/components/profile/CreatePhotoModal";
-import { SearchButton } from "@/components/ui/SearchButton";
 import { cn, copyTextToClipboard, isValidImageUrl } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { usersApi } from "@/services/users";
@@ -43,10 +42,30 @@ export default function UserProfilePage() {
   const [activeTab, setActiveTab] = useState<string>(badgeToOpen ? "Insignias" : "Posts");
   const [shareCopied, setShareCopied] = useState(false);
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [userPosts, setUserPosts] = useState<Post[]>([]);
 
   const isMyProfile = Boolean(currentUser?.id && profileUser?.id === currentUser.id);
+
+  const handleStartUpload = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith("image/")) {
+        return;
+      }
+      setSelectedFile(file);
+      setIsCreatePostOpen(true);
+    }
+  };
 
   const handlePostCreated = (newPost: Post) => {
     setUserPosts((prev) => {
@@ -246,16 +265,28 @@ export default function UserProfilePage() {
           </button>
         )}
         <h1 className="font-display text-[32px] m-0 flex-1 min-w-0">Perfil</h1>
-        <SearchButton />
+        <button
+          type="button"
+          onClick={() => void shareProfile()}
+          aria-label={shareCopied ? "Enlace copiado" : "Compartir perfil"}
+          title={shareCopied ? "Enlace copiado" : "Compartir perfil"}
+          className={cn(squareButton, shareCopied && "text-accent border-accent/40 bg-accent/10")}
+        >
+          {shareCopied ? (
+            <Check className="size-5 text-accent" aria-hidden="true" />
+          ) : (
+            <Share2 className="size-5" aria-hidden="true" />
+          )}
+        </button>
         {isMyProfile && (
-          <button
-            type="button"
-            onClick={() => setIsCreatePostOpen(true)}
-            aria-label="Subir foto"
-            className="size-11 shrink-0 rounded-control bg-accent text-on-accent flex items-center justify-center hover:bg-accent-hover transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          <Link
+            href="/settings"
+            aria-label="Configuración"
+            title="Configuración"
+            className={squareButton}
           >
-            <Plus className="size-5" strokeWidth={2.4} aria-hidden="true" />
-          </button>
+            <Settings className="size-5" aria-hidden="true" />
+          </Link>
         )}
         </div>
       </header>
@@ -307,42 +338,33 @@ export default function UserProfilePage() {
         </div>
       </div>
 
-      <div className="w-full max-w-3xl mx-auto px-4 pt-4 grid grid-cols-2 gap-2">
-        {isMyProfile ? (
-          <>
-            <Link href="/settings" className={actionButton}>Configuración</Link>
-            <button type="button" onClick={() => void shareProfile()} className={actionButton}>
-              {shareCopied ? "Enlace copiado" : "Compartir perfil"}
-            </button>
-          </>
-        ) : (
-          <>
-            <Button
-              onClick={toggleFollow}
-              disabled={isFollowingLoading || isUnfollowingLoading}
-              variant={isFollowing ? "secondary" : "primary"}
-              aria-pressed={isFollowing}
-              className="h-11 rounded-xl text-sm"
-            >
-              {isFollowing ? "Siguiendo" : "Seguir"}
-            </Button>
-            <button
-              type="button"
-              onClick={async () => {
-                try {
-                  const data = await usersApi.createDirectChat(profileUser.id);
-                  router.push(`/chat/${data.id}`);
-                } catch (err) {
-                  console.error("Error creating chat", err);
-                }
-              }}
-              className={actionButton}
-            >
-              Mensaje
-            </button>
-          </>
-        )}
-      </div>
+      {!isMyProfile && (
+        <div className="w-full max-w-3xl mx-auto px-4 pt-4 grid grid-cols-2 gap-2">
+          <Button
+            onClick={toggleFollow}
+            disabled={isFollowingLoading || isUnfollowingLoading}
+            variant={isFollowing ? "secondary" : "primary"}
+            aria-pressed={isFollowing}
+            className="h-11 rounded-xl text-sm"
+          >
+            {isFollowing ? "Siguiendo" : "Seguir"}
+          </Button>
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                const data = await usersApi.createDirectChat(profileUser.id);
+                router.push(`/chat/${data.id}`);
+              } catch (err) {
+                console.error("Error creating chat", err);
+              }
+            }}
+            className={actionButton}
+          >
+            Mensaje
+          </button>
+        </div>
+      )}
 
       {isMyProfile && !profileUser.isKycVerified && (
         <div className="w-full max-w-3xl mx-auto px-4 pt-3">
@@ -396,17 +418,40 @@ export default function UserProfilePage() {
           <ProfilePostsGrid
             posts={userPosts}
             isMyProfile={isMyProfile}
-            onCreatePost={() => setIsCreatePostOpen(true)}
+            onCreatePost={handleStartUpload}
           />
         )}
       </div>
 
       {isMyProfile && (
-        <CreatePhotoModal
-          isOpen={isCreatePostOpen}
-          onClose={() => setIsCreatePostOpen(false)}
-          onPostCreated={handlePostCreated}
-        />
+        <>
+          <button
+            type="button"
+            onClick={handleStartUpload}
+            aria-label="Subir foto"
+            className="fixed right-5 bottom-[calc(var(--root-mobile-nav-clearance)+0.75rem)] md:bottom-8 md:right-8 z-40 size-14 rounded-full bg-accent text-on-accent shadow-[0_8px_30px_rgba(212,255,0,0.35)] flex items-center justify-center hover:scale-105 active:scale-95 transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent cursor-pointer"
+          >
+            <Plus className="size-7" strokeWidth={2.4} aria-hidden="true" />
+          </button>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+          <CreatePhotoModal
+            isOpen={isCreatePostOpen}
+            initialFile={selectedFile}
+            onClose={() => {
+              setIsCreatePostOpen(false);
+              setSelectedFile(null);
+            }}
+            onPostCreated={handlePostCreated}
+            onPickAnother={handleStartUpload}
+          />
+        </>
       )}
     </div>
   );

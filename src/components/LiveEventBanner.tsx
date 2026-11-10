@@ -191,7 +191,7 @@ export function LiveEventBanner() {
     <Link
       href={targetHref}
       aria-label={`${liveEvent.title}. ${headerTitle}.`}
-      className="group block w-full p-3 sm:p-3.5 rounded-card bg-surface border border-line text-ink transition-[background-color,border-color,transform] duration-200 hover:bg-surface-2 active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-accent motion-safe:animate-fade-in shadow-lg"
+      className="group block w-full mt-4 md:mt-6 mb-4 p-3 sm:p-3.5 rounded-card bg-surface border border-line text-ink transition-[background-color,border-color,transform] duration-200 hover:bg-surface-2 active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-accent motion-safe:animate-fade-in shadow-lg"
     >
       {/* 1. Header superior */}
       <div className="flex items-center justify-between gap-2 mb-2">
