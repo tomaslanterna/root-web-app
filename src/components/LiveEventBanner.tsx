@@ -2,18 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import {
-  Clock,
-  Ticket,
-  MapPin,
-  Music,
-  Sparkles,
-  Flame,
-  ChevronRight,
-  ArrowUpRight,
-} from "lucide-react";
-import { DancerFigureIcon } from "@/components/ui/DancerIcon";
-import { cn } from "@/lib/utils";
+import { Clock, Music, ChevronRight } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
 import { useDanceContext } from "@/context/DanceContext";
 import { parseEventRealDate } from "@/hooks/useDanceSync";
@@ -43,10 +32,43 @@ function formatCountdown(msRemaining: number): string {
   return `${String(hours).padStart(2, "0")}:${minutes}:${seconds}`;
 }
 
-export function LiveEventBanner() {
-  const { liveEvent, isAtVenue, totalSessionSteps } = useDanceContext();
+export interface LiveEventBannerProps {
+  forcedMode?: "before_start" | "started_away" | "dancing";
+  mockEvent?: {
+    id?: string;
+    title: string;
+    bannerUrl?: string;
+    date?: string;
+  };
+  mockSteps?: number;
+}
+
+export function LiveEventBanner({
+  forcedMode,
+  mockEvent,
+  mockSteps,
+}: LiveEventBannerProps = {}) {
+  const context = useDanceContext();
+  const liveEvent = mockEvent
+    ? {
+        id: mockEvent.id || "preview-id",
+        title: mockEvent.title,
+        bannerUrl: mockEvent.bannerUrl,
+        date: mockEvent.date || new Date().toISOString(),
+        lineup: [],
+      }
+    : context.liveEvent;
+
+  const isAtVenue = forcedMode ? forcedMode === "dancing" : context.isAtVenue;
+  const totalSessionSteps = mockSteps ?? context.totalSessionSteps;
+
+  const [mounted, setMounted] = useState(false);
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
   const [imageError, setImageError] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     setImageError(false);
@@ -54,7 +76,7 @@ export function LiveEventBanner() {
 
   useEffect(() => {
     if (!liveEvent) {
-      if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === "ios") {
+      if (!forcedMode && Capacitor.isNativePlatform() && Capacitor.getPlatform() === "ios") {
         void NativePedometer.stopLiveActivity().catch(() => {});
       }
       return;
@@ -63,50 +85,62 @@ export function LiveEventBanner() {
       setNowMs(Date.now());
     }, 1000);
     return () => clearInterval(timer);
-  }, [liveEvent]);
+  }, [liveEvent, forcedMode]);
 
   const eventStartForEffect = liveEvent ? parseEventRealDate(liveEvent.date) : null;
   const eventStartMsForEffect =
     eventStartForEffect && !Number.isNaN(eventStartForEffect.getTime())
       ? eventStartForEffect.getTime()
       : 0;
-  const isBeforeStartForEffect = eventStartMsForEffect > nowMs;
-  const modeForEffect: "before_start" | "started_away" | "dancing" =
-    isBeforeStartForEffect
+  const isBeforeStartForEffect = forcedMode
+    ? forcedMode === "before_start"
+    : eventStartMsForEffect > nowMs;
+  const modeForEffect: "before_start" | "started_away" | "dancing" = forcedMode
+    ? forcedMode
+    : isBeforeStartForEffect
       ? "before_start"
       : isAtVenue
         ? "dancing"
         : "started_away";
 
+  // Ventana de 5 horas para la Live Activity en Pantalla de Bloqueo
+  const FIVE_HOURS_MS = 5 * 60 * 60 * 1000;
+  const msUntilStartForLockScreen = eventStartMsForEffect - nowMs;
+  const isWithinFiveHours = msUntilStartForLockScreen <= FIVE_HOURS_MS;
+
   // Sincronizar con el Widget de Pantalla de Bloqueo de iOS (Live Activity)
   useEffect(() => {
+    if (forcedMode) return; // No sobreescribir la Live Activity real con datos mock
     if (!liveEvent) return;
     if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== "ios") return;
 
+    // Si aún no arrancó el evento pero faltan más de 5 horas, la Live Activity en
+    // pantalla de bloqueo y Dynamic Island no debe mostrarse (se finaliza si estaba activa).
+    // En la app se sigue mostrando desde el comienzo del día sin restricción.
+    if (modeForEffect === "before_start" && !isWithinFiveHours) {
+      void NativePedometer.stopLiveActivity().catch(() => {});
+      return;
+    }
+
     const headerTitleSync =
       modeForEffect === "before_start"
-        ? "¡Es hoy! Tu evento de hoy"
+        ? "TU EVENTO DE HOY"
         : modeForEffect === "dancing"
-          ? "En vivo"
-          : "El evento ya arrancó";
-
-    const lineupSync =
-      liveEvent.lineup && liveEvent.lineup.length > 0
-        ? liveEvent.lineup.join(", ")
-        : liveEvent.genre || "";
+          ? "EN VIVO"
+          : "EL EVENTO YA ARRANCÓ";
 
     const subtitleSync =
       modeForEffect === "before_start"
-        ? lineupSync || "¡Es hoy! Preparate para esta noche"
-        : modeForEffect === "dancing"
-          ? lineupSync || "¡Ponete a bailar, es el momento!"
-          : "El evento ya arrancó, ¡no te olvides de ir!";
+        ? "¡Es hoy! Preparate para esta noche"
+        : modeForEffect === "started_away"
+          ? "¡No te lo pierdas!"
+          : "";
 
     const footerSync =
       modeForEffect === "dancing"
         ? "Ver estadísticas de baile"
         : modeForEffect === "before_start"
-          ? "Ver detalles del evento"
+          ? "Ver entradas y detalles"
           : "Ver ubicación del evento";
 
     void NativePedometer.syncLiveActivity({
@@ -131,54 +165,47 @@ export function LiveEventBanner() {
   }, [
     liveEvent,
     modeForEffect,
+    isWithinFiveHours,
     totalSessionSteps,
     eventStartMsForEffect,
+    forcedMode,
   ]);
 
   if (!liveEvent) return null;
 
   const eventStart = parseEventRealDate(liveEvent.date);
-  const eventEnd = liveEvent.endDate
-    ? parseEventRealDate(liveEvent.endDate)
+  const eventEnd = (liveEvent as { endDate?: string | null }).endDate
+    ? parseEventRealDate((liveEvent as { endDate?: string }).endDate!)
     : new Date(eventStart.getTime() + 12 * 60 * 60 * 1000);
 
-  if (!Number.isNaN(eventEnd.getTime()) && nowMs > eventEnd.getTime()) {
+  if (!forcedMode && !Number.isNaN(eventEnd.getTime()) && nowMs > eventEnd.getTime()) {
     return null;
   }
 
-  const msUntilStart = !Number.isNaN(eventStart.getTime())
+  const rawMsUntilStart = !Number.isNaN(eventStart.getTime())
     ? eventStart.getTime() - nowMs
     : 0;
-  const isBeforeStart = msUntilStart > 0;
+
+  const msUntilStart =
+    forcedMode === "before_start" && rawMsUntilStart <= 0
+      ? 2 * 3600 * 1000 + 14 * 60 * 1000 + 45 * 1000
+      : rawMsUntilStart;
+
+  const isBeforeStart = forcedMode
+    ? forcedMode === "before_start"
+    : msUntilStart > 0;
 
   // Estados:
   // 1) before_start: El evento todavía no arrancó (cuenta regresiva).
   // 2) started_away: El evento ya arrancó pero el usuario aún no llegó al predio.
   // 3) dancing: El evento arrancó y el usuario está en el predio (sumando pasos).
-  const mode: "before_start" | "started_away" | "dancing" = isBeforeStart
-    ? "before_start"
-    : isAtVenue
-      ? "dancing"
-      : "started_away";
-
-  const headerTitle =
-    mode === "before_start"
-      ? "TU EVENTO DE HOY"
-      : mode === "dancing"
-        ? "EN VIVO"
-        : "EL EVENTO YA ARRANCÓ";
-
-  const lineupText =
-    liveEvent.lineup && liveEvent.lineup.length > 0
-      ? liveEvent.lineup.join(", ")
-      : liveEvent.genre || "";
-
-  const subtitleText =
-    mode === "before_start"
-      ? lineupText || "¡Es hoy! Preparate para esta noche"
-      : mode === "started_away"
-        ? "El evento ya arrancó · ¡Andá a la pista!"
-        : "";
+  const mode: "before_start" | "started_away" | "dancing" = forcedMode
+    ? forcedMode
+    : isBeforeStart
+      ? "before_start"
+      : isAtVenue
+        ? "dancing"
+        : "started_away";
 
   const targetHref = mode === "dancing" ? "/dance-ranker" : `/events/${liveEvent.id}`;
   const imageUrl =
@@ -190,180 +217,107 @@ export function LiveEventBanner() {
   return (
     <Link
       href={targetHref}
-      aria-label={`${liveEvent.title}. ${headerTitle}.`}
-      className="group block w-full mt-4 md:mt-6 mb-4 p-3 sm:p-3.5 rounded-card bg-surface border border-line text-ink transition-[background-color,border-color,transform] duration-200 hover:bg-surface-2 active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-accent motion-safe:animate-fade-in shadow-lg"
+      aria-label={`${liveEvent.title}.`}
+      className="group flex items-center gap-2.5 sm:gap-3 w-full my-2.5 px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-2xl bg-surface border border-line text-ink transition-[background-color,border-color,transform] duration-200 hover:bg-surface-2 active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-accent motion-safe:animate-fade-in shadow-sm min-h-[52px]"
     >
-      {/* 1. Header superior */}
-      <div className="flex items-center justify-between gap-2 mb-2">
-        <div className="flex items-center gap-2 min-w-0">
-          {mode === "dancing" || mode === "started_away" ? (
-            <span className="relative flex size-2.5 shrink-0" aria-hidden="true">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-live opacity-75" />
-              <span className="relative inline-flex rounded-full size-2.5 bg-live" />
-            </span>
-          ) : (
-            <Sparkles className="size-3.5 text-accent shrink-0" aria-hidden="true" />
-          )}
-          <span
-            className={cn(
-              "tech-label text-xs tracking-wider uppercase truncate",
-              mode === "dancing" || mode === "started_away" ? "text-live" : "text-ink",
-            )}
-          >
-            {headerTitle}
-          </span>
-        </div>
-
-        {/* Texto superior derecho (sin tag/cápsula) */}
-        {mode === "dancing" ? (
-          <span className="shrink-0 text-[11px] sm:text-xs font-black uppercase tracking-wider text-accent flex items-center gap-1.5">
-            <Flame className="size-3.5 shrink-0 text-accent" aria-hidden="true" />
-            <span>A LA PISTA A BAILAR</span>
-          </span>
-        ) : mode === "started_away" ? (
-          <span className="shrink-0 text-[11px] sm:text-xs font-black uppercase tracking-wider text-live flex items-center gap-1.5">
-            <MapPin className="size-3.5 shrink-0 text-live" aria-hidden="true" />
-            <span>¡NO TE OLVIDES DE IR!</span>
-          </span>
+      {/* 1. Flyer cuadrado compacto */}
+      <div className="relative size-11 sm:size-12 shrink-0 rounded-xl overflow-hidden bg-surface-2 border border-line/60 shadow-inner">
+        {imageUrl && !imageError ? (
+          <img
+            src={imageUrl}
+            alt={liveEvent.title}
+            onError={() => setImageError(true)}
+            className="size-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
         ) : (
-          <span className="shrink-0 text-[11px] sm:text-xs font-black uppercase tracking-wider text-accent flex items-center gap-1.5">
-            <Clock className="size-3.5 shrink-0 text-accent" aria-hidden="true" />
-            <span>
-              ARRANCA EN <span className="font-mono">{formatCountdown(msUntilStart)}</span>
-            </span>
-          </span>
+          <div className="size-full flex items-center justify-center bg-gradient-to-br from-surface-2 to-surface text-accent">
+            <Music className="size-4" aria-hidden="true" />
+          </div>
         )}
       </div>
 
-      {/* 2. Cuerpo central: Flyer + Info + Pasos / Métrica */}
-      <div className="flex items-center gap-3">
-        {/* Flyer cuadrado con fallback */}
-        <div className="relative size-14 sm:size-16 shrink-0 rounded-xl overflow-hidden bg-surface-2 border border-line shadow-inner">
-          {imageUrl && !imageError ? (
-            <img
-              src={imageUrl}
-              alt={liveEvent.title}
-              onError={() => setImageError(true)}
-              className="size-full object-cover group-hover:scale-105 transition-transform duration-300"
-            />
-          ) : (
-            <div className="size-full flex flex-col items-center justify-center bg-gradient-to-br from-surface-2 to-surface text-accent">
-              <Music className="size-5" aria-hidden="true" />
-            </div>
-          )}
-        </div>
-
-        {/* Info central */}
-        <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-          <div className="flex items-center gap-1.5 text-xs text-ink-2">
-            <Clock className="size-3.5 shrink-0 text-accent" aria-hidden="true" />
-            <span className="font-bold text-ink">{startHour}</span>
-            {mode === "started_away" && (
-              <span className="text-live font-bold uppercase text-[10px] ml-1">
-                · ¡Arrancó!
-              </span>
-            )}
-          </div>
-
-          <h3 className="text-sm font-black text-ink uppercase tracking-tight truncate leading-tight">
-            {liveEvent.title}
-          </h3>
-
-          {mode === "before_start" ? (
-            <p className="text-xs truncate font-semibold uppercase leading-tight text-ink-2">
-              {subtitleText}
-            </p>
-          ) : mode === "started_away" ? (
-            <p className="text-xs truncate font-semibold uppercase leading-tight text-live">
-              {subtitleText}
-            </p>
-          ) : lineupText ? (
-            <p className="text-xs truncate font-medium uppercase leading-tight text-ink-2">
-              {lineupText}
-            </p>
-          ) : null}
-        </div>
-
-        {/* Columna derecha: Pasos en num-display / Métrica */}
+      {/* 2. Info central */}
+      <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5">
         {mode === "dancing" ? (
-          <div className="flex flex-col items-end justify-center shrink-0 pl-2 text-right">
-            <div className="flex items-baseline gap-1">
-              <span className="num-display text-2xl sm:text-3xl text-accent leading-none tracking-tight">
+          <>
+            {/* Estado 3 (Cuando ya ingresó): punto rojo tintineando con "En vivo" */}
+            <div className="flex items-center gap-1.5 text-xs leading-none">
+              <span className="relative flex size-2 shrink-0" aria-hidden="true">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-live opacity-75" />
+                <span className="relative inline-flex rounded-full size-2 bg-live" />
+              </span>
+              <span className="text-[11px] font-black uppercase tracking-wider text-live">
+                En vivo
+              </span>
+            </div>
+            {/* Abajo el nombre del evento */}
+            <h3 className="text-xs sm:text-sm font-black text-ink uppercase tracking-tight truncate leading-tight">
+              {liveEvent.title}
+            </h3>
+          </>
+        ) : mode === "started_away" ? (
+          <>
+            {/* Estado 2 (Ya arrancó pero no está ahí): solo el nombre del evento (sin hora, sin textos debajo) */}
+            <h3 className="text-xs sm:text-sm font-black text-ink uppercase tracking-tight truncate leading-tight">
+              {liveEvent.title}
+            </h3>
+          </>
+        ) : (
+          <>
+            {/* Estado 1 (Antes de ir a la fiesta): hora tal cual está ahora y abajo el nombre */}
+            <div className="flex items-center gap-1.5 text-xs text-ink-2 leading-none">
+              <Clock className="size-3 text-accent shrink-0" aria-hidden="true" />
+              <span className="font-bold text-ink">{startHour}</span>
+            </div>
+            <h3 className="text-xs sm:text-sm font-black text-ink uppercase tracking-tight truncate leading-tight">
+              {liveEvent.title}
+            </h3>
+          </>
+        )}
+      </div>
+
+      {/* 3. Lado derecho */}
+      <div className="flex items-center gap-1.5 shrink-0 pl-1 text-right">
+        {mode === "dancing" ? (
+          <>
+            {/* Estado 3: pasos con la palabra "pasos" abajo y al lado chevron */}
+            <div className="flex flex-col items-end justify-center">
+              <span className="num-display text-lg sm:text-xl text-accent leading-none font-black tracking-tight">
                 {totalSessionSteps.toLocaleString("en-US")}
               </span>
-              <span className="num-display text-xs text-accent/80 uppercase">
+              <span className="text-[8px] sm:text-[9px] font-bold text-ink-2 uppercase tracking-wider mt-0.5">
                 pasos
               </span>
             </div>
-            <span className="num-display text-[9px] text-ink-2 uppercase tracking-wider mt-0.5">
-              en la pista
-            </span>
-          </div>
-        ) : mode === "started_away" ? (
-          <div className="flex flex-col items-end justify-center shrink-0 pl-2 text-right">
-            {totalSessionSteps > 0 ? (
-              <>
-                <div className="flex items-baseline gap-1">
-                  <span className="num-display text-xl sm:text-2xl text-live leading-none">
-                    {totalSessionSteps.toLocaleString("en-US")}
-                  </span>
-                  <span className="num-display text-xs text-live/80 uppercase">
-                    pasos
-                  </span>
-                </div>
-                <span className="num-display text-[9px] text-ink-2 uppercase tracking-wider mt-0.5">
-                  Andá a la pista
-                </span>
-              </>
-            ) : (
-              <>
-                <span className="num-display text-lg sm:text-xl text-live leading-none tracking-tight uppercase">
-                  Andá
-                </span>
-                <span className="num-display text-[9px] text-ink-2 uppercase tracking-wider mt-0.5">
-                  a la fiesta
-                </span>
-              </>
-            )}
-          </div>
-        ) : (
-          <div className="hidden sm:flex flex-col items-end justify-center shrink-0 pl-2 text-right">
-            <span className="num-display text-xl sm:text-2xl text-accent leading-none tracking-tight">
-              {formatCountdown(msUntilStart)}
-            </span>
-            <span className="num-display text-[9px] text-ink-2 uppercase tracking-wider mt-0.5">
-              cuenta regresiva
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* 3. Footer inferior con acción */}
-      <div className="mt-2 pt-0.5 flex items-center justify-center gap-1.5 text-xs font-bold text-ink-2 group-hover:text-ink transition-colors">
-        {mode === "dancing" ? (
-          <>
-            <DancerFigureIcon className="size-3.5 text-accent" aria-hidden="true" />
-            <span>Ver estadísticas de baile</span>
-            <ArrowUpRight
-              className="size-3.5 text-ink-3 group-hover:text-accent transition-colors"
+            <ChevronRight
+              className="size-4 text-accent/80 group-hover:text-accent transition-colors shrink-0"
               aria-hidden="true"
             />
           </>
         ) : mode === "started_away" ? (
           <>
-            <MapPin className="size-3.5 text-live" aria-hidden="true" />
-            <span>Ver ubicación del evento</span>
+            {/* Estado 2: solo "¡No te lo pierdas!" donde estaba la cuenta regresiva en rojo */}
+            <span className="text-xs sm:text-sm font-black uppercase tracking-tight text-live">
+              ¡No te lo pierdas!
+            </span>
             <ChevronRight
-              className="size-3.5 text-ink-3 group-hover:text-live transition-colors"
+              className="size-4 text-live/80 group-hover:text-live transition-colors shrink-0"
               aria-hidden="true"
             />
           </>
         ) : (
           <>
-            <Ticket className="size-3.5 text-accent" aria-hidden="true" />
-            <span>Ver entradas y detalles</span>
+            {/* Estado 1: cuenta regresiva donde está */}
+            <div className="flex flex-col items-end justify-center">
+              <span className="num-display text-sm sm:text-base text-accent leading-none font-black tracking-tight font-mono">
+                {mounted ? formatCountdown(msUntilStart) : "02:14:45"}
+              </span>
+              <span className="text-[8px] sm:text-[9px] font-bold text-ink-3 uppercase tracking-wider mt-0.5">
+                comienza en
+              </span>
+            </div>
             <ChevronRight
-              className="size-3.5 text-ink-3 group-hover:text-accent transition-colors"
+              className="size-4 text-ink-3 group-hover:text-accent transition-colors shrink-0"
               aria-hidden="true"
             />
           </>

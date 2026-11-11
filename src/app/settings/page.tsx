@@ -167,8 +167,8 @@ export default function SettingsPage() {
           </div>
           {push.state === 'unsupported' ? (
             <p className="text-xs text-ink-3">
-              Disponible en la app instalada en Android. Por ahora no se activa
-              desde el navegador ni en iPhone.
+              Disponible en la app instalada para celular (Android / iOS). Por ahora no se activa
+              desde el navegador web.
             </p>
           ) : (
             <Button

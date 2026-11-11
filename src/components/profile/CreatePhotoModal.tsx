@@ -387,21 +387,9 @@ export function CreatePhotoModal({
                   value={caption}
                   onChange={(e) => setCaption(e.target.value)}
                   placeholder="Escribí un pie de foto..."
-                  className="w-full resize-none rounded-control border border-line bg-surface-2 p-4 text-sm leading-relaxed text-ink outline-none placeholder:text-ink-3 focus:border-accent transition-colors shadow-sm"
+                  className="w-full resize-none rounded-control border border-line bg-surface-2 p-4 text-base sm:text-sm leading-relaxed text-ink outline-none placeholder:text-ink-3 focus:border-accent transition-colors shadow-sm"
                 />
-                <div className="flex items-center justify-between text-xs text-ink-3 pt-1">
-                  <div className="flex items-center gap-1.5">
-                    {["🎧", "⚡", "🖤", "🔊", "🔥"].map((emoji) => (
-                      <button
-                        key={emoji}
-                        type="button"
-                        onClick={() => setCaption((prev) => prev + emoji)}
-                        className="rounded-full bg-surface-2 border border-line px-2.5 py-1 hover:bg-white/10 transition-colors text-xs cursor-pointer"
-                      >
-                        {emoji}
-                      </button>
-                    ))}
-                  </div>
+                <div className="flex justify-end text-xs text-ink-3 pt-1">
                   <span className="num-mono text-[11px]">{caption.length} / 2200</span>
                 </div>
               </div>

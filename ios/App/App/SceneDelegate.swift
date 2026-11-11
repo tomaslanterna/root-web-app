@@ -261,11 +261,33 @@ public class NativePedometerPlugin: CAPPlugin, CAPBridgedPlugin, CLLocationManag
         let venueLabel = call.getString("venueLabel") ?? eventTitle
         let bannerUrl = call.getString("bannerUrl")
         let mode = call.getString("mode") ?? "before_start"
-        let headerTitle = call.getString("headerTitle") ?? "¡Es hoy! Tu evento de hoy"
+        let headerTitle = call.getString("headerTitle") ?? "TU EVENTO DE HOY"
         let requestedSteps = call.getInt("stepsCount") ?? 0
         let subtitle = call.getString("subtitle") ?? ""
-        let footerLabel = call.getString("footerLabel") ?? "Ver detalles del evento"
+        let footerLabel = call.getString("footerLabel") ?? "Ver entradas y detalles"
         let eventStartEpochMs = call.getDouble("eventStartEpochMs") ?? (Date().timeIntervalSince1970 * 1000.0)
+
+        // Ventana de 5 horas: la Live Activity con cuenta regresiva en Pantalla de Bloqueo
+        // únicamente se activa cuando faltan 5 horas o menos para el inicio del evento.
+        // En la app se muestra todo el día.
+        let fiveHoursMs: Double = 5.0 * 60.0 * 60.0 * 1000.0
+        let nowEpochMs = Date().timeIntervalSince1970 * 1000.0
+        let msUntilStart = eventStartEpochMs - nowEpochMs
+
+        if mode == "before_start" && msUntilStart > fiveHoursMs {
+            Task {
+                for activity in Activity<RootLiveEventAttributes>.activities {
+                    await activity.end(nil, dismissalPolicy: .immediate)
+                }
+            }
+            call.resolve([
+                "supported": true,
+                "started": false,
+                "reason": "more_than_5_hours_away",
+                "msUntilStart": msUntilStart
+            ])
+            return
+        }
 
         let previousSteps = (latestLiveActivityState?.eventId == eventId) ? (latestLiveActivityState?.stepsCount ?? 0) : 0
         let safeSteps = max(requestedSteps, previousSteps)
