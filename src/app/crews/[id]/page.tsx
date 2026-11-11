@@ -13,6 +13,7 @@ import { CrewMonogram } from "@/components/match/CrewMonogram";
 import { cn } from "@/lib/utils";
 import { parseEventRealDate } from "@/hooks/useDanceSync";
 import { AddCrewMembersModal, type FriendToInvite } from "@/components/match/AddCrewMembersModal";
+import { CrewDetailSkeleton } from "@/components/match/CrewDetailSkeleton";
 
 interface LeaderboardEntry {
   userId: string;
@@ -203,11 +204,7 @@ export default function CrewDetailPage() {
     !!user?.id && allTimeMembers.some((m) => m.userId === user.id);
 
   if (isLoading) {
-    return (
-      <div className="min-h-[100dvh] bg-bg flex items-center justify-center">
-        <Loader2 className="size-8 animate-spin text-accent" aria-label="Cargando crew" />
-      </div>
-    );
+    return <CrewDetailSkeleton />;
   }
 
   if (!crew) {

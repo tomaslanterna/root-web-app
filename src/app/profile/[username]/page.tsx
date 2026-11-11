@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Award, Check, ChevronLeft, ChevronRight, Grid3X3, Loader2, Plus, Settings, Share2, ShieldCheck } from "lucide-react";
 import { MOCK_POSTS } from "@/lib/mocks";
 import { CreatePhotoModal } from "@/components/profile/CreatePhotoModal";
+import { ProfileSkeleton } from "@/components/profile/ProfileSkeleton";
 import { cn, copyTextToClipboard, isValidImageUrl } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { usersApi } from "@/services/users";
@@ -207,11 +208,7 @@ export default function UserProfilePage() {
   };
 
   if (authLoading || isLoadingProfile) {
-    return (
-      <div className="flex items-center justify-center min-h-[100dvh] bg-bg">
-        <Loader2 className="size-8 animate-spin text-accent" aria-label="Cargando perfil" />
-      </div>
-    );
+    return <ProfileSkeleton />;
   }
 
   if (error || !profileUser) {

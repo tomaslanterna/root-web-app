@@ -10,6 +10,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useChat, useVisibleMessageReceipts, type ChatMessage } from "@/hooks/useChat";
 import { useChatInfo } from "@/hooks/useChatDirectory";
 import { resolveDeepLinkPath } from "@/lib/deepLinks";
+import { RootLoader } from "@/components/ui/RootLoader";
 
 export function ChatConversation({ chatId }: { chatId: string }) {
   const router = useRouter();
@@ -60,11 +61,7 @@ export function ChatConversation({ chatId }: { chatId: string }) {
   };
 
   if (isLoadingInfo) {
-    return (
-      <div className="flex justify-center items-center h-screen bg-[#0B0D10]">
-        <Loader2 className="w-8 h-8 text-[#D4FF00] animate-spin" />
-      </div>
-    );
+    return <RootLoader fullScreen size="lg" label="Cargando chat" />;
   }
 
   if (!chatInfo) {

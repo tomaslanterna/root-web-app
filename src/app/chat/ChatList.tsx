@@ -13,6 +13,7 @@ import {
 } from "@/hooks/useChatDirectory";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
+import { RootLoader } from "@/components/ui/RootLoader";
 import { useNativeBackHandler } from "@/hooks/useNativeBack";
 
 export function ChatList({ className, onBack, backButtonRef }: { className?: string; embedded?: boolean; onBack?: () => void; backButtonRef?: React.Ref<HTMLButtonElement> }) {
@@ -152,9 +153,7 @@ export function ChatList({ className, onBack, backButtonRef }: { className?: str
       <section aria-labelledby="inbox-direct" className="mt-6">
         <h2 id="inbox-direct" className="label-mono text-ink-2 mx-4 mb-1.5">Conversaciones</h2>
         {isLoading ? (
-          <div className="flex justify-center p-6">
-            <Loader2 className="size-6 animate-spin text-accent" aria-label="Cargando conversaciones" />
-          </div>
+          <RootLoader size="sm" label="Cargando conversaciones" className="py-6" />
         ) : visibleChats.length === 0 ? (
           <p className="mx-4 py-6 text-center text-[15px] text-ink-2">
             {query ? "No hay conversaciones con ese nombre." : "Todavía no tenés conversaciones."}

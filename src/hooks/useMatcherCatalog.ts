@@ -7,8 +7,8 @@ import { matchApi, type PermanentCrew } from "@/services/match";
 export function useMatcherCatalog() {
   const { user } = useAuth();
   const { mutate: loadEvents, data: events, isLoading } = useMutation(matchApi.getEvents);
-  const { mutate: loadMyCrews, data: myCrewsData, isLoading: myCrewsLoading } = useMutation(matchApi.getPermanentCrews);
-  const { mutate: loadAllCrews, data: allCrewsData, isLoading: allCrewsLoading } = useMutation(matchApi.getAllPermanentCrews);
+  const { mutate: loadMyCrews, data: myCrewsData, isLoading: myCrewsLoading, error: myCrewsError } = useMutation(matchApi.getPermanentCrews);
+  const { mutate: loadAllCrews, data: allCrewsData, isLoading: allCrewsLoading, error: allCrewsError } = useMutation(matchApi.getAllPermanentCrews);
   const { mutate: mutateCreateCrew, isLoading: isCreatingCrew } = useMutation(matchApi.createPermanentCrew);
 
   const [localCreatedCrews, setLocalCreatedCrews] = useState<PermanentCrew[]>([]);
@@ -68,12 +68,18 @@ export function useMatcherCatalog() {
     return "";
   };
 
+  const isCatalogLoading =
+    myCrewsLoading ||
+    allCrewsLoading ||
+    (allCrewsData === undefined && !allCrewsError) ||
+    (user?.id ? myCrewsData === undefined && !myCrewsError : false);
+
   return {
     events: events ?? [],
     permanentCrews: user ? permanentCrews : [],
     allCrews,
     isLoading,
-    crewsLoading: myCrewsLoading || allCrewsLoading,
+    crewsLoading: isCatalogLoading,
     isCreatingCrew,
     createCrew,
     refreshCrews: fetchCrews,

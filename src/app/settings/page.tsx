@@ -20,6 +20,7 @@ import { usePushNotifications } from '@/context/PushNotificationsContext';
 import { usersApi } from '@/services/users';
 import { cn } from '@/lib/utils';
 import { BottomSheet } from '@/components/ui/BottomSheet';
+import { compressImageToJpeg } from '@/lib/compressImage';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -252,26 +253,7 @@ export default function SettingsPage() {
             <ChevronRight className="size-5 text-ink-3" />
           </button>
 
-          </div>
-        </section>
-
-        <section>
-          <p className="mb-2 label-mono text-neutral-500">Notificaciones</p>
-          <div className="border-y border-white/[0.07] py-4">
-            <div className="flex items-start gap-3"><Bell className="mt-0.5 size-5 shrink-0 text-[#D4FF00]" /><div className="flex-1"><h2 className="font-semibold">Mensajes y squads</h2><p className="mt-1 text-sm leading-relaxed text-neutral-400">Recibí avisos aunque la app esté cerrada.</p></div></div>
-            {push.state === 'unsupported' ? <p className="mt-3 text-sm text-neutral-500">Disponible en la app instalada en Android.</p> : (
-              <button type="button" disabled={push.isLoading || loggingOut} onClick={() => { void (push.state === 'enabled' ? push.disable() : push.enable()); }} className={`mt-4 min-h-11 rounded-full px-5 text-sm font-bold transition-colors disabled:opacity-50 ${push.state === 'enabled' ? 'border border-white/15 text-white' : 'bg-[#D4FF00] text-black'}`}>
-                {push.isLoading ? 'Configurando…' : push.state === 'enabled' ? 'Desactivar' : 'Activar notificaciones'}
-              </button>
-            )}
-            {push.state === 'enabled' && <p className="mt-3 text-sm text-[#D4FF00]" role="status">Activas en este dispositivo.</p>}
-            {push.error && <p className="mt-3 text-sm text-red-400" role="alert">{push.error}</p>}
-          </div>
-        </section>
-
-        <section>
-          <p className="mb-2 label-mono text-neutral-500">Sesión</p>
-          <div className="border-y border-white/[0.07]">
+          {/* Cerrar Sesión */}
           <button
             type="button"
             onClick={handleLogout}

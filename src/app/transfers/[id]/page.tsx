@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, use } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ShieldCheck, Ticket, Send, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
+import { RootLoader } from "@/components/ui/RootLoader";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { transfersApi } from "@/services/transfers";
@@ -114,11 +115,7 @@ export default function TransferDealRoomPage({ params }: { params: Promise<{ id:
   };
 
   if (isLoadingDeal) {
-    return (
-      <div className="flex justify-center items-center h-screen bg-[#0B0D10]">
-        <Loader2 className="w-8 h-8 text-[#D4FF00] animate-spin" />
-      </div>
-    );
+    return <RootLoader fullScreen size="lg" label="Cargando transfer" />;
   }
 
   if (!transfer) {

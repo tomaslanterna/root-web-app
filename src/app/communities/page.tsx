@@ -27,7 +27,6 @@ export default function CommunitiesPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState<CreateCommunityInput>(emptyCommunity);
   const { communities, meta, load, isLoading, error } = useCommunityDirectory();
-  const canCreate = ["RRPP", "ADMIN"].includes(user?.role?.toUpperCase() ?? "");
 
   useEffect(() => {
     if (scope === "mine" && !user) return;
@@ -41,6 +40,14 @@ export default function CommunitiesPage() {
     setForm(emptyCommunity);
     router.push(`/communities/${community.slug || community.id}?origin=%2Fcommunities`);
   });
+
+  const handleOpenCreate = () => {
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+    setShowCreate(true);
+  };
 
   const loadMore = () => {
     void load({ ...directoryFilters, offset: communities.length }, true).catch(() => undefined);
@@ -57,20 +64,29 @@ export default function CommunitiesPage() {
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 pb-4 pt-[calc(0.75rem+var(--root-safe-top))] md:px-8 md:pt-6">
           <div className="min-w-0">
             <h1 className="m-0 font-display text-[32px]">Comunidades</h1>
-            <p className="mt-1 text-sm text-ink-2">Encontrá tu escena y mantenete cerca de lo que pasa.</p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            {canCreate && (
-              <button type="button" onClick={() => setShowCreate(true)} className="flex size-11 items-center justify-center rounded-control bg-accent text-on-accent transition-transform active:scale-95 focus-visible:outline-2 focus-visible:outline-accent" aria-label="Crear comunidad">
-                <Plus className="size-5" strokeWidth={2.6} aria-hidden="true" />
-              </button>
-            )}
             <SearchButton />
           </div>
         </div>
       </header>
 
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 pt-5 md:px-8">
+        {/* Banner para crear comunidad idéntico al de /match */}
+        <div className="px-3.5 py-3 rounded-2xl bg-black text-white border-[1.5px] border-white grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5">
+          <span className="font-display text-base whitespace-nowrap">Armá tu comunidad</span>
+          <button
+            type="button"
+            onClick={handleOpenCreate}
+            className="col-start-2 row-span-2 row-start-1 self-center shrink-0 h-10 px-3 rounded-xl bg-white text-black text-[13px] font-semibold flex items-center gap-1 whitespace-nowrap hover:bg-ink active:scale-[0.97] transition-[background-color,transform] focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2 cursor-pointer"
+          >
+            <Plus className="size-4" strokeWidth={2.4} aria-hidden="true" /> Crear
+          </button>
+          <span className="col-start-1 text-sm font-medium leading-snug text-white">
+            Tu espacio para conectar y compartir
+          </span>
+        </div>
+
         <div className="flex items-end justify-between gap-4 border-b border-line">
           <div role="tablist" aria-label="Comunidades" className="flex min-w-0 gap-5">
             {(["explore", "mine"] as const).map((tab) => (
@@ -108,7 +124,7 @@ export default function CommunitiesPage() {
         )}
       </main>
 
-      {showCreate && canCreate && (
+      {showCreate && (
         <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/75 backdrop-blur-sm sm:items-center sm:p-4" role="presentation">
           <section role="dialog" aria-modal="true" aria-labelledby="create-community-title" className="max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-[28px] border border-white/10 bg-[#111419] p-5 pb-[calc(1.25rem+var(--root-safe-bottom))] shadow-2xl sm:rounded-[28px] sm:p-6">
             <div className="mb-6 flex items-start justify-between gap-4">

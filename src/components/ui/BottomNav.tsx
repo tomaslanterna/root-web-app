@@ -152,7 +152,7 @@ export function BottomNav() {
       {/* 1. Desktop Top Floating Capsule (Estilo Glassmorphism Apple / Linear con Auto-Hide) */}
       <header
         className={cn(
-          "hidden md:flex fixed top-4 inset-x-0 z-50 justify-center pointer-events-none px-4 sm:px-6 transition-all duration-300 ease-out",
+          "hidden md:flex fixed top-4 inset-x-0 z-[60] justify-center pointer-events-none px-4 sm:px-6 transition-all duration-300 ease-out",
           isVisible || pathname === "/events"
             ? "translate-y-0 opacity-100"
             : "-translate-y-24 opacity-0 pointer-events-none",
@@ -289,7 +289,7 @@ export function BottomNav() {
         inert={hideOnMobile}
         aria-hidden={hideOnMobile || undefined}
         className={cn(
-          "fixed left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-4 flex justify-center transition-[transform,opacity] duration-200 ease-out motion-reduce:transition-opacity md:hidden",
+          "fixed left-1/2 -translate-x-1/2 z-[60] w-full max-w-md px-4 flex justify-center transition-[transform,opacity] duration-200 ease-out motion-reduce:transition-opacity md:hidden",
           isIOS
             ? "bottom-[max(0.75rem,var(--root-safe-bottom))]"
             : "bottom-[var(--root-mobile-nav-bottom)]",

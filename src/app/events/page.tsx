@@ -22,6 +22,7 @@
    X,
  } from "lucide-react";
  import { EventCard } from "@/components/ui/EventCard";
+import { EventCardSkeleton } from "@/components/events/EventCardSkeleton";
  import { Button } from "@/components/ui/Button";
  import { SegmentedControl } from "@/components/ui/SegmentedControl";
  import { RootLogo } from "@/components/ui/RootLogo";
@@ -277,7 +278,7 @@
    const collapseSpacerRef = useRef<HTMLDivElement>(null);
    const featuredRowRef = useRef<HTMLDivElement>(null);
    const lastFetchedQueryRef = useRef("");
-   const { featuredEvents, refresh: refreshFeatured } = useFeaturedEvents();
+   const { featuredEvents, isLoading: isLoadingFeatured, refresh: refreshFeatured } = useFeaturedEvents();
 
    // Destacados que se achican con el scroll en 2 fases:
    // 1) Se reduce el height del footer hasta 0.
@@ -930,7 +931,7 @@
              style={{ top: headerHeight }}
              className="sticky z-30 -mx-4 px-4 md:-mx-6 md:px-6 bg-bg/95 backdrop-blur-md !mt-0 !mb-0"
            >
-             {featuredEvents.length > 0 && (
+             {(featuredEvents.length > 0 || !hasLoaded || isLoadingFeatured) && (
                <section aria-labelledby="events-featured" className="pt-4 md:pt-6 pb-4">
                  <h2 id="events-featured" className="font-display text-[22px] md:text-[28px] m-0 mb-3">
                    Eventos destacados
@@ -940,353 +941,178 @@
                    className="-mx-4 px-4 md:-mx-6 md:px-6 flex items-start overflow-x-auto hide-scrollbar snap-x snap-mandatory scroll-px-4 md:scroll-px-6 [--cols:2] md:[--cols:3] xl:[--cols:4] [--gap:12px] md:[--gap:20px]"
                    style={{ gap: "calc(var(--gap) * (1 - var(--p-card, 0)) + 8px * var(--p-card, 0))" }}
                  >
-                   {featuredEvents.map((event) => (
+                   {isLoadingFeatured && featuredEvents.length === 0
+                     ? [1, 2, 3, 4].map((i) => (
+                         <EventCardSkeleton key={i} variant="featured" />
+                       ))
+                     : featuredEvents.map((event) => (
                      <EventCard key={event.id} event={event} variant="featured" />
                    ))}
                  </div>
                </section>
              )}
 
-             <div className="-mx-4 px-4 md:-mx-6 md:px-6 border-t border-line py-3">
-               <h2 className="font-display text-[22px] md:text-[28px] m-0 truncate">
-                 {sortBy === "popular" ? "Más convocados" : "Próximos eventos"}
-               </h2>
-             </div>
-           </div>
+             {/* Filtros del listado: voy!, ¿Cuándo?, Ubicación */}
+             <div
+               ref={filtersContainerRef}
+               className="relative -mx-4 px-4 md:-mx-6 md:px-6 border-t border-line py-2.5"
+             >
+               <div className="flex items-center gap-1.5 overflow-x-auto hide-scrollbar whitespace-nowrap py-0.5">
+             {/* Filtro 1: voy! */}
+             <button
+               type="button"
+               aria-pressed={showGoingOnly}
+               onClick={() => {
+                 setShowGoingOnly((current) => !current);
+                 setIsWhenOpen(false);
+                 setIsGenreOpen(false);
+                 setIsDatesOpen(false);
+               }}
+               className={cn(
+                 "root-logo-type shrink-0 h-8 md:h-8.5 inline-flex items-center rounded-full border px-3 text-[11px] lowercase tracking-[-0.04em] transition-colors select-none focus-visible:outline-2 focus-visible:outline-accent",
+                 showGoingOnly
+                   ? "bg-accent/12 text-accent border-accent/40"
+                   : "border-white/10 bg-surface text-ink hover:bg-surface-2",
+               )}
+             >
+               voy!
+             </button>
 
-           {/* Espaciador dinámico que recupera la altura colapsada */}
-           <div ref={collapseSpacerRef} aria-hidden="true" className="!my-0 !p-0" />
-
-           {/* Filtros del listado: voy!, ¿Cuándo?, Ubicación y vista */}
-           <div ref={filtersContainerRef} className="relative pt-2.5">
-             <div className="flex items-center justify-between gap-2">
-               <div className="flex-1 min-w-0 flex items-center gap-1.5 overflow-x-auto hide-scrollbar whitespace-nowrap py-0.5">
-                 {/* Filtro 1: voy! */}
-                 <button
-                   type="button"
-                   aria-pressed={showGoingOnly}
-                   onClick={() => {
-                     setShowGoingOnly((current) => !current);
-                     setIsWhenOpen(false);
-                     setIsGenreOpen(false);
-                     setIsDatesOpen(false);
-                   }}
-                   className={cn(
-                     "root-logo-type shrink-0 h-8 md:h-8.5 inline-flex items-center rounded-full border px-3 text-[11px] lowercase tracking-[-0.04em] transition-colors select-none focus-visible:outline-2 focus-visible:outline-accent",
-                     showGoingOnly
-                       ? "bg-accent/12 text-accent border-accent/40"
-                       : "border-white/10 bg-surface text-ink hover:bg-surface-2",
-                   )}
-                 >
-                   voy!
-                 </button>
-
-                 {/* Filtro 2: ¿Cuándo? */}
-                 <div
-                   className={cn(
-                     "shrink-0 h-8 md:h-8.5 flex items-center rounded-full border transition-colors select-none text-xs",
-                     isDateActive
-                       ? "bg-accent/12 text-accent border-accent/40"
-                       : "border-white/10 bg-surface text-ink hover:bg-surface-2",
-                   )}
-                 >
-                   <button
-                     type="button"
-                     onClick={() => {
-                       setActiveSheetType("when");
-                       setIsWhenOpen((prev) => !prev);
-                       setIsGenreOpen(false);
-                       setIsDatesOpen(false);
-                     }}
-                     className={cn(
-                       "root-logo-type h-full flex items-center gap-1.5 text-[11px] tracking-[-0.04em]",
-                       isDateActive ? "pl-2.5 pr-1" : "pl-2.5 pr-2.5",
-                     )}
-                   >
-                     <Calendar
-                       aria-hidden="true"
-                       className={cn("size-3.5 shrink-0", isDateActive ? "text-accent" : "text-ink-2")}
-                     />
-                     <span className="max-w-[80px] sm:max-w-none truncate">{getDateLabel()}</span>
-                     {!isDateActive && (
-                       <ChevronDown
-                         className={cn(
-                           "size-3.5 text-ink-2 transition-transform duration-200 shrink-0",
-                           isWhenOpen && "rotate-180",
-                         )}
-                       />
-                     )}
-                   </button>
-
-                   {isDateActive && (
-                     <button
-                       type="button"
-                       onPointerDown={(e) => e.stopPropagation()}
-                       onTouchStart={(e) => e.stopPropagation()}
-                       onClick={(e) => {
-                         e.preventDefault();
-                         e.stopPropagation();
-                         clearDateFilter();
-                       }}
-                       className="relative z-20 w-6 h-full rounded-full flex items-center justify-center text-accent hover:bg-white/10 active:scale-90 transition-transform touch-manipulation"
-                       title="Quitar filtro de fecha"
-                       aria-label="Quitar filtro de fecha"
-                     >
-                       <X className="size-3 pointer-events-none" aria-hidden="true" />
-                     </button>
-                   )}
-                 </div>
-
-                 {/* Filtro 3: Ubicación */}
-                 <div
-                   className={cn(
-                     "shrink-0 h-8 md:h-8.5 flex items-center rounded-full border transition-colors select-none text-xs",
-                     isLocationActive
-                       ? "bg-accent/12 text-accent border-accent/40"
-                       : "border-white/10 bg-surface text-ink hover:bg-surface-2",
-                   )}
-                 >
-                   <button
-                     type="button"
-                     onClick={() => {
-                       setActiveSheetType("location");
-                       setCityQuery(appliedFilters.location);
-                       setIsGenreOpen((prev) => !prev);
-                       setIsWhenOpen(false);
-                       setIsDatesOpen(false);
-                     }}
-                     className={cn(
-                       "root-logo-type h-full flex items-center gap-1.5 text-[11px] tracking-[-0.04em]",
-                       isLocationActive ? "pl-2.5 pr-1" : "pl-2.5 pr-2.5",
-                     )}
-                   >
-                     <MapPin
-                       aria-hidden="true"
-                       className={cn("size-3.5 shrink-0", isLocationActive ? "text-accent" : "text-ink-2")}
-                     />
-                     <span className="max-w-[80px] sm:max-w-none truncate">{getLocationLabel()}</span>
-                     {!isLocationActive && (
-                       <ChevronDown
-                         className={cn(
-                           "size-3.5 text-ink-2 transition-transform duration-200 shrink-0",
-                           isGenreOpen && "rotate-180",
-                         )}
-                       />
-                     )}
-                   </button>
-
-                   {isLocationActive && (
-                     <button
-                       type="button"
-                       onPointerDown={(e) => e.stopPropagation()}
-                       onTouchStart={(e) => e.stopPropagation()}
-                       onClick={(e) => {
-                         e.preventDefault();
-                         e.stopPropagation();
-                         clearLocationFilter();
-                       }}
-                       className="relative z-20 w-6 h-full rounded-full flex items-center justify-center text-accent hover:bg-white/10 active:scale-90 transition-transform touch-manipulation"
-                       title="Quitar filtro de ubicación"
-                       aria-label="Quitar filtro de ubicación"
-                     >
-                       <X className="size-3 pointer-events-none" aria-hidden="true" />
-                     </button>
-                   )}
-                 </div>
-               </div>
-
-               <SegmentedControl
-                 label="Vista"
-                 className="hidden md:flex shrink-0"
-                 options={viewOptions.map((option) => ({ ...option }))}
-                 value={viewMode}
-                 onChange={setViewMode}
-               />
-
-               {/* Selector de vista (mobile) */}
-               <div
-                 role="radiogroup"
-                 aria-label="Vista"
-                 className="md:hidden shrink-0 flex p-[2px] rounded-lg bg-surface border border-line"
+             {/* Filtro 2: ¿Cuándo? */}
+             <div
+               className={cn(
+                 "shrink-0 h-8 md:h-8.5 flex items-center rounded-full border transition-colors select-none text-xs",
+                 isDateActive
+                   ? "bg-accent/12 text-accent border-accent/40"
+                   : "border-white/10 bg-surface text-ink hover:bg-surface-2",
+               )}
+             >
+               <button
+                 type="button"
+                 onClick={() => {
+                   setActiveSheetType("when");
+                   setIsWhenOpen((prev) => !prev);
+                   setIsGenreOpen(false);
+                   setIsDatesOpen(false);
+                 }}
+                 className={cn(
+                   "root-logo-type h-full flex items-center gap-1.5 text-[11px] tracking-[-0.04em]",
+                   isDateActive ? "pl-2.5 pr-1" : "pl-2.5 pr-2.5",
+                 )}
                >
-                 {viewOptions.map(({ id, label, icon: Icon }) => (
-                   <button
-                     key={id}
-                     type="button"
-                     role="radio"
-                     aria-checked={viewMode === id}
-                     aria-label={label}
-                     onClick={() => setViewMode(id)}
-                     className={cn(
-                       "size-7 flex items-center justify-center rounded-[6px] transition-colors focus-visible:outline-2 focus-visible:outline-accent",
-                       viewMode === id ? "bg-ink text-bg" : "text-ink-2 hover:text-ink",
-                     )}
-                   >
-                     <Icon className="size-3.5" aria-hidden={true} />
-                   </button>
-                 ))}
-               </div>
-             </div>
-
-             {/* Menú flotante de ¿Cuándo? (Desktop) */}
-             {isWhenOpen && (
-               <div className="hidden md:block absolute left-6 top-full mt-1.5 w-72 rounded-2xl border border-white/10 bg-[#14171F] p-1.5 shadow-2xl shadow-black/90 z-50 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-xl">
-                 <div className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-neutral-400">
-                   ¿Cuándo?
-                 </div>
-                 {[
-                   { id: "weekend", label: "Este finde", desc: "Vie a Dom" },
-                   { id: "week", label: "Próximos 7 días", desc: "Semana entrante" },
-                   { id: "month", label: "Este mes", desc: "Mes en curso" },
-                 ].map((opt) => {
-                   const isSelected = temporalPreset === opt.id;
-                   return (
-                     <button
-                       key={opt.id}
-                       type="button"
-                       onClick={() => {
-                         setIsDatesOpen(false);
-                         handleSelectTemporal(opt.id as TemporalPreset);
-                       }}
-                       className={cn(
-                         "flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-xs font-bold transition-all cursor-pointer",
-                         isSelected
-                           ? "bg-[#D4FF00]/15 text-[#D4FF00]"
-                           : "text-neutral-300 hover:bg-white/5 hover:text-white",
-                       )}
-                     >
-                       <div className="flex flex-col text-left">
-                         <span>{opt.label}</span>
-                         <span className="text-[10px] font-normal text-neutral-500">{opt.desc}</span>
-                       </div>
-                       {isSelected && <Check className="h-3.5 w-3.5 text-[#D4FF00]" />}
-                     </button>
-                   );
-                 })}
-
-                 {/* Opción para seleccionar fechas específicas */}
-                 <button
-                   type="button"
-                   onClick={() => setIsDatesOpen((prev) => !prev)}
-                   className={cn(
-                     "flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-xs font-bold transition-all cursor-pointer",
-                     isCustomDateActive || isDatesOpen
-                       ? "bg-[#D4FF00]/15 text-[#D4FF00]"
-                       : "text-neutral-300 hover:bg-white/5 hover:text-white",
-                   )}
-                 >
-                   <div className="flex flex-col text-left">
-                     <span>Seleccionar fechas</span>
-                     <span className="text-[10px] font-normal text-neutral-500">
-                       Elegir rango en el calendario
-                     </span>
-                   </div>
+                 <Calendar
+                   aria-hidden="true"
+                   className={cn("size-3.5 shrink-0", isDateActive ? "text-accent" : "text-ink-2")}
+                 />
+                 <span className="max-w-[80px] sm:max-w-none truncate">{getDateLabel()}</span>
+                 {!isDateActive && (
                    <ChevronDown
                      className={cn(
-                       "h-3.5 w-3.5 transition-transform duration-200",
-                       isDatesOpen && "rotate-180",
+                       "size-3.5 text-ink-2 transition-transform duration-200 shrink-0",
+                       isWhenOpen && "rotate-180",
                      )}
                    />
-                 </button>
-
-                 {isDatesOpen && (
-                   <div className="mt-1.5 border-t border-white/10 px-2 pt-2.5 pb-1.5 space-y-2.5 animate-in fade-in duration-150">
-                     <div className="grid grid-cols-2 gap-2">
-                       <label className="min-w-0 flex flex-col gap-1 text-[10px] font-extrabold uppercase tracking-wider text-neutral-400">
-                         <span>Desde</span>
-                         <input
-                           type="date"
-                           value={draftFilters.startDate}
-                           onChange={(event) =>
-                             setDraftFilters((current) => ({ ...current, startDate: event.target.value }))
-                           }
-                           className="block w-full max-w-[122px] min-w-0 box-border appearance-none rounded-xl border border-white/10 bg-[#0B0D10] px-2 py-1.5 text-[11px] text-white focus:border-[#D4FF00] focus:outline-none transition-colors"
-                         />
-                       </label>
-                       <label className="min-w-0 flex flex-col gap-1 text-[10px] font-extrabold uppercase tracking-wider text-neutral-400">
-                         <span>Hasta</span>
-                         <input
-                           type="date"
-                           value={draftFilters.endDate}
-                           onChange={(event) =>
-                             setDraftFilters((current) => ({ ...current, endDate: event.target.value }))
-                           }
-                           className="block w-full max-w-[122px] min-w-0 box-border appearance-none rounded-xl border border-white/10 bg-[#0B0D10] px-2 py-1.5 text-[11px] text-white focus:border-[#D4FF00] focus:outline-none transition-colors"
-                         />
-                       </label>
-                     </div>
-                     <button
-                       type="button"
-                       onClick={applyCustomDates}
-                       className="w-full rounded-xl bg-[#D4FF00] py-2 text-xs font-black uppercase tracking-wider text-neutral-950 hover:bg-[#bce400] transition-colors cursor-pointer"
-                     >
-                       Aplicar fechas
-                     </button>
-                   </div>
                  )}
+               </button>
 
-                 {isDateActive && (
-                   <>
-                     <div className="my-1 border-t border-white/10" />
-                     <button
-                       type="button"
-                       onClick={clearDateFilter}
-                       className="flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-[11px] font-semibold text-neutral-400 hover:bg-white/5 hover:text-white transition-all cursor-pointer"
-                     >
-                       <span>Cualquier fecha</span>
-                       <X className="h-3 w-3" />
-                     </button>
-                   </>
-                 )}
-               </div>
-             )}
-
-             {/* Menú flotante de Ubicación (Desktop) */}
-             {isGenreOpen && (
-               <div className="hidden md:block absolute left-6 top-full mt-1.5 w-72 rounded-2xl border border-white/[0.08] border-t-white/[0.16] bg-[#14171F]/95 p-3 shadow-2xl shadow-black/80 z-50 animate-in fade-in zoom-in-95 duration-150 backdrop-blu
- space-y-2.5">
-                 <div className="px-1 text-[10px] font-black uppercase tracking-wider text-neutral-400">
-                   Ubicación
-                 </div>
-                 <form
-                   onSubmit={(e) => {
+               {isDateActive && (
+                 <button
+                   type="button"
+                   onPointerDown={(e) => e.stopPropagation()}
+                   onTouchStart={(e) => e.stopPropagation()}
+                   onClick={(e) => {
                      e.preventDefault();
-                     applyLocationFilter(cityQuery);
+                     e.stopPropagation();
+                     clearDateFilter();
                    }}
-                   className="flex items-center gap-2 rounded-xl bg-[#0B0D10] px-3 py-2 border border-white/10 focus-within:border-[#D4FF00]"
+                   className="relative z-20 w-6 h-full rounded-full flex items-center justify-center text-accent hover:bg-white/10 active:scale-90 transition-transform touch-manipulation"
+                   title="Quitar filtro de fecha"
+                   aria-label="Quitar filtro de fecha"
                  >
-                   <Search className="h-3.5 w-3.5 text-[#D4FF00] shrink-0" />
-                   <input
-                     type="text"
-                     value={cityQuery}
-                     onChange={(e) => setCityQuery(e.target.value)}
-                     placeholder="Buscar ciudad..."
-                     className="w-full bg-transparent text-xs text-white placeholder-neutral-500 focus:outline-none"
+                   <X className="size-3 pointer-events-none" aria-hidden="true" />
+                 </button>
+               )}
+             </div>
+
+             {/* Filtro 3: Ubicación */}
+             <div
+               className={cn(
+                 "shrink-0 h-8 md:h-8.5 flex items-center rounded-full border transition-colors select-none text-xs",
+                 isLocationActive
+                   ? "bg-accent/12 text-accent border-accent/40"
+                   : "border-white/10 bg-surface text-ink hover:bg-surface-2",
+               )}
+             >
+               <button
+                 type="button"
+                 onClick={() => {
+                   setActiveSheetType("location");
+                   setCityQuery(appliedFilters.location);
+                   setIsGenreOpen((prev) => !prev);
+                   setIsWhenOpen(false);
+                   setIsDatesOpen(false);
+                 }}
+                 className={cn(
+                   "root-logo-type h-full flex items-center gap-1.5 text-[11px] tracking-[-0.04em]",
+                   isLocationActive ? "pl-2.5 pr-1" : "pl-2.5 pr-2.5",
+                 )}
+               >
+                 <MapPin
+                   aria-hidden="true"
+                   className={cn("size-3.5 shrink-0", isLocationActive ? "text-accent" : "text-ink-2")}
+                 />
+                 <span className="max-w-[80px] sm:max-w-none truncate">{getLocationLabel()}</span>
+                 {!isLocationActive && (
+                   <ChevronDown
+                     className={cn(
+                       "size-3.5 text-ink-2 transition-transform duration-200 shrink-0",
+                       isGenreOpen && "rotate-180",
+                     )}
                    />
-                   {cityQuery && (
-                     <button
-                       type="button"
-                       onClick={(e) => {
-                         e.preventDefault();
-                         e.stopPropagation();
-                         clearLocationFilter();
-                       }}
-                       className="p-0.5 text-neutral-400 hover:text-white cursor-pointer"
-                       aria-label="Limpiar ubicación"
-                     >
-                       <X className="size-4 pointer-events-none" aria-hidden="true" />
-                     </button>
-                   )}
-                 </form>
-                 <div className="max-h-48 overflow-y-auto space-y-1 hide-scrollbar">
-                   {filteredCitySuggestions.map((city) => {
-                     const isSelected =
-                       appliedFilters.location.toLowerCase() === city.toLowerCase();
+                 )}
+               </button>
+
+               {isLocationActive && (
+                 <button
+                   type="button"
+                   onPointerDown={(e) => e.stopPropagation()}
+                   onTouchStart={(e) => e.stopPropagation()}
+                   onClick={(e) => {
+                     e.preventDefault();
+                     e.stopPropagation();
+                     clearLocationFilter();
+                   }}
+                   className="relative z-20 w-6 h-full rounded-full flex items-center justify-center text-accent hover:bg-white/10 active:scale-90 transition-transform touch-manipulation"
+                   title="Quitar filtro de ubicación"
+                   aria-label="Quitar filtro de ubicación"
+                 >
+                   <X className="size-3 pointer-events-none" aria-hidden="true" />
+                 </button>
+               )}
+             </div>
+               </div>
+
+  
+               {/* Menú flotante de ¿Cuándo? (Desktop) */}
+               {isWhenOpen && (
+                 <div className="hidden md:block absolute left-6 top-full mt-1.5 w-72 rounded-2xl border border-white/10 bg-[#14171F] p-1.5 shadow-2xl shadow-black/90 z-50 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-xl">
+                   <div className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-neutral-400">
+                     ¿Cuándo?
+                   </div>
+                   {[
+                     { id: "weekend", label: "Este finde", desc: "Vie a Dom" },
+                     { id: "week", label: "Próximos 7 días", desc: "Semana entrante" },
+                     { id: "month", label: "Este mes", desc: "Mes en curso" },
+                   ].map((opt) => {
+                     const isSelected = temporalPreset === opt.id;
                      return (
                        <button
-                         key={city}
+                         key={opt.id}
                          type="button"
-                         onClick={() => applyLocationFilter(city)}
+                         onClick={() => {
+                           setIsDatesOpen(false);
+                           handleSelectTemporal(opt.id as TemporalPreset);
+                         }}
                          className={cn(
                            "flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-xs font-bold transition-all cursor-pointer",
                            isSelected
@@ -1294,44 +1120,227 @@
                              : "text-neutral-300 hover:bg-white/5 hover:text-white",
                          )}
                        >
-                         <span className="flex items-center gap-2">
-                           <MapPin className="h-3.5 w-3.5 text-neutral-400" />
-                           {city}
-                         </span>
+                         <div className="flex flex-col text-left">
+                           <span>{opt.label}</span>
+                           <span className="text-[10px] font-normal text-neutral-500">{opt.desc}</span>
+                         </div>
                          {isSelected && <Check className="h-3.5 w-3.5 text-[#D4FF00]" />}
                        </button>
                      );
                    })}
-                   {cityQuery.trim() &&
-                     !filteredCitySuggestions.some(
-                       (c) => c.toLowerCase() === cityQuery.trim().toLowerCase(),
-                     ) && (
+  
+                   {/* Opción para seleccionar fechas específicas */}
+                   <button
+                     type="button"
+                     onClick={() => setIsDatesOpen((prev) => !prev)}
+                     className={cn(
+                       "flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-xs font-bold transition-all cursor-pointer",
+                       isCustomDateActive || isDatesOpen
+                         ? "bg-[#D4FF00]/15 text-[#D4FF00]"
+                         : "text-neutral-300 hover:bg-white/5 hover:text-white",
+                     )}
+                   >
+                     <div className="flex flex-col text-left">
+                       <span>Seleccionar fechas</span>
+                       <span className="text-[10px] font-normal text-neutral-500">
+                         Elegir rango en el calendario
+                       </span>
+                     </div>
+                     <ChevronDown
+                       className={cn(
+                         "h-3.5 w-3.5 transition-transform duration-200",
+                         isDatesOpen && "rotate-180",
+                       )}
+                     />
+                   </button>
+  
+                   {isDatesOpen && (
+                     <div className="mt-1.5 border-t border-white/10 px-2 pt-2.5 pb-1.5 space-y-2.5 animate-in fade-in duration-150">
+                       <div className="grid grid-cols-2 gap-2">
+                         <label className="min-w-0 flex flex-col gap-1 text-[10px] font-extrabold uppercase tracking-wider text-neutral-400">
+                           <span>Desde</span>
+                           <input
+                             type="date"
+                             value={draftFilters.startDate}
+                             onChange={(event) =>
+                               setDraftFilters((current) => ({ ...current, startDate: event.target.value }))
+                             }
+                             className="block w-full max-w-[122px] min-w-0 box-border appearance-none rounded-xl border border-white/10 bg-[#0B0D10] px-2 py-1.5 text-[11px] text-white focus:border-[#D4FF00] focus:outline-none transition-colors"
+                           />
+                         </label>
+                         <label className="min-w-0 flex flex-col gap-1 text-[10px] font-extrabold uppercase tracking-wider text-neutral-400">
+                           <span>Hasta</span>
+                           <input
+                             type="date"
+                             value={draftFilters.endDate}
+                             onChange={(event) =>
+                               setDraftFilters((current) => ({ ...current, endDate: event.target.value }))
+                             }
+                             className="block w-full max-w-[122px] min-w-0 box-border appearance-none rounded-xl border border-white/10 bg-[#0B0D10] px-2 py-1.5 text-[11px] text-white focus:border-[#D4FF00] focus:outline-none transition-colors"
+                           />
+                         </label>
+                       </div>
                        <button
                          type="button"
-                         onClick={() => applyLocationFilter(cityQuery)}
-                         className="flex w-full items-center justify-between rounded-xl bg-[#D4FF00]/15 px-2.5 py-2 text-xs font-bold text-[#D4FF00] cursor-pointer"
+                         onClick={applyCustomDates}
+                         className="w-full rounded-xl bg-[#D4FF00] py-2 text-xs font-black uppercase tracking-wider text-neutral-950 hover:bg-[#bce400] transition-colors cursor-pointer"
                        >
-                         <span>Buscar &ldquo;{cityQuery.trim()}&rdquo;</span>
-                         <ArrowRight className="h-3.5 w-3.5" />
+                         Aplicar fechas
+                       </button>
+                     </div>
+                   )}
+  
+                   {isDateActive && (
+                     <>
+                       <div className="my-1 border-t border-white/10" />
+                       <button
+                         type="button"
+                         onClick={clearDateFilter}
+                         className="flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-[11px] font-semibold text-neutral-400 hover:bg-white/5 hover:text-white transition-all cursor-pointer"
+                       >
+                         <span>Cualquier fecha</span>
+                         <X className="h-3 w-3" />
+                       </button>
+                     </>
+                   )}
+                 </div>
+               )}
+  
+               {/* Menú flotante de Ubicación (Desktop) */}
+               {isGenreOpen && (
+                 <div className="hidden md:block absolute left-6 top-full mt-1.5 w-72 rounded-2xl border border-white/[0.08] border-t-white/[0.16] bg-[#14171F]/95 p-3 shadow-2xl shadow-black/80 z-50 animate-in fade-in zoom-in-95 duration-150 backdrop-blu
+   space-y-2.5">
+                   <div className="px-1 text-[10px] font-black uppercase tracking-wider text-neutral-400">
+                     Ubicación
+                   </div>
+                   <form
+                     onSubmit={(e) => {
+                       e.preventDefault();
+                       applyLocationFilter(cityQuery);
+                     }}
+                     className="flex items-center gap-2 rounded-xl bg-[#0B0D10] px-3 py-2 border border-white/10 focus-within:border-[#D4FF00]"
+                   >
+                     <Search className="h-3.5 w-3.5 text-[#D4FF00] shrink-0" />
+                     <input
+                       type="text"
+                       value={cityQuery}
+                       onChange={(e) => setCityQuery(e.target.value)}
+                       placeholder="Buscar ciudad..."
+                       className="w-full bg-transparent text-xs text-white placeholder-neutral-500 focus:outline-none"
+                     />
+                     {cityQuery && (
+                       <button
+                         type="button"
+                         onClick={(e) => {
+                           e.preventDefault();
+                           e.stopPropagation();
+                           clearLocationFilter();
+                         }}
+                         className="p-0.5 text-neutral-400 hover:text-white cursor-pointer"
+                         aria-label="Limpiar ubicación"
+                       >
+                         <X className="size-4 pointer-events-none" aria-hidden="true" />
                        </button>
                      )}
+                   </form>
+                   <div className="max-h-48 overflow-y-auto space-y-1 hide-scrollbar">
+                     {filteredCitySuggestions.map((city) => {
+                       const isSelected =
+                         appliedFilters.location.toLowerCase() === city.toLowerCase();
+                       return (
+                         <button
+                           key={city}
+                           type="button"
+                           onClick={() => applyLocationFilter(city)}
+                           className={cn(
+                             "flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-xs font-bold transition-all cursor-pointer",
+                             isSelected
+                               ? "bg-[#D4FF00]/15 text-[#D4FF00]"
+                               : "text-neutral-300 hover:bg-white/5 hover:text-white",
+                           )}
+                         >
+                           <span className="flex items-center gap-2">
+                             <MapPin className="h-3.5 w-3.5 text-neutral-400" />
+                             {city}
+                           </span>
+                           {isSelected && <Check className="h-3.5 w-3.5 text-[#D4FF00]" />}
+                         </button>
+                       );
+                     })}
+                     {cityQuery.trim() &&
+                       !filteredCitySuggestions.some(
+                         (c) => c.toLowerCase() === cityQuery.trim().toLowerCase(),
+                       ) && (
+                         <button
+                           type="button"
+                           onClick={() => applyLocationFilter(cityQuery)}
+                           className="flex w-full items-center justify-between rounded-xl bg-[#D4FF00]/15 px-2.5 py-2 text-xs font-bold text-[#D4FF00] cursor-pointer"
+                         >
+                           <span>Buscar &ldquo;{cityQuery.trim()}&rdquo;</span>
+                           <ArrowRight className="h-3.5 w-3.5" />
+                         </button>
+                       )}
+                   </div>
+  
+                   {isLocationActive && (
+                     <>
+                       <div className="my-1 border-t border-white/[0.06]" />
+                       <button
+                         type="button"
+                         onClick={clearLocationFilter}
+                         className="flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-[11px] font-semibold text-neutral-400 hover:bg-white/5 hover:text-white transition-all cursor-pointer"
+                       >
+                         <span>Todas las ubicaciones</span>
+                         <X className="h-3 w-3" />
+                       </button>
+                     </>
+                   )}
                  </div>
+               )}
+             </div>
+           </div>
 
-                 {isLocationActive && (
-                   <>
-                     <div className="my-1 border-t border-white/[0.06]" />
+           {/* Espaciador dinámico que recupera la altura colapsada */}
+           <div ref={collapseSpacerRef} aria-hidden="true" className="!my-0 !p-0" />
+
+           {/* Filtros del listado: voy!, ¿Cuándo?, Ubicación y vista */}
+           {/* Título de sección y selector de layout */}
+           <div className="flex items-center justify-between gap-3 pt-2">
+             <h2 className="font-display text-[22px] md:text-[28px] m-0 truncate min-w-0">
+               {sortBy === "popular" ? "Más convocados" : "Próximos eventos"}
+             </h2>
+
+                 <SegmentedControl
+                   label="Vista"
+                   className="hidden md:flex shrink-0"
+                   options={viewOptions.map((option) => ({ ...option }))}
+                   value={viewMode}
+                   onChange={setViewMode}
+                 />
+  
+                 {/* Selector de vista (mobile) */}
+                 <div
+                   role="radiogroup"
+                   aria-label="Vista"
+                   className="md:hidden shrink-0 flex p-[2px] rounded-lg bg-surface border border-line"
+                 >
+                   {viewOptions.map(({ id, label, icon: Icon }) => (
                      <button
+                       key={id}
                        type="button"
-                       onClick={clearLocationFilter}
-                       className="flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-[11px] font-semibold text-neutral-400 hover:bg-white/5 hover:text-white transition-all cursor-pointer"
+                       role="radio"
+                       aria-checked={viewMode === id}
+                       aria-label={label}
+                       onClick={() => setViewMode(id)}
+                       className={cn(
+                         "size-7 flex items-center justify-center rounded-[6px] transition-colors focus-visible:outline-2 focus-visible:outline-accent",
+                         viewMode === id ? "bg-ink text-bg" : "text-ink-2 hover:text-ink",
+                       )}
                      >
-                       <span>Todas las ubicaciones</span>
-                       <X className="h-3 w-3" />
+                       <Icon className="size-3.5" aria-hidden={true} />
                      </button>
-                   </>
-                 )}
-               </div>
-             )}
+                   ))}
+                 </div>
            </div>
 
            {/* Chips de Filtros Activos */}
@@ -1415,7 +1424,7 @@
            )}
 
            {/* Listado de Eventos (Skeleton, Error o Vistas) */}
-           {!hasLoaded && isLoadingEvents ? (
+           {!hasLoaded || (isLoadingEvents && events.length === 0) ? (
              viewMode === "calendar" ? (
                <div className="rounded-card border border-line bg-surface p-5 space-y-4 animate-pulse">
                  <div className="h-8 w-48 rounded-full bg-white/10" />
@@ -1428,19 +1437,13 @@
              ) : viewMode === "list" ? (
                <div className="flex flex-col gap-3">
                  {[1, 2, 3, 4, 5, 6].map((item) => (
-                   <div
-                     key={item}
-                     className="h-20 w-full animate-pulse rounded-card border border-line bg-surface"
-                   />
+                   <EventCardSkeleton key={item} variant="list" />
                  ))}
                </div>
              ) : (
                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-5">
-                 {[1, 2, 3, 4, 5, 6].map((item) => (
-                   <div
-                     key={item}
-                     className="aspect-[3/4] w-full animate-pulse rounded-card border border-line bg-surface"
-                   />
+                 {[1, 2, 3, 4, 5, 6, 7, 8].map((item) => (
+                   <EventCardSkeleton key={item} variant="grid" />
                  ))}
                </div>
              )

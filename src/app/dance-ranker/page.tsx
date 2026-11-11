@@ -8,6 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useDanceContext } from "@/context/DanceContext";
 import { useDanceStats } from "@/hooks/useDanceStats";
 import { EventLiveRankingCard } from "@/components/events/EventLiveRankingModal";
+import { DanceRankerSkeleton } from "@/components/dance/DanceRankerSkeleton";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import type { DanceSession } from "@/services/dance";
@@ -173,6 +174,10 @@ export default function DanceRankerPage() {
 
   const card = "rounded-[18px] bg-surface border border-line";
 
+  if (isLoading) {
+    return <DanceRankerSkeleton />;
+  }
+
   return (
     <div className="num-display min-h-[100dvh] bg-bg text-ink pb-[calc(var(--root-mobile-nav-clearance)+1rem)] md:pb-16">
       <header className="sticky top-0 z-30 w-full bg-bg/95 backdrop-blur-md border-b border-line">
@@ -192,11 +197,7 @@ export default function DanceRankerPage() {
 
       <div className="w-full max-w-2xl mx-auto pt-4">
 
-        {isLoading ? (
-          <div className="flex justify-center py-24">
-            <Loader2 className="size-8 animate-spin text-accent" aria-label="Cargando tus estadísticas" />
-          </div>
-        ) : error ? (
+        {error ? (
           <div role="alert" className={cn(card, "mx-4 mt-8 p-6 text-center")}>
             <p className="m-0 text-base">No pudimos cargar tus estadísticas.</p>
             <Button variant="secondary" className="mt-4 not-italic tracking-normal" onClick={retry}>Reintentar</Button>
