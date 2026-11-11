@@ -20,6 +20,7 @@ import { usePushNotifications } from '@/context/PushNotificationsContext';
 import { usersApi } from '@/services/users';
 import { cn } from '@/lib/utils';
 import { BottomSheet } from '@/components/ui/BottomSheet';
+import { compressImageToJpeg } from '@/lib/compressImage';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -51,16 +52,24 @@ export default function SettingsPage() {
     }
   }, [user, showEditModal]);
 
-  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setEditError(null);
+    let compressed: File;
+    try {
+      compressed = await compressImageToJpeg(file, 512, 0.82);
+    } catch {
+      setEditError('No pudimos procesar esa imagen. Probá con otra foto.');
+      return;
+    }
     const reader = new FileReader();
     reader.onload = (event) => {
       if (typeof event.target?.result === 'string') {
         setAvatarUrl(event.target.result);
       }
     };
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(compressed);
   };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
@@ -79,22 +88,11 @@ export default function SettingsPage() {
         avatarUrl,
       };
 
-      let updatedUser = {
-        ...user,
-        ...payload,
-      };
-
-      try {
-        const res = await usersApi.updateMe(payload);
-        if (res && typeof res === 'object') {
-          updatedUser = { ...updatedUser, ...res };
-        }
-      } catch (apiErr) {
-        console.warn('Backend updateMe fallback to local storage', apiErr);
-      }
+      const res = await usersApi.updateMe(payload);
+      const updatedUser = { ...user, ...payload, ...res };
 
       if (user) {
-        login(token || 'mock_token', updatedUser as any);
+        login(token || '', updatedUser);
       }
       setSaveSuccess(true);
       setTimeout(() => {

@@ -13,6 +13,7 @@ import {
   Share,
 } from "lucide-react";
 import { FollowedAttendeesModal } from "@/components/events/FollowedAttendeesModal";
+import { EventDetailSkeleton } from "@/components/events/EventDetailSkeleton";
 import { EventLiveRankingCard } from "@/components/events/EventLiveRankingModal";
 import { CommentSection } from "@/components/ui/CommentSection";
 import { EventAttendanceVote } from "@/components/ui/EventAttendanceVote";
@@ -159,12 +160,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   }, [event]);
 
   if (!hasLoaded && isLoadingEvent) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-bg p-6 text-ink">
-        <Loader2 className="size-8 animate-spin text-accent" aria-hidden="true" />
-        <p className="label-mono text-ink-2">Cargando evento</p>
-      </div>
-    );
+    return <EventDetailSkeleton />;
   }
 
   if (!event) {

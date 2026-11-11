@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { useTransfers } from "@/hooks/useTransfers";
+import { RootLoader } from "@/components/ui/RootLoader";
 
 export default function TransfersPage() {
   const router = useRouter();
@@ -210,8 +211,8 @@ export default function TransfersPage() {
 
         <div className="mt-4 flex flex-col gap-3">
           {isLoading ? (
-            <div className="flex justify-center py-20">
-              <Loader2 className="size-8 text-accent animate-spin" aria-label="Cargando transfers" />
+            <div className="flex justify-center py-16">
+              <RootLoader size="md" label="Cargando transfers disponibles" />
             </div>
           ) : filteredTransfers.length > 0 ? (
             filteredTransfers.map((transfer) => {

@@ -4,6 +4,7 @@ import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import { CommunityDetailSkeleton } from "@/components/communities/CommunityDetailSkeleton";
 import { BroadcastChannel } from "@/components/communities/BroadcastChannel";
 import { CommunityHeader } from "@/components/communities/CommunityHeader";
 import { CommunityInfoPanel } from "@/components/communities/CommunityInfoPanel";
@@ -76,12 +77,7 @@ export default function CommunityDetailPage({ params }: CommunityDetailPageProps
   };
 
   if (isLoading && !community) {
-    return (
-      <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-3 bg-bg text-ink">
-        <Loader2 className="size-8 animate-spin text-accent" aria-hidden="true" />
-        <p className="label-mono text-ink-2">Cargando comunidad</p>
-      </div>
-    );
+    return <CommunityDetailSkeleton />;
   }
 
   if (!community) {

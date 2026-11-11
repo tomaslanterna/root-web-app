@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { LoginRequired } from "@/components/ui/LoginRequired";
 import { ChatConversation } from "@/components/match/ChatConversation";
 import { useSquadChat } from "@/hooks/useSquadChat";
+import { RootLoader } from "@/components/ui/RootLoader";
 
 export default function SquadChatPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -27,5 +28,5 @@ export default function SquadChatPage({ params }: { params: Promise<{ id: string
       </div>
     );
   }
-  return <div className="min-h-[100dvh] bg-[#0B0D10] flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-[#D4FF00]" /></div>;
+  return <RootLoader fullScreen size="lg" label="Cargando squad" />;
 }

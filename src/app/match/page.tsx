@@ -13,6 +13,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { LoginRequired } from "@/components/ui/LoginRequired";
+import { MatchSkeleton } from "@/components/match/MatchSkeleton";
 import { useRouter } from "next/navigation";
 
 export default function MatchPage() {
@@ -45,8 +46,16 @@ export default function MatchPage() {
     (crew.location && crew.location.toLowerCase().includes(searchCrewsQuery.toLowerCase())),
   );
 
-  if (!authLoading && !user) {
+  if (authLoading) {
+    return <MatchSkeleton />;
+  }
+
+  if (!user) {
     return <LoginRequired />;
+  }
+
+  if (crewsLoading || (isLoadingSquads && squads.length === 0)) {
+    return <MatchSkeleton />;
   }
 
   const handleCreateCrewSubmit = async (data: {
@@ -138,11 +147,7 @@ export default function MatchPage() {
               </button>
             )}
 
-            {crewsLoading && totalMyCrews === 0 ? (
-              <div className="flex justify-center py-12">
-                <Loader2 className="size-6 animate-spin text-accent" aria-label="Cargando crews" />
-              </div>
-            ) : totalMyCrews === 0 ? (
+            {totalMyCrews === 0 ? (
               <p className="mt-7 text-center text-[15px] text-ink-2">
                 Todavía no tenés crews. Creá una con tus amigos o sumate a una desde Explorar.
               </p>
@@ -260,11 +265,7 @@ export default function MatchPage() {
             </div>
             <span className="label-mono text-ink-3">Crews registradas · {allCrews.length}</span>
 
-            {crewsLoading ? (
-              <div className="flex justify-center py-12">
-                <Loader2 className="size-6 animate-spin text-accent" aria-label="Cargando crews" />
-              </div>
-            ) : filteredCountryCrews.length === 0 ? (
+            {filteredCountryCrews.length === 0 ? (
               <p className="py-8 text-center text-[15px] text-ink-2">
                 {searchCrewsQuery
                   ? `No hay crews que coincidan con "${searchCrewsQuery}".`
