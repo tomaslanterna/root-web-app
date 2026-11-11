@@ -7,9 +7,12 @@ const installationKey = "root_push_installation";
 const registeredKey = "root_push_native_registered";
 const preferenceKey = (userId: string) => `root_push_enabled_${userId}`;
 
-export function supportsAndroidPush() {
-  return Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android" && Capacitor.isPluginAvailable("PushNotifications");
+export function supportsNativePush() {
+  const platform = Capacitor.getPlatform();
+  return Capacitor.isNativePlatform() && (platform === "android" || platform === "ios") && Capacitor.isPluginAvailable("PushNotifications");
 }
+
+export const supportsAndroidPush = supportsNativePush;
 
 function installationId() {
   let id = localStorage.getItem(installationKey);
@@ -31,7 +34,8 @@ export async function getPushAvailability(jwt: string): Promise<boolean> {
   return data.enabled;
 }
 export async function registerPushDevice(jwt: string, id: string, token: string): Promise<void> {
-  await api.put(`/v1/push/devices/${id}`, { token, platform: "android" }, { headers: headers(jwt), timeout: 10000, skipAuthRedirect: true });
+  const platform = Capacitor.getPlatform() === "ios" ? "ios" : "android";
+  await api.put(`/v1/push/devices/${id}`, { token, platform }, { headers: headers(jwt), timeout: 10000, skipAuthRedirect: true });
 }
 export async function removePushDevice(jwt: string, id: string): Promise<void> {
   await api.delete(`/v1/push/devices/${id}`, { headers: headers(jwt), timeout: 10000, skipAuthRedirect: true });
@@ -67,8 +71,8 @@ export class AndroidPushSession {
     // This module owns one native session across navigation.
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     currentSession = this;
-    this.setup = supportsAndroidPush() ? nativeReset.then(() => this.addListeners()) : Promise.resolve();
-    void this.setup.catch(() => { if (!this.stopped) this.update("error", "No pudimos preparar las notificaciones de Android."); });
+    this.setup = supportsNativePush() ? nativeReset.then(() => this.addListeners()) : Promise.resolve();
+    void this.setup.catch(() => { if (!this.stopped) this.update("error", "No pudimos preparar las notificaciones del dispositivo."); });
   }
 
   private async addListeners() {
@@ -92,7 +96,7 @@ export class AndroidPushSession {
     this.handles.push(registration);
     this.handles.push(await PushNotifications.addListener("registrationError", () => {
       if (this.stopped || !this.accepting) return;
-      const error = new Error("No pudimos conectar con Firebase. Revisá la configuración de Android.");
+      const error = new Error("No pudimos registrar las notificaciones. Revisá los ajustes del dispositivo.");
       this.update("error", error.message);
       this.failed?.(error);
     }));
@@ -110,11 +114,11 @@ export class AndroidPushSession {
   }
 
   private async performEnable(prompt: boolean) {
-    if (this.stopped || !supportsAndroidPush()) return;
+    if (this.stopped || !supportsNativePush()) return;
     this.update("enabling");
     try {
       await this.setup;
-      if (!await getPushAvailability(this.jwt)) throw new Error("El servidor todavía no tiene Firebase configurado.");
+      if (!await getPushAvailability(this.jwt)) throw new Error("El servidor todavía no tiene las notificaciones configuradas.");
       if (this.stopped) return;
       let permission = await PushNotifications.checkPermissions();
       if (prompt && (permission.receive === "prompt" || permission.receive === "prompt-with-rationale")) {
@@ -122,14 +126,16 @@ export class AndroidPushSession {
       }
       if (this.stopped) return;
       if (permission.receive !== "granted") {
-        this.update("denied", "Permití las notificaciones desde los ajustes de Android y volvé a intentar.");
+        this.update("denied", "Permití las notificaciones desde los ajustes del sistema y volvé a intentar.");
         return;
       }
-      await PushNotifications.createChannel({ id: "root_messages", name: "Mensajes", description: "Mensajes de tus chats y squads", importance: 4, visibility: 0, vibration: true });
+      if (Capacitor.getPlatform() === "android") {
+        await PushNotifications.createChannel({ id: "root_messages", name: "Mensajes", description: "Mensajes de tus chats y squads", importance: 4, visibility: 0, vibration: true });
+      }
       if (this.stopped) return;
       this.accepting = true;
       await new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error("Firebase no respondió. Intentá nuevamente.")), 20000);
+        const timeout = setTimeout(() => reject(new Error("El servicio de notificaciones no respondió. Intentá nuevamente.")), 20000);
         this.complete = () => { clearTimeout(timeout); resolve(); };
         this.failed = error => { clearTimeout(timeout); reject(error); };
         void PushNotifications.register().catch(error => this.failed?.(error instanceof Error ? error : new Error("No pudimos activar las notificaciones.")));
@@ -184,11 +190,11 @@ export class AndroidPushSession {
 }
 
 export async function revokePushForLogout() {
-  if (currentSession && supportsAndroidPush()) await currentSession.revokeForLogout();
+  if (currentSession && supportsNativePush()) await currentSession.revokeForLogout();
 }
 
 export async function clearUnownedNativePush() {
-  if (!supportsAndroidPush() || !localStorage.getItem(registeredKey)) return;
+  if (!supportsNativePush() || !localStorage.getItem(registeredKey)) return;
   nativeReset = nativeReset.then(async () => {
     try {
       await PushNotifications.unregister();

@@ -8,7 +8,7 @@ const config: CapacitorConfig = {
   webDir: "native-shell",
   server: {
     // Aquí ponemos la IP de tu red local y el puerto de Next.js
-    url: "https://root-web-app.vercel.app",
+    url: "http://192.168.1.9:3000",
     cleartext: true, // Permite conexiones HTTP (sin SSL) en el emulador
     allowNavigation: ["*"],
   },

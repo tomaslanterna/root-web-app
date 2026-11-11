@@ -5,7 +5,8 @@ import vm from "node:vm";
 import { webcrypto } from "node:crypto";
 import ts from "typescript";
 
-function runtime({ android = true, configured = true, permission = "granted", put, remove, unregister } = {}) {
+function runtime({ platform = "android", android, configured = true, permission = "granted", put, remove, unregister } = {}) {
+  const resolvedPlatform = android === false ? "web" : platform;
   const listeners = new Map(), storage = new Map(), calls = [], states = [], paths = [];
   const push = {
     addListener: async (key, fn) => { listeners.set(key, fn); return { remove: async () => listeners.delete(key) }; },
@@ -26,7 +27,7 @@ function runtime({ android = true, configured = true, permission = "granted", pu
   const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText;
   vm.runInNewContext(compiled, {
     exports: exportsObject,
-    require: key => key === "@capacitor/core" ? { Capacitor: { isNativePlatform: () => android, getPlatform: () => android ? "android" : "web", isPluginAvailable: () => android } } : key === "@capacitor/push-notifications" ? { PushNotifications: push } : { api },
+    require: key => key === "@capacitor/core" ? { Capacitor: { isNativePlatform: () => resolvedPlatform !== "web", getPlatform: () => resolvedPlatform, isPluginAvailable: () => resolvedPlatform !== "web" } } : key === "@capacitor/push-notifications" ? { PushNotifications: push } : { api },
     crypto: webcrypto, Uint8Array, setTimeout, clearTimeout,
     localStorage: { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) },
   });
@@ -48,6 +49,18 @@ test("Android opt-in requests permission, creates channel and registers JWT-boun
   await r.session.dispose();
 });
 
+test("iOS opt-in requests permission, skips channels, and registers with platform ios", async () => {
+  const r = runtime({ platform: "ios", permission: "prompt" });
+  await r.session.enable();
+  const call = r.calls.find(call => call[0] === "put");
+  assert.match(call[1], /^\/v1\/push\/devices\/[\da-f-]{36}$/);
+  assert.equal(call[2].platform, "ios");
+  assert.equal(r.calls.filter(call => call[0] === "channel").length, 0);
+  assert.equal(r.states.at(-1)[0], "enabled");
+  assert.equal(r.storage.get("root_push_enabled_user-a"), "true");
+  await r.session.dispose();
+});
+
 test("browser remains unsupported and never registers devices", async () => {
   const r = runtime({ android: false });
   assert.equal(r.supportsAndroidPush(), false);
@@ -58,7 +71,7 @@ test("browser remains unsupported and never registers devices", async () => {
 
 test("unconfigured backend is explained without prompting or claiming activation", async () => {
   const r = runtime({ configured: false, permission: "prompt" });
-  await assert.rejects(r.session.enable(), /Firebase/);
+  await assert.rejects(r.session.enable(), /notificaciones/);
   assert.equal(r.states.at(-1)[0], "error");
   assert.equal(r.calls.length, 0);
   await r.session.dispose();

@@ -40,205 +40,126 @@ struct RootLiveEventLockScreenView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // 1. Header superior
-            HStack(alignment: .center, spacing: 6) {
-                if state.mode == "dancing" || state.mode == "started_away" {
-                    Circle()
-                        .fill(liveRed)
-                        .frame(width: 8, height: 8)
-                    Text("EN VIVO")
-                        .font(.system(size: 11, weight: .black))
-                        .foregroundColor(liveRed)
-                        .lineLimit(1)
+        HStack(alignment: .center, spacing: 10) {
+            // 1. Flyer cuadrado compacto
+            ZStack {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(obsidianBg)
+
+                if let uiImage = thumbnailImage {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFill()
                 } else {
                     Image(systemName: "sparkles")
-                        .font(.system(size: 11, weight: .bold))
+                        .font(.system(size: 16, weight: .bold))
                         .foregroundColor(limeAcid)
-                    Text("TU EVENTO DE HOY")
-                        .font(.system(size: 11, weight: .black))
-                        .foregroundColor(.white)
-                        .lineLimit(1)
-                }
-
-                Spacer(minLength: 4)
-
-                // Texto superior derecho (sin tag / cápsula)
-                if state.mode == "dancing" {
-                    HStack(spacing: 4) {
-                        Image(systemName: "flame.fill")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundColor(limeAcid)
-                        Text("A LA PISTA A BAILAR")
-                            .font(.system(size: 11, weight: .black))
-                            .foregroundColor(limeAcid)
-                    }
-                } else if state.mode == "before_start" && startDate > Date() {
-                    HStack(spacing: 4) {
-                        Image(systemName: "clock")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundColor(limeAcid)
-                        Text("ARRANCA EN")
-                            .font(.system(size: 11, weight: .black))
-                            .foregroundColor(limeAcid)
-                        Text(timerInterval: Date()...startDate, countsDown: true)
-                            .font(.system(size: 11, weight: .black).monospacedDigit())
-                            .foregroundColor(limeAcid)
-                    }
-                } else {
-                    HStack(spacing: 4) {
-                        Image(systemName: "mappin.and.ellipse")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundColor(liveRed)
-                        Text("¡NO TE OLVIDES DE IR!")
-                            .font(.system(size: 11, weight: .black))
-                            .foregroundColor(liveRed)
-                    }
                 }
             }
-            .padding(.horizontal, 14)
-            .padding(.top, 10)
-            .padding(.bottom, 6)
+            .frame(width: 44, height: 44)
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
 
-            // 2. Cuerpo central: Flyer + Info + Pasos
-            HStack(alignment: .center, spacing: 10) {
-                // Flyer cuadrado compacto
-                ZStack {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(obsidianBg)
-
-                    if let uiImage = thumbnailImage {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .scaledToFill()
-                    } else {
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundColor(limeAcid)
-                    }
-                }
-                .frame(width: 58, height: 58)
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-
-                // Info central
-                VStack(alignment: .leading, spacing: 2) {
+            // 2. Info central
+            VStack(alignment: .leading, spacing: 2) {
+                if state.mode == "dancing" {
+                    // Estado 3 (Cuando ya ingresó): punto rojo con "En vivo" y abajo el nombre
                     HStack(spacing: 4) {
-                        Image(systemName: "clock")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundColor(limeAcid)
-                        Text(attributes.startHourLabel)
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundColor(.white)
-                        if state.mode == "started_away" {
-                            Text("· ¡ARRANCÓ!")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundColor(liveRed)
-                        }
+                        Circle()
+                            .fill(liveRed)
+                            .frame(width: 6, height: 6)
+                        Text("EN VIVO")
+                            .font(.system(size: 10, weight: .black))
+                            .foregroundColor(liveRed)
                     }
 
                     Text(attributes.eventTitle.uppercased())
-                        .font(.system(size: 14, weight: .black))
+                        .font(.system(size: 13, weight: .black))
                         .foregroundColor(.white)
                         .lineLimit(1)
-
-                    if !state.subtitle.isEmpty {
-                        Text(state.subtitle.uppercased())
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundColor(subtitleGray)
-                            .lineLimit(1)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                // Columna derecha: Métrica de pasos o estado
-                if state.mode == "dancing" {
-                    VStack(alignment: .trailing, spacing: 1) {
-                        HStack(alignment: .firstTextBaseline, spacing: 3) {
-                            Text(formattedSteps)
-                                .font(.system(size: 24, weight: .black, design: .default).italic())
-                                .foregroundColor(limeAcid)
-                            Text("PASOS")
-                                .font(.system(size: 10, weight: .black).italic())
-                                .foregroundColor(limeAcid.opacity(0.85))
-                        }
-                        Text("EN LA PISTA")
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundColor(subtitleGray)
-                    }
                 } else if state.mode == "started_away" {
-                    VStack(alignment: .trailing, spacing: 1) {
-                        if state.stepsCount > 0 {
-                            HStack(alignment: .firstTextBaseline, spacing: 3) {
-                                Text(formattedSteps)
-                                    .font(.system(size: 20, weight: .black, design: .default).italic())
-                                    .foregroundColor(liveRed)
-                                Text("PASOS")
-                                    .font(.system(size: 9, weight: .bold))
-                                    .foregroundColor(liveRed.opacity(0.85))
-                            }
-                            Text("ANDÁ A LA PISTA")
-                                .font(.system(size: 8, weight: .bold))
-                                .foregroundColor(subtitleGray)
-                        } else {
-                            Text("ANDÁ")
-                                .font(.system(size: 16, weight: .black).italic())
-                                .foregroundColor(liveRed)
-                            Text("A LA FIESTA")
-                                .font(.system(size: 8, weight: .bold))
-                                .foregroundColor(subtitleGray)
-                        }
-                    }
-                }
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 4)
-
-            // 3. Footer inferior de acción (sin borde separador)
-            HStack(spacing: 5) {
-                Spacer()
-                if state.mode == "dancing" {
-                    Image(systemName: "figure.dance")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(limeAcid)
-                    Text(state.footerLabel)
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(subtitleGray)
-                    Image(systemName: "arrow.up.right")
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundColor(subtitleGray)
-                } else if state.mode == "started_away" {
-                    Image(systemName: "mappin.and.ellipse")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(liveRed)
-                    Text(state.footerLabel)
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(subtitleGray)
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundColor(subtitleGray)
+                    // Estado 2 (Ya arrancó pero no está ahí): solo el nombre del evento (sin hora, sin textos debajo)
+                    Text(attributes.eventTitle.uppercased())
+                        .font(.system(size: 13, weight: .black))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
                 } else {
-                    Image(systemName: "ticket")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(limeAcid)
-                    Text(state.footerLabel)
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(subtitleGray)
+                    // Estado 1 (Antes de ir a la fiesta): hora tal cual está ahora y abajo el nombre
+                    HStack(spacing: 4) {
+                        Image(systemName: "clock")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundColor(limeAcid)
+                        Text(attributes.startHourLabel)
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.white)
+                    }
+
+                    Text(attributes.eventTitle.uppercased())
+                        .font(.system(size: 13, weight: .black))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            // 3. Lado derecho
+            HStack(spacing: 5) {
+                if state.mode == "dancing" {
+                    // Estado 3: pasos con la palabra "pasos" abajo y al lado un chevron hacia la derecha
+                    VStack(alignment: .trailing, spacing: 0) {
+                        Text(formattedSteps)
+                            .font(.system(size: 18, weight: .black, design: .default).italic())
+                            .foregroundColor(limeAcid)
+                        Text("PASOS")
+                            .font(.system(size: 8, weight: .black))
+                            .foregroundColor(subtitleGray)
+                    }
+
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 9, weight: .bold))
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(limeAcid.opacity(0.85))
+                } else if state.mode == "started_away" {
+                    // Estado 2: solo "¡No te lo pierdas!" donde estaba la cuenta regresiva en rojo
+                    Text("¡NO TE LO PIERDAS!")
+                        .font(.system(size: 11, weight: .black))
+                        .foregroundColor(liveRed)
+                        .lineLimit(1)
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(liveRed.opacity(0.8))
+                } else {
+                    // Estado 1: cuenta regresiva bien ordenada
+                    VStack(alignment: .trailing, spacing: 0) {
+                        if startDate > Date() {
+                            Text(timerInterval: Date()...startDate, countsDown: true)
+                                .font(.system(size: 13, weight: .black).monospacedDigit())
+                                .foregroundColor(limeAcid)
+                                .multilineTextAlignment(.trailing)
+                        } else {
+                            Text("HOY")
+                                .font(.system(size: 13, weight: .black))
+                                .foregroundColor(limeAcid)
+                        }
+
+                        Text("COMIENZA EN")
+                            .font(.system(size: 7, weight: .bold))
+                            .foregroundColor(subtitleGray)
+                    }
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .bold))
                         .foregroundColor(subtitleGray)
                 }
-                Spacer()
             }
-            .padding(.horizontal, 14)
-            .padding(.top, 4)
-            .padding(.bottom, 10)
         }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
         .background(cardBg)
         .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .stroke(lineBorder, lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 }
 
@@ -283,7 +204,7 @@ struct RootLiveActivityWidget: Widget {
 
             return DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    if context.state.mode == "dancing" || context.state.mode == "started_away" {
+                    if context.state.mode == "dancing" {
                         HStack(spacing: 4) {
                             Circle().fill(liveRed).frame(width: 6, height: 6)
                             Text("EN VIVO")
@@ -291,13 +212,21 @@ struct RootLiveActivityWidget: Widget {
                                 .foregroundColor(liveRed)
                         }
                         .padding(.leading, 4)
+                    } else if context.state.mode == "started_away" {
+                        HStack(spacing: 4) {
+                            Circle().fill(liveRed).frame(width: 6, height: 6)
+                            Text("ARRANCÓ")
+                                .font(.system(size: 10, weight: .black))
+                                .foregroundColor(liveRed)
+                        }
+                        .padding(.leading, 4)
                     } else {
                         HStack(spacing: 3) {
-                            Image(systemName: "sparkles")
+                            Image(systemName: "clock")
                                 .font(.system(size: 9, weight: .bold))
                                 .foregroundColor(limeAcid)
-                            Text("TU EVENTO")
-                                .font(.system(size: 10, weight: .black))
+                            Text(context.attributes.startHourLabel)
+                                .font(.system(size: 10, weight: .bold))
                                 .foregroundColor(.white)
                         }
                         .padding(.leading, 4)
@@ -305,115 +234,52 @@ struct RootLiveActivityWidget: Widget {
                 }
                 DynamicIslandExpandedRegion(.trailing) {
                     if context.state.mode == "dancing" {
-                        HStack(spacing: 3) {
-                            Image(systemName: "flame.fill")
-                                .font(.system(size: 9, weight: .bold))
+                        VStack(alignment: .trailing, spacing: 0) {
+                            Text("\(formattedSteps)")
+                                .font(.system(size: 14, weight: .black).italic())
                                 .foregroundColor(limeAcid)
-                            Text("A LA PISTA A BAILAR")
-                                .font(.system(size: 9, weight: .black))
-                                .foregroundColor(limeAcid)
+                            Text("PASOS")
+                                .font(.system(size: 7, weight: .bold))
+                                .foregroundColor(subtitleGray)
                         }
                         .padding(.trailing, 4)
-                    } else if context.state.mode == "before_start" && startDate > Date() {
-                        HStack(spacing: 3) {
-                            Image(systemName: "clock")
-                                .font(.system(size: 9, weight: .bold))
-                                .foregroundColor(limeAcid)
-                            Text("ARRANCA EN")
-                                .font(.system(size: 9, weight: .black))
-                                .foregroundColor(limeAcid)
-                            Text(timerInterval: Date()...startDate, countsDown: true)
-                                .font(.system(size: 9, weight: .black).monospacedDigit())
-                                .foregroundColor(limeAcid)
-                        }
-                        .padding(.trailing, 4)
-                    } else {
-                        HStack(spacing: 3) {
-                            Image(systemName: "mappin.and.ellipse")
-                                .font(.system(size: 9, weight: .bold))
-                                .foregroundColor(liveRed)
-                            Text("¡NO TE OLVIDES DE IR!")
-                                .font(.system(size: 9, weight: .black))
-                                .foregroundColor(liveRed)
-                        }
-                        .padding(.trailing, 4)
+                    } else if context.state.mode == "started_away" {
+                        Text("¡NO TE LO PIERDAS!")
+                            .font(.system(size: 10, weight: .black))
+                            .foregroundColor(liveRed)
+                            .padding(.trailing, 4)
+                    } else if startDate > Date() {
+                        Text(timerInterval: Date()...startDate, countsDown: true)
+                            .font(.system(size: 12, weight: .black).monospacedDigit())
+                            .foregroundColor(limeAcid)
+                            .padding(.trailing, 4)
                     }
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack(alignment: .center, spacing: 10) {
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                    .fill(obsidianBg)
-                                if let uiImage = thumb {
-                                    Image(uiImage: uiImage)
-                                        .resizable()
-                                        .scaledToFill()
-                                } else {
-                                    Image(systemName: "sparkles")
-                                        .font(.system(size: 16, weight: .bold))
-                                        .foregroundColor(limeAcid)
-                                }
-                            }
-                            .frame(width: 48, height: 48)
-                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-
-                            VStack(alignment: .leading, spacing: 2) {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "clock")
-                                        .font(.system(size: 9, weight: .bold))
-                                        .foregroundColor(limeAcid)
-                                    Text(context.attributes.startHourLabel)
-                                        .font(.system(size: 10, weight: .bold))
-                                        .foregroundColor(.white)
-                                }
-
-                                Text(context.attributes.eventTitle.uppercased())
-                                    .font(.system(size: 12, weight: .black))
-                                    .foregroundColor(.white)
-                                    .lineLimit(1)
-
-                                if !context.state.subtitle.isEmpty {
-                                    Text(context.state.subtitle.uppercased())
-                                        .font(.system(size: 9, weight: .medium))
-                                        .foregroundColor(subtitleGray)
-                                        .lineLimit(1)
-                                }
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-
-                            if context.state.mode == "dancing" {
-                                VStack(alignment: .trailing, spacing: 0) {
-                                    Text("\(formattedSteps)")
-                                        .font(.system(size: 18, weight: .black).italic())
-                                        .foregroundColor(limeAcid)
-                                    Text("PASOS")
-                                        .font(.system(size: 8, weight: .bold))
-                                        .foregroundColor(subtitleGray)
-                                }
-                            }
-                        }
-
-                        HStack(spacing: 5) {
-                            Spacer()
-                            if context.state.mode == "dancing" {
-                                Image(systemName: "figure.dance")
-                                    .font(.system(size: 10, weight: .bold))
-                                    .foregroundColor(limeAcid)
+                    HStack(alignment: .center, spacing: 8) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .fill(obsidianBg)
+                            if let uiImage = thumb {
+                                Image(uiImage: uiImage)
+                                    .resizable()
+                                    .scaledToFill()
                             } else {
-                                Image(systemName: "ticket")
-                                    .font(.system(size: 10, weight: .bold))
+                                Image(systemName: "sparkles")
+                                    .font(.system(size: 14, weight: .bold))
                                     .foregroundColor(limeAcid)
                             }
-                            Text(context.state.footerLabel)
-                                .font(.system(size: 10, weight: .semibold))
-                                .foregroundColor(subtitleGray)
-                            Spacer()
                         }
+                        .frame(width: 36, height: 36)
+                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+                        Text(context.attributes.eventTitle.uppercased())
+                            .font(.system(size: 12, weight: .black))
+                            .foregroundColor(.white)
+                            .lineLimit(1)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .padding(.horizontal, 4)
-                    .padding(.top, 2)
-                    .padding(.bottom, 4)
                 }
             } compactLeading: {
                 if let uiImage = thumb {
@@ -423,21 +289,45 @@ struct RootLiveActivityWidget: Widget {
                         .frame(width: 20, height: 20)
                         .clipShape(Circle())
                         .padding(.leading, 4)
+                } else if context.state.mode == "dancing" || context.state.mode == "started_away" {
+                    Circle()
+                        .fill(liveRed)
+                        .frame(width: 8, height: 8)
+                        .padding(.leading, 6)
                 } else {
-                    Image(systemName: "sparkles")
+                    Image(systemName: "clock")
+                        .font(.system(size: 9, weight: .bold))
                         .foregroundColor(limeAcid)
                         .padding(.leading, 4)
                 }
             } compactTrailing: {
                 if context.state.mode == "dancing" {
-                    Text("\(context.state.stepsCount)")
-                        .font(.system(size: 12, weight: .black).italic())
+                    HStack(spacing: 2) {
+                        Image(systemName: "flame.fill")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundColor(limeAcid)
+                        Text("\(context.state.stepsCount)")
+                            .font(.system(size: 11, weight: .black).italic())
+                            .foregroundColor(limeAcid)
+                    }
+                    .padding(.trailing, 4)
+                } else if context.state.mode == "started_away" {
+                    HStack(spacing: 2) {
+                        Circle().fill(liveRed).frame(width: 5, height: 5)
+                        Text("ARRANCÓ")
+                            .font(.system(size: 9, weight: .black))
+                            .foregroundColor(liveRed)
+                    }
+                    .padding(.trailing, 4)
+                } else if startDate > Date() {
+                    Text(timerInterval: Date()...startDate, countsDown: true)
+                        .font(.system(size: 10, weight: .black).monospacedDigit())
                         .foregroundColor(limeAcid)
                         .padding(.trailing, 4)
                 } else {
                     Text(context.attributes.startHourLabel)
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(limeAcid)
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.white)
                         .padding(.trailing, 4)
                 }
             } minimal: {
@@ -447,8 +337,17 @@ struct RootLiveActivityWidget: Widget {
                         .scaledToFill()
                         .frame(width: 20, height: 20)
                         .clipShape(Circle())
+                } else if context.state.mode == "dancing" {
+                    Image(systemName: "flame.fill")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(limeAcid)
+                } else if context.state.mode == "started_away" {
+                    Circle()
+                        .fill(liveRed)
+                        .frame(width: 8, height: 8)
                 } else {
                     Image(systemName: "sparkles")
+                        .font(.system(size: 10, weight: .bold))
                         .foregroundColor(limeAcid)
                 }
             }
