@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Camera, Heart, ImageOff, MessageCircle, Plus } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { isValidImageUrl } from "@/lib/utils";
+import { cn, isValidImageUrl } from "@/lib/utils";
 import type { Post } from "@/types/posts";
 
 interface ProfilePostsGridProps {
@@ -40,14 +41,18 @@ export function ProfilePostsGrid({ posts, isMyProfile, onCreatePost }: ProfilePo
   return (
     // Grilla tipo Instagram: 3 por fila, formato vertical 9:16 y separación mínima.
     <div className="grid grid-cols-3 gap-0.5">
-      {posts.map((post) => (
+      {posts.map((post, index) => (
         <Link
           key={post.id}
           href={`/posts/${post.id}`}
           aria-label={post.title || post.content || "Ver publicación"}
           className="group relative aspect-[9/16] overflow-hidden bg-surface-2 block focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
         >
-          <PostThumbnail url={post.headerImageUrl} />
+          <PostThumbnail
+            url={post.headerImageUrl}
+            priority={index < 6}
+            loading={index < 9 ? "eager" : "lazy"}
+          />
 
           <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-3 sm:gap-6 text-white">
             <span className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm font-semibold">
@@ -65,9 +70,27 @@ export function ProfilePostsGrid({ posts, isMyProfile, onCreatePost }: ProfilePo
   );
 }
 
-/** Llena el cuadro recortando desde el centro; si la imagen no carga, queda el fondo con un ícono. */
-function PostThumbnail({ url }: { url?: string | null }) {
+/** Llena el cuadro recortando desde el centro optimizado con next/image y WebP. */
+function PostThumbnail({
+  url,
+  priority = false,
+  loading,
+}: {
+  url?: string | null;
+  priority?: boolean;
+  loading?: "eager" | "lazy";
+}) {
   const [failed, setFailed] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  useEffect(() => {
+    // Si la imagen ya fue cargada desde la caché del navegador antes del montaje
+    if (imgRef.current?.complete) {
+      setLoaded(true);
+    }
+  }, []);
+
   if (!isValidImageUrl(url) || failed) {
     return (
       <span aria-hidden="true" className="absolute inset-0 flex items-center justify-center text-ink-3">
@@ -75,13 +98,35 @@ function PostThumbnail({ url }: { url?: string | null }) {
       </span>
     );
   }
+
+  const effectiveLoading = loading ?? (priority ? "eager" : "lazy");
+
   return (
-    <img
-      src={url.trim()}
-      alt=""
-      loading="lazy"
-      onError={() => setFailed(true)}
-      className="absolute inset-0 size-full object-cover object-center"
-    />
+    <>
+      {/* Skeleton de carga sutil para feedback visual instantáneo */}
+      {!loaded && (
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-surface-3/30 animate-pulse pointer-events-none"
+        />
+      )}
+      <Image
+        ref={imgRef}
+        src={url.trim()}
+        alt=""
+        fill
+        sizes="(max-width: 768px) 33vw, 260px"
+        priority={priority}
+        loading={effectiveLoading}
+        quality={70}
+        decoding="async"
+        onError={() => setFailed(true)}
+        onLoad={() => setLoaded(true)}
+        className={cn(
+          "object-cover object-center transition-opacity duration-200",
+          loaded ? "opacity-100" : "opacity-0"
+        )}
+      />
+    </>
   );
 }

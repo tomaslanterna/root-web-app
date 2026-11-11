@@ -24,6 +24,7 @@
  import { EventCard } from "@/components/ui/EventCard";
 import { EventCardSkeleton } from "@/components/events/EventCardSkeleton";
  import { Button } from "@/components/ui/Button";
+ import { RootLoader } from "@/components/ui/RootLoader";
  import { SegmentedControl } from "@/components/ui/SegmentedControl";
  import { RootLogo } from "@/components/ui/RootLogo";
  import { SearchButton } from "@/components/ui/SearchButton";
@@ -945,8 +946,14 @@ import { EventCardSkeleton } from "@/components/events/EventCardSkeleton";
                      ? [1, 2, 3, 4].map((i) => (
                          <EventCardSkeleton key={i} variant="featured" />
                        ))
-                     : featuredEvents.map((event) => (
-                     <EventCard key={event.id} event={event} variant="featured" />
+                     : featuredEvents.map((event, index) => (
+                     <EventCard
+                       key={event.id}
+                       event={event}
+                       variant="featured"
+                       priority={index < 4}
+                       loading="eager"
+                     />
                    ))}
                  </div>
                </section>
@@ -1466,7 +1473,7 @@ import { EventCardSkeleton } from "@/components/events/EventCardSkeleton";
                <EventCalendarView events={displayEvents} />
              ) : viewMode === "list" ? (
                <div className="flex flex-col gap-6 animate-in fade-in duration-300">
-                 {chronologicalGroups.map((group) => (
+                 {chronologicalGroups.map((group, groupIndex) => (
                    <div key={group.id} className="space-y-3">
                      <div className="flex items-baseline justify-between gap-3 border-b border-line pb-2">
                        <div className="flex items-baseline gap-2 min-w-0">
@@ -1481,8 +1488,14 @@ import { EventCardSkeleton } from "@/components/events/EventCardSkeleton";
                      </div>
 
                      <div className="flex flex-col gap-3">
-                       {group.events.map((event) => (
-                         <EventCard key={event.id} event={event} variant="list" />
+                       {group.events.map((event, eventIndex) => (
+                         <EventCard
+                           key={event.id}
+                           event={event}
+                           variant="list"
+                           priority={groupIndex === 0 && eventIndex < 4}
+                           loading={groupIndex === 0 || (groupIndex === 1 && eventIndex < 4) ? "eager" : "lazy"}
+                         />
                        ))}
                      </div>
                    </div>
@@ -1490,8 +1503,14 @@ import { EventCardSkeleton } from "@/components/events/EventCardSkeleton";
                </div>
              ) : (
                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-5 animate-in fade-in duration-300">
-                 {displayEvents.map((event) => (
-                   <EventCard key={event.id} event={event} variant="full" />
+                 {displayEvents.map((event, index) => (
+                   <EventCard
+                     key={event.id}
+                     event={event}
+                     variant="full"
+                     priority={index < 6}
+                     loading={index < 12 ? "eager" : "lazy"}
+                   />
                  ))}
                </div>
              )
@@ -1522,10 +1541,7 @@ import { EventCardSkeleton } from "@/components/events/EventCardSkeleton";
 
            {/* Loader de Scroll Infinito */}
            {isLoadingEvents && events.length > 0 && (
-             <div className="flex flex-col items-center justify-center pt-8 pb-4 gap-3 animate-in fade-in duration-300">
-               <Loader2 className="size-6 animate-spin text-accent" aria-hidden="true" />
-               <span className="label-mono text-ink-2">Cargando más eventos</span>
-             </div>
+             <RootLoader size="xs" ariaLabel="Cargando más eventos" className="pt-6 pb-2" />
            )}
 
            <div ref={sentinelRef} className="h-6 w-full pointer-events-none" />
