@@ -300,7 +300,7 @@ export default function UserProfilePage() {
               src={profileUser.avatarUrl.trim()}
               alt=""
               fill
-              unoptimized
+              priority
               sizes="88px"
               className="object-cover"
             />

@@ -15,33 +15,31 @@ export function ProfileSkeleton({ className }: ProfileSkeletonProps) {
         className,
       )}
     >
-      {/* Header fijo */}
+      {/* Header fijo idéntico al del perfil */}
       <header className="sticky top-0 z-30 w-full bg-bg/95 backdrop-blur-md border-b border-line">
-        <div className="w-full max-w-3xl mx-auto px-4 pt-[calc(0.75rem+var(--root-safe-top))] pb-3 md:pt-6 flex items-center justify-between gap-3">
-          <div className="h-9 w-24 rounded-lg bg-white/10" />
-          <div className="flex items-center gap-2">
-            <div className="size-11 rounded-control bg-surface border border-line" />
-            <div className="size-11 rounded-control bg-surface border border-line" />
-          </div>
+        <div className="w-full max-w-3xl mx-auto px-4 pt-[calc(0.75rem+var(--root-safe-top))] pb-3 md:pt-6 flex items-center gap-3">
+          <h1 className="font-display text-[32px] m-0 flex-1 min-w-0">Perfil</h1>
+          <div className="size-11 shrink-0 rounded-control bg-surface border border-line" />
+          <div className="size-11 shrink-0 rounded-control bg-surface border border-line" />
         </div>
       </header>
 
-      {/* Info de usuario: Avatar + Detalles */}
+      {/* Info de usuario: Avatar circular (88px) + Detalles */}
       <div className="w-full max-w-3xl mx-auto px-4 pt-5 flex items-center gap-[18px]">
-        {/* Avatar circular */}
-        <div className="size-[88px] shrink-0 rounded-full bg-surface-2 border border-line" />
+        {/* Avatar con anillo */}
+        <div className="relative size-[88px] shrink-0 rounded-full overflow-hidden bg-surface-2 ring-2 ring-accent/30 ring-offset-[3px] ring-offset-bg" />
 
         {/* Datos de usuario */}
         <div className="min-w-0 flex-1 flex flex-col gap-2">
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1">
             <div className="h-6 w-36 rounded-md bg-white/10" />
             <div className="h-4 w-24 rounded-md bg-white/5" />
-            <div className="mt-1 flex gap-1.5">
+            <div className="mt-1 flex flex-wrap gap-1.5">
               <div className="h-5 w-16 rounded-full bg-surface-2" />
               <div className="h-5 w-20 rounded-full bg-surface-2" />
             </div>
           </div>
-          <div className="flex gap-4 pt-1">
+          <div className="flex gap-[18px]">
             <div className="h-4 w-24 rounded bg-white/5" />
             <div className="h-4 w-20 rounded bg-white/5" />
           </div>
@@ -50,24 +48,30 @@ export function ProfileSkeleton({ className }: ProfileSkeletonProps) {
 
       {/* Pestañas (Posts / Insignias) */}
       <div className="mt-6 w-full max-w-3xl mx-auto">
-        <div className="flex border-b border-line">
-          <div className="flex-1 h-12 flex items-center justify-center border-b-2 border-accent">
+        <div role="tablist" className="flex border-b border-line">
+          <div className="flex-1 h-12 flex items-center justify-center text-accent shadow-[inset_0_-2px_0_var(--color-accent)]">
             <div className="size-5 rounded bg-accent/40" />
           </div>
-          <div className="flex-1 h-12 flex items-center justify-center">
+          <div className="flex-1 h-12 flex items-center justify-center text-ink-3">
             <div className="size-5 rounded bg-white/10" />
           </div>
         </div>
       </div>
 
-      {/* Grilla 3x3 de publicaciones */}
+      {/* Grilla de publicaciones: 3 por fila, formato vertical 9:16 tal cual ProfilePostsGrid */}
       <div className="w-full max-w-3xl mx-auto pt-0.5">
         <div className="grid grid-cols-3 gap-0.5">
           {Array.from({ length: 9 }).map((_, i) => (
-            <div key={i} className="aspect-square bg-surface border border-line/20" />
+            <div
+              key={i}
+              className="relative aspect-[9/16] overflow-hidden bg-surface-2"
+            />
           ))}
         </div>
       </div>
+
+      {/* Botón flotante (+) en la esquina inferior derecha */}
+      <div className="fixed right-5 bottom-[calc(var(--root-mobile-nav-clearance)+0.75rem)] md:bottom-8 md:right-8 z-40 size-14 rounded-full bg-accent/40 shadow-[0_8px_30px_rgba(212,255,0,0.2)]" />
     </div>
   );
 }

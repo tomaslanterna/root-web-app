@@ -2,6 +2,7 @@
 
 import { use, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { parseEventRealDate } from "@/hooks/useDanceSync";
 import {
@@ -250,10 +251,17 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         <div
           role="img"
           aria-label={`Póster de ${event.title}`}
-          className="relative h-[470px] md:h-[520px] md:rounded-hero overflow-hidden bg-surface-2 bg-cover bg-center"
-          style={{ backgroundImage: `url(${banner})` }}
+          className="relative h-[470px] md:h-[520px] md:rounded-hero overflow-hidden bg-surface-2"
         >
-          <div className="absolute top-[calc(1rem+var(--root-safe-top))] md:top-4 inset-x-4 flex justify-between">
+          <Image
+            src={banner}
+            alt={event.title}
+            fill
+            priority
+            sizes="(max-width: 768px) 100vw, 768px"
+            className="object-cover object-center"
+          />
+          <div className="absolute top-[calc(1rem+var(--root-safe-top))] md:top-4 inset-x-4 flex justify-between z-10">
             <button
               type="button"
               aria-label="Volver"

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import type { Event } from "@/types/events";
 import { cn, isValidImageUrl } from "@/lib/utils";
@@ -11,6 +12,8 @@ interface EventCardProps {
   event: Event;
   /** "featured": tarjeta de la fila de destacados que se achica en 2 fases con el scroll (--p-footer y --p-card). */
   variant?: "swimlane" | "full" | "list" | "featured";
+  priority?: boolean;
+  loading?: "eager" | "lazy";
   className?: string;
 }
 
@@ -32,7 +35,13 @@ export function formatEventPrice(event: Pick<Event, "price" | "isFree">) {
   return `$ ${event.price.toLocaleString("es-AR")}`;
 }
 
-export function EventCard({ event, variant = "swimlane", className }: EventCardProps) {
+export function EventCard({
+  event,
+  variant = "swimlane",
+  priority = false,
+  loading,
+  className,
+}: EventCardProps) {
   const pathname = usePathname();
   const date = parseEventRealDate(event.date);
   const isValidDate = !Number.isNaN(date.getTime());
@@ -46,6 +55,23 @@ export function EventCard({ event, variant = "swimlane", className }: EventCardP
   const image = isValidImageUrl(event.cinematicBannerUrl)
     ? event.cinematicBannerUrl.trim()
     : fallbackBanner;
+
+  const [imgSrc, setImgSrc] = React.useState(image);
+  const [isLoaded, setIsLoaded] = React.useState(false);
+  const imgRef = React.useRef<HTMLImageElement>(null);
+
+  React.useEffect(() => {
+    setImgSrc(image);
+    setIsLoaded(false);
+  }, [image]);
+
+  React.useEffect(() => {
+    if (imgRef.current?.complete) {
+      setIsLoaded(true);
+    }
+  }, []);
+
+  const effectiveLoading = loading ?? (priority ? "eager" : "lazy");
   const priceLabel = formatEventPrice(event);
   const href = `/events/${event.id}?origin=${pathname}`;
 
@@ -66,9 +92,21 @@ export function EventCard({ event, variant = "swimlane", className }: EventCardP
 
         <div
           aria-hidden="true"
-          className="size-14 shrink-0 rounded-thumb bg-surface-2 bg-cover bg-center"
-          style={{ backgroundImage: `url(${image})` }}
-        />
+          className="relative size-14 shrink-0 overflow-hidden rounded-thumb bg-surface-2"
+        >
+          <Image
+            src={imgSrc}
+            alt=""
+            fill
+            sizes="56px"
+            priority={priority}
+            loading={effectiveLoading}
+            quality={70}
+            decoding="async"
+            onError={() => setImgSrc(fallbackBanner)}
+            className="object-cover object-center"
+          />
+        </div>
 
         <div className="flex-1 min-w-0 flex flex-col gap-1">
           <span className="text-[15px] font-semibold leading-tight truncate">{event.title}</span>
@@ -103,13 +141,33 @@ export function EventCard({ event, variant = "swimlane", className }: EventCardP
         borderRadius: "calc(16px - 4px * var(--p-card, 0))",
       } : undefined}
     >
-      <div
-        className="aspect-square p-3 flex items-start bg-surface-2 bg-cover bg-center"
-        style={{ backgroundImage: `url(${image})` }}
-      >
+      <div className="relative aspect-square overflow-hidden bg-surface-2 p-3 flex items-start">
+        {!isLoaded && (
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 bg-surface-3/40 animate-pulse pointer-events-none"
+          />
+        )}
+        <Image
+          ref={imgRef}
+          src={imgSrc}
+          alt={event.title || ""}
+          fill
+          sizes="(max-width: 640px) 48vw, (max-width: 1024px) 33vw, 280px"
+          priority={priority}
+          loading={effectiveLoading}
+          quality={70}
+          decoding="async"
+          onError={() => setImgSrc(fallbackBanner)}
+          onLoad={() => setIsLoaded(true)}
+          className={cn(
+            "object-cover object-center transition-all duration-300 group-hover:scale-105",
+            isLoaded ? "opacity-100" : "opacity-0"
+          )}
+        />
         {event.genre && (
           <span
-            className="label-mono px-2 py-[5px] rounded-full bg-bg/80 text-ink"
+            className="relative z-10 label-mono px-2 py-[5px] rounded-full bg-bg/80 text-ink backdrop-blur-sm"
             style={isFeatured ? { opacity: "calc(1 - var(--p-footer, 0) * 3)" } : undefined}
           >
             {event.genre}

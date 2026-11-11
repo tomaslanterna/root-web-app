@@ -1,4 +1,7 @@
+"use client";
+
 import * as React from "react";
+import Image from "next/image";
 import { cn, isValidImageUrl } from "@/lib/utils";
 
 interface AvatarProps {
@@ -32,11 +35,13 @@ export function Avatar({ src, fallback, className, size = "md" }: AvatarProps) {
       )}
     >
       {validSrc ? (
-        <img
+        <Image
           src={validSrc}
           alt={fallback}
+          fill
+          sizes="64px"
           onError={() => setHasError(true)}
-          className="aspect-square h-full w-full object-cover"
+          className="object-cover"
         />
       ) : (
         <span>{fallback.substring(0, 2)}</span>

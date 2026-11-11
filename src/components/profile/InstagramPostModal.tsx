@@ -88,14 +88,17 @@ export function InstagramPostModal({
         
         {/* COLUMNA / ÁREA DE LA IMAGEN */}
         <div
-          className="relative flex-1 bg-black flex items-center justify-center select-none overflow-hidden min-h-[300px] sm:min-h-[420px] md:min-h-full"
+          className="relative flex-1 bg-black flex items-center justify-center select-none overflow-hidden min-h-[300px] sm:min-h-[420px] md:min-h-full h-[45vh] sm:h-[50vh] md:h-[86vh]"
           onClick={handleDoubleTap}
         >
           {post.headerImageUrl ? (
-            <img
+            <Image
               src={post.headerImageUrl}
               alt={post.title || "Foto de publicación"}
-              className="max-h-[50vh] md:max-h-[86vh] w-full object-contain md:object-cover"
+              fill
+              priority
+              sizes="(max-width: 768px) 100vw, 600px"
+              className="object-contain"
             />
           ) : (
             <div className="flex h-64 w-full items-center justify-center text-neutral-600">
