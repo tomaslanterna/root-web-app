@@ -6,7 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button";
-import { Award, Check, ChevronLeft, ChevronRight, Grid3X3, Loader2, Plus, Settings, Share2, ShieldCheck } from "lucide-react";
+import { Award, Bell, Check, ChevronLeft, ChevronRight, Grid3X3, Plus, Settings, Share2, ShieldCheck } from "lucide-react";
 import { MOCK_POSTS } from "@/lib/mocks";
 import { CreatePhotoModal } from "@/components/profile/CreatePhotoModal";
 import { ProfileSkeleton } from "@/components/profile/ProfileSkeleton";
@@ -275,6 +275,16 @@ export default function UserProfilePage() {
             <Share2 className="size-5" aria-hidden="true" />
           )}
         </button>
+        {isMyProfile && (
+          <Link
+            href="/notifications"
+            aria-label="Notificaciones"
+            title="Notificaciones"
+            className={squareButton}
+          >
+            <Bell className="size-5" aria-hidden="true" />
+          </Link>
+        )}
         {isMyProfile && (
           <Link
             href="/settings"

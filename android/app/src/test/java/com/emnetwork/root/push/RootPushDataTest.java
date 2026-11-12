@@ -48,4 +48,20 @@ public class RootPushDataTest {
         values.remove("body");
         assertEquals("Tenés un mensaje nuevo.", RootPushData.from(values).body);
     }
+
+    @Test public void acceptsValidatedGenericNotifications() {
+        Map<String, String> data = new HashMap<>();
+        data.put("type", "event.today");
+        data.put("notification_id", "c06a06ad-717b-4892-9e85-45e66e2c69d1");
+        data.put("recipient_id", "dbf72152-6958-407f-bb5d-29c4b05b8392");
+        data.put("event_id", "48a09314-cedb-410b-a243-e45e688fb47e");
+        data.put("title", "Hoy salís a bailar");
+        data.put("body", "Open Park es hoy");
+        RootPushData parsed = RootPushData.from(data);
+        assertNotNull(parsed);
+        assertEquals("event.today", parsed.type);
+        assertEquals(data.get("notification_id"), parsed.identity);
+        data.put("notification_id", "bad");
+        assertNull(RootPushData.from(data));
+    }
 }

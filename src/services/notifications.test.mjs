@@ -90,6 +90,16 @@ test("notification tap only opens validated chats addressed to this account", as
   await r.session.dispose();
 });
 
+test("generic notification deep links are type-scoped and recipient-bound", async () => {
+  const r = runtime({ platform: "ios" });
+  const eventId = "48a09314-cedb-410b-a243-e45e688fb47e";
+  assert.equal(r.notificationPath({ type: "event.today", event_id: eventId, recipient_id: "user-a" }, "user-a"), `/events/${eventId}?origin=%2Fnotifications`);
+  assert.equal(r.notificationPath({ type: "social.follow", username: "pocho", recipient_id: "user-a" }, "user-a"), "/profile/pocho?from=notifications");
+  assert.equal(r.notificationPath({ type: "event.today", event_id: eventId, recipient_id: "user-b" }, "user-a"), null);
+  assert.equal(r.notificationPath({ type: "event.today", event_id: "../settings", recipient_id: "user-a" }, "user-a"), null);
+  await r.session.dispose();
+});
+
 test("logout waits for in-flight registration and then revokes with the original JWT", async () => {
   let finishPut;
   const gate = new Promise(resolve => { finishPut = resolve; });

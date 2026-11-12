@@ -20,14 +20,12 @@ final class RootNotificationFactory {
     static Notification create(Context context, RootPushData data, String fcmMessageId) {
         Intent intent = new Intent(context, MainActivity.class)
             .setAction(Intent.ACTION_VIEW)
-            // Unique identity per account/chat: pending intents cannot open another chat.
-            .setData(Uri.parse("root://notification/" + data.recipientId + "/" + data.chatId))
+            .setData(Uri.parse("root://notification/" + data.recipientId + "/" + data.identity))
             .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP)
-            .putExtra("google.message_id", fcmMessageId == null ? data.messageId : fcmMessageId)
-            .putExtra("type", "chat.message")
-            .putExtra("chat_id", data.chatId)
-            .putExtra("message_id", data.messageId)
-            .putExtra("recipient_id", data.recipientId);
+            .putExtra("google.message_id", fcmMessageId == null ? data.identity : fcmMessageId);
+        for (java.util.Map.Entry<String, String> entry : data.fields.entrySet()) {
+            intent.putExtra(entry.getKey(), entry.getValue());
+        }
         PendingIntent open = PendingIntent.getActivity(
             context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );

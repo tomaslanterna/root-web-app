@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -8,9 +8,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Zap,
-  X,
   Bell,
-  UserPen,
   Camera,
   Check,
   Loader2,
@@ -21,11 +19,24 @@ import { usersApi } from '@/services/users';
 import { cn } from '@/lib/utils';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { compressImageToJpeg } from '@/lib/compressImage';
+import { useNotificationPreferences } from '@/hooks/useNotifications';
+import type { NotificationPreferences } from '@/types/notifications';
+
+const notificationPreferenceLabels: Array<{ key: keyof NotificationPreferences; title: string; description: string }> = [
+  { key: 'messages', title: 'Mensajes', description: 'Chats directos y squads' },
+  { key: 'events', title: 'Eventos', description: 'Recordatorios, horarios y reseñas' },
+  { key: 'social', title: 'Social', description: 'Seguidores, likes y comentarios' },
+  { key: 'crews', title: 'Crews', description: 'Matches e invitaciones' },
+  { key: 'communities', title: 'Comunidades', description: 'Anuncios importantes' },
+  { key: 'activity', title: 'Actividad', description: 'Insignias, pasos y rankings' },
+  { key: 'account', title: 'Cuenta', description: 'Identidad y transferencias' },
+];
 
 export default function SettingsPage() {
   const router = useRouter();
   const { user, login, token, logout } = useAuth();
   const push = usePushNotifications();
+  const notificationPreferences = useNotificationPreferences();
   const [logoutError, setLogoutError] = useState<string>();
   const [loggingOut, setLoggingOut] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -39,18 +50,10 @@ export default function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Upgrade form states (Exclusivo RRPP)
-  const role = 'RRPP';
   const [socials, setSocials] = useState('');
   const [contact, setContact] = useState('');
   const [productora, setProductora] = useState('');
   const [upgradeSubmitted, setUpgradeSubmitted] = useState(false);
-
-  // Sync avatar with user data
-  useEffect(() => {
-    if (user) {
-      setAvatarUrl(user.avatarUrl || '');
-    }
-  }, [user, showEditModal]);
 
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -99,8 +102,8 @@ export default function SettingsPage() {
         setSaveSuccess(false);
         setShowEditModal(false);
       }, 700);
-    } catch (err: any) {
-      setEditError(err.message || 'Error al guardar la foto.');
+    } catch (error: unknown) {
+      setEditError(error instanceof Error ? error.message : 'Error al guardar la foto.');
     } finally {
       setSavingProfile(false);
     }
@@ -158,10 +161,10 @@ export default function SettingsPage() {
             </div>
             <div>
               <h2 className="text-base font-bold text-ink">
-                Notificaciones de mensajes
+                Notificaciones push
               </h2>
               <p className="text-xs text-ink-2">
-                Recibí avisos de tus chats y squads aunque no tengas la app abierta.
+                Recibí avisos de eventos, chats y novedades aunque no tengas la app abierta.
               </p>
             </div>
           </div>
@@ -198,7 +201,36 @@ export default function SettingsPage() {
               {push.error}
             </p>
           )}
+          <button type="button" onClick={() => router.push('/notifications')} className="flex min-h-11 w-full items-center justify-between border-t border-line pt-3 text-left text-sm font-semibold text-ink">
+            Ver bandeja de notificaciones
+            <ChevronRight className="size-4 text-ink-3" aria-hidden="true" />
+          </button>
         </section>
+
+        {notificationPreferences.preferences && (
+          <section className="overflow-hidden rounded-card border border-line bg-surface">
+            <div className="border-b border-line p-4">
+              <h2 className="m-0 text-base font-bold">Qué querés recibir</h2>
+              <p className="mt-1 text-xs text-ink-2">La bandeja conserva todas las novedades; estos controles administran los avisos push.</p>
+            </div>
+            <div className="divide-y divide-line">
+              {notificationPreferenceLabels.map((preference) => {
+                const enabled = notificationPreferences.preferences?.[preference.key] ?? true;
+                return (
+                  <button key={preference.key} type="button" role="switch" aria-checked={enabled} disabled={notificationPreferences.isLoading} onClick={() => notificationPreferences.toggle(preference.key)} className="flex min-h-[64px] w-full items-center justify-between gap-4 px-4 py-3 text-left disabled:opacity-60">
+                    <span>
+                      <span className="block text-sm font-semibold">{preference.title}</span>
+                      <span className="mt-0.5 block text-xs text-ink-2">{preference.description}</span>
+                    </span>
+                    <span className={cn("relative h-6 w-11 shrink-0 rounded-full transition-colors", enabled ? "bg-accent" : "bg-surface-2 border border-line-strong")}>
+                      <span className={cn("absolute top-0.5 size-5 rounded-full bg-white shadow-sm transition-transform", enabled ? "translate-x-[22px] bg-on-accent" : "translate-x-0.5")} />
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         {/* Opciones de configuración */}
         <div className="bg-surface border border-line rounded-card overflow-hidden divide-y divide-line">

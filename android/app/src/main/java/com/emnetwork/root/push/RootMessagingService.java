@@ -21,13 +21,13 @@ public class RootMessagingService extends MessagingService {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
                 manager.getNotificationChannel(RootNotificationFactory.CHANNEL_ID) == null) {
                 NotificationChannel channel = new NotificationChannel(
-                    RootNotificationFactory.CHANNEL_ID, "Mensajes", NotificationManager.IMPORTANCE_HIGH
+                    RootNotificationFactory.CHANNEL_ID, "Notificaciones", NotificationManager.IMPORTANCE_HIGH
                 );
-                channel.setDescription("Mensajes de tus chats y squads");
+                channel.setDescription("Mensajes, eventos y novedades de root");
                 channel.enableVibration(true);
                 manager.createNotificationChannel(channel);
             }
-            manager.notify(data.chatId, 0, RootNotificationFactory.create(this, data, message.getMessageId()));
+            manager.notify(data.identity, 0, RootNotificationFactory.create(this, data, message.getMessageId()));
         }
         // Reuse Capacitor listeners and its inherited token-rotation handling.
         // Data-only messages do not generate a second notification in the plugin.
