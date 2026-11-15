@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Search, Loader2, ChevronLeft, X } from "lucide-react";
+import { SwipeBack } from "@/components/ui/SwipeBack";
 import { cn, isValidImageUrl } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { EventCard } from "@/components/ui/EventCard";
@@ -83,6 +84,7 @@ export default function SearchPage() {
         <div className="w-full max-w-4xl mx-auto px-4 pt-[calc(0.75rem+var(--root-safe-top))] pb-1.5 md:pt-6">
           {/* Fila 1: Botón volver + Input de búsqueda */}
           <div className="flex items-center gap-2.5">
+            <SwipeBack />
             <button
               type="button"
               onClick={() => router.back()}

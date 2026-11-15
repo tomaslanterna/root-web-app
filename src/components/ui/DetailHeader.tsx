@@ -4,6 +4,7 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Share2, Bookmark, Search, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SwipeBack } from "@/components/ui/SwipeBack";
 
 interface DetailHeaderProps {
   onBack?: () => void;
@@ -191,6 +192,7 @@ export function DetailHeader({
         className
       )}
     >
+      <SwipeBack onBack={handleBack} />
       {backButton}
       {centerContent}
       {!isSearch && actions}

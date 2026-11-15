@@ -7,6 +7,7 @@ import { matchApi } from "@/services/match";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Loader2, MessageSquare, Plus, UserPlus } from "lucide-react";
+import { SwipeBack } from "@/components/ui/SwipeBack";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { CrewMonogram } from "@/components/match/CrewMonogram";
@@ -231,6 +232,7 @@ export default function CrewDetailPage() {
     <div className="min-h-[100dvh] bg-bg text-ink pb-[calc(var(--root-mobile-nav-clearance)+1rem)] md:pb-16">
       <div className="w-full max-w-2xl mx-auto px-4 pt-[calc(0.75rem+var(--root-safe-top))] md:pt-6">
         <header className="flex items-center justify-between">
+          <SwipeBack />
           <button
             type="button"
             onClick={() => router.back()}

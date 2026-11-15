@@ -13,6 +13,7 @@ import {
   Loader2,
   Share,
 } from "lucide-react";
+import { SwipeBack } from "@/components/ui/SwipeBack";
 import { FollowedAttendeesModal } from "@/components/events/FollowedAttendeesModal";
 import { EventDetailSkeleton } from "@/components/events/EventDetailSkeleton";
 import { EventLiveRankingCard } from "@/components/events/EventLiveRankingModal";
@@ -35,6 +36,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const { user } = useAuth();
   const searchParams = useSearchParams();
   const origin = searchParams.get("origin");
+  const goBack = () => router.push(origin || "/events");
   const { id: eventId } = use(params);
   const [event, setEvent] = useState<Event | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
@@ -262,10 +264,11 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             className="object-cover object-center"
           />
           <div className="absolute top-[calc(1rem+var(--root-safe-top))] md:top-4 inset-x-4 flex justify-between z-10">
+            <SwipeBack onBack={goBack} />
             <button
               type="button"
               aria-label="Volver"
-              onClick={() => router.push(origin || "/events")}
+              onClick={goBack}
               className={roundButton}
             >
               <ChevronLeft className="size-[22px]" aria-hidden="true" />

@@ -15,6 +15,7 @@ import {
   Check,
   Loader2,
 } from 'lucide-react';
+import { SwipeBack } from "@/components/ui/SwipeBack";
 import { Button } from '@/components/ui/Button';
 import { usePushNotifications } from '@/context/PushNotificationsContext';
 import { usersApi } from '@/services/users';
@@ -135,6 +136,7 @@ export default function SettingsPage() {
       {/* Header unificado Nocturno Editorial */}
       <header className="sticky top-0 z-30 w-full bg-bg/95 backdrop-blur-md border-b border-line">
         <div className="w-full max-w-2xl mx-auto px-4 pt-[calc(0.75rem+var(--root-safe-top))] pb-3 md:pt-6 flex items-center gap-3">
+          <SwipeBack />
           <button
             type="button"
             onClick={() => router.back()}

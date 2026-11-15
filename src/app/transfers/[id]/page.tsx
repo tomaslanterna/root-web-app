@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, use } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ShieldCheck, Ticket, Send, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
+import { SwipeBack } from "@/components/ui/SwipeBack";
 import { RootLoader } from "@/components/ui/RootLoader";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
@@ -131,6 +132,7 @@ export default function TransferDealRoomPage({ params }: { params: Promise<{ id:
       {/* Header */}
       <header className="shrink-0 sticky top-0 z-40 bg-[#0B0D10]/95 backdrop-blur-xl border-b border-white/10 pt-safe-header pb-3">
         <div className="px-4 py-3 flex items-center justify-between">
+          <SwipeBack />
           <button onClick={() => router.back()} className="p-2 -ml-2 rounded-full hover:bg-white/10 active:scale-95 transition-all">
             <ChevronLeft className="w-6 h-6" />
           </button>

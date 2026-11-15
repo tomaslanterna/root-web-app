@@ -7,7 +7,7 @@ import ts from "typescript";
 const compile = (file) => ts.transpileModule(fs.readFileSync(new URL(file, import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText;
 const helpers = {};
 vm.runInNewContext(compile("../lib/horizontalSwipe.ts"), { exports: helpers });
-function runtime({ direction = -1, enabled = true, blocked = false, carousel = false, modal = false, ownModal = false } = {}) {
+function runtime({ direction = -1, enabled = true, blocked = false, carousel = false, modal = false, ownModal = false, options } = {}) {
   class Element {
     constructor() { this.parentElement = null; this.scrollWidth = 100; this.clientWidth = 100; }
     closest() { return blocked ? this : null; }
@@ -30,7 +30,7 @@ function runtime({ direction = -1, enabled = true, blocked = false, carousel = f
   vm.runInNewContext(compile("./useHorizontalSwipe.ts"), { exports: exportsObject, require: key => key === "react" ? react : helpers, Element, document: { querySelectorAll: () => ownModal ? [node] : modal ? [new Element()] : [] }, window: { innerWidth: 400 }, getComputedStyle: () => ({ overflowX: carousel ? "auto" : "visible" }) });
   exportsObject.useHorizontalSwipe(direction, enabled, () => completed++, {
     onProgress: distance => progress.push(distance), onCancel: () => cancelled++,
-  });
+  }, options);
   effects.forEach(fn => { const dispose = fn(); if (dispose) disposers.push(dispose); });
   let prevented = false;
   const touch = (name, x, y = 100, count = 1) => handlers.get(name)?.({ target: child, touches: Array.from({ length: count }, () => ({ clientX: x, clientY: y })), cancelable: true, preventDefault: () => { prevented = true; }, stopPropagation() {} });
@@ -84,4 +84,9 @@ test("cancelled/multitouch previews settle back, completed previews do not reset
   }
   const r = runtime(); r.touch("touchstart", 300); r.touch("touchmove", 180); r.touch("touchend", 180);
   assert.equal(r.completed, 1); assert.equal(r.cancelled, 0);
+});
+test("back gestures may start on the left edge only when the screen opts in", () => {
+  const r = runtime({ direction: 1, options: { edges: true } });
+  r.touch("touchstart", 4); r.touch("touchmove", 140); r.touch("touchend", 140);
+  assert.equal(r.completed, 1);
 });

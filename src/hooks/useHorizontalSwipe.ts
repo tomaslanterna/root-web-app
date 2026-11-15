@@ -5,7 +5,10 @@ import { swipeIntent, swipeThreshold } from "@/lib/horizontalSwipe";
 
 // Scoped to the owning screen, never a document-level gesture handler.
 export function useHorizontalSwipe(direction: -1 | 1, enabled: boolean, onComplete: () => void,
-  feedback?: { onProgress: (distance: number) => void; onCancel: () => void }) {
+  feedback?: { onProgress: (distance: number) => void; onCancel: () => void },
+  // scope: listen on the closest ancestor matching the selector instead of the ref node.
+  // edges: accept touches that start on the screen edges (only where no system gesture owns them).
+  { scope, edges = false }: { scope?: string; edges?: boolean } = {}) {
   const ref = useRef<HTMLDivElement>(null);
   const callback = useRef(onComplete);
   const feedbackRef = useRef(feedback);
@@ -14,7 +17,7 @@ export function useHorizontalSwipe(direction: -1 | 1, enabled: boolean, onComple
   useEffect(() => { callback.current = onComplete; }, [onComplete]);
   useEffect(() => { feedbackRef.current = feedback; }, [feedback]);
   useEffect(() => {
-    const node = ref.current;
+    const node: HTMLElement | null | undefined = scope ? ref.current?.closest<HTMLElement>(scope) : ref.current;
     if (!node || !enabled) return;
     let start: { x: number; y: number; locked: boolean } | null = null;
     let delta = 0;
@@ -32,7 +35,7 @@ export function useHorizontalSwipe(direction: -1 | 1, enabled: boolean, onComple
         target = target.parentElement;
       }
       const touch = event.touches[0];
-      if (touch.clientX < 24 || touch.clientX > window.innerWidth - 24) return;
+      if (!edges && (touch.clientX < 24 || touch.clientX > window.innerWidth - 24)) return;
       start = { x: touch.clientX, y: touch.clientY, locked: false };
     };
     const move = (event: TouchEvent) => {
@@ -71,6 +74,6 @@ export function useHorizontalSwipe(direction: -1 | 1, enabled: boolean, onComple
       node.removeEventListener("touchstart", begin); node.removeEventListener("touchmove", move);
       node.removeEventListener("touchend", end); node.removeEventListener("touchcancel", cancel); node.removeEventListener("click", click, true);
     };
-  }, [direction, enabled]);
+  }, [direction, enabled, scope, edges]);
   return { ref, distance, dragging };
 }

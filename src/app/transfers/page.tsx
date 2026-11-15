@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, Loader2, Plus, Search, ShieldCheck } from "lucide-react";
+import { SwipeBack } from "@/components/ui/SwipeBack";
 import { transfersApi } from "@/services/transfers";
 import { Modal, AlertModal, ConfirmModal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
@@ -152,6 +153,7 @@ export default function TransfersPage() {
 
       <div className="w-full max-w-2xl mx-auto px-4 pt-[calc(0.75rem+var(--root-safe-top))] md:pt-6">
         <header className="flex items-center gap-3">
+          <SwipeBack />
           <button
             type="button"
             onClick={() => router.back()}

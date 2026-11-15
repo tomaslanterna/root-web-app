@@ -11,6 +11,7 @@ import { useChat, useVisibleMessageReceipts, type ChatMessage } from "@/hooks/us
 import { useChatInfo } from "@/hooks/useChatDirectory";
 import { resolveDeepLinkPath } from "@/lib/deepLinks";
 import { RootLoader } from "@/components/ui/RootLoader";
+import { SwipeBack } from "@/components/ui/SwipeBack";
 
 export function ChatConversation({ chatId }: { chatId: string }) {
   const router = useRouter();
@@ -90,6 +91,7 @@ export function ChatConversation({ chatId }: { chatId: string }) {
   return (
     <div className="flex flex-col h-[100dvh] bg-[#0B0D10] text-white">
       <header className="px-4 pb-3 pt-safe-header border-b border-white/10 flex items-center gap-3 glass-header-obsidian sticky top-0 z-40 shrink-0">
+        <SwipeBack href="/chat" />
         <Link href="/chat" className="p-1 rounded-full hover:bg-white/10 text-white transition-colors md:hidden">
           <ChevronLeft className="w-5 h-5" />
         </Link>

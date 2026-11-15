@@ -1,6 +1,7 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft } from 'lucide-react';
+import { SwipeBack } from "@/components/ui/SwipeBack";
 
 interface TopNavProps {
   title: string;
@@ -24,6 +25,7 @@ export function TopNav({ title, showBack = true, onBack, rightAction }: TopNavPr
     <div className="fixed top-0 left-0 right-0 z-50 h-[calc(4rem+env(safe-area-inset-top,0px))] pt-[env(safe-area-inset-top,0px)] liquid-glass-bar border-t-0 flex items-center justify-between px-4 overflow-hidden">
       <div className="liquid-glass-specular" />
       <div className="flex items-center min-w-0">
+        {showBack && <SwipeBack onBack={handleBack} />}
         {showBack && (
           <button
             onClick={handleBack}

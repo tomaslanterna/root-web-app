@@ -1,27 +1,11 @@
 "use client";
 
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
-import {
-  Activity,
-  ChevronLeft,
-  Clock,
-  Crown,
-  Flame,
-  Loader2,
-  Medal,
-  Music,
-  RefreshCw,
-  Sparkles,
-  Trophy,
-  Users,
-  X,
-} from "lucide-react";
+import Link from "next/link";
+import { Activity, ChevronLeft, ChevronRight, Music, RefreshCw } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
-import { DetailHeader } from "@/components/ui/DetailHeader";
+import { SwipeBack } from "@/components/ui/SwipeBack";
 import { cn } from "@/lib/utils";
-import { parseEventRealDate } from "@/hooks/useDanceSync";
 import {
   eventsApi,
   type EventLiveRankingEntry,
@@ -127,107 +111,166 @@ export function useEventLiveRankingData(eventId: string, enabled = true) {
   };
 }
 
+/** Punto rojo pulsante + "En vivo": el mismo indicador que el Live Activity banner. */
+export function LiveBadge({ className }: { className?: string }) {
+  return (
+    <span className={cn("inline-flex items-center gap-1.5 leading-none", className)}>
+      <span className="relative flex size-2 shrink-0" aria-hidden="true">
+        <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-live opacity-75" />
+        <span className="relative inline-flex rounded-full size-2 bg-live" />
+      </span>
+      <span className="text-[11px] font-black uppercase tracking-wider text-live">En vivo</span>
+    </span>
+  );
+}
+
+const fmtSteps = (n: number) => n.toLocaleString("es-UY");
+
+/** Encabezado sticky del ranking en vivo, con el mismo patrón que Dance stats. */
+export function LiveRankingHeader({
+  onBack,
+  rightAction,
+}: {
+  onBack: () => void;
+  rightAction?: React.ReactNode;
+}) {
+  return (
+    <header className="sticky top-0 z-30 w-full bg-bg/95 backdrop-blur-md border-b border-line">
+      <div className="w-full max-w-2xl mx-auto px-4 pt-[calc(0.75rem+var(--root-safe-top))] pb-3 md:pt-6 flex items-center gap-3">
+        <SwipeBack />
+        <button
+          type="button"
+          onClick={onBack}
+          aria-label="Volver"
+          className="size-11 shrink-0 rounded-control bg-surface border border-line flex items-center justify-center hover:bg-surface-2 transition-colors focus-visible:outline-2 focus-visible:outline-accent"
+        >
+          <ChevronLeft className="size-[22px]" aria-hidden="true" />
+        </button>
+        <h1 className="font-display m-0 flex-1 min-w-0 truncate text-2xl">Ranking</h1>
+        {rightAction}
+      </div>
+    </header>
+  );
+}
+
+function RowSkeleton({ rows }: { rows: number }) {
+  return (
+    <ol aria-hidden="true" className="m-0 p-0 list-none rounded-card overflow-hidden bg-surface border border-line divide-y divide-white/[0.06]">
+      {Array.from({ length: rows }).map((_, i) => (
+        <li key={i} className="flex items-center gap-3 p-3.5">
+          <span className="w-6 h-3.5 rounded bg-surface-2 motion-safe:animate-pulse" />
+          <span className="size-9 rounded-full bg-surface-2 motion-safe:animate-pulse" />
+          <span className="flex-1 h-3.5 rounded bg-surface-2 motion-safe:animate-pulse" />
+          <span className="w-14 h-3.5 rounded bg-surface-2 motion-safe:animate-pulse" />
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/** Fila del ranking: posición, persona y pasos. Igual que la lista de la crew. */
+function RankingRow({
+  person,
+  isMe,
+  compact = false,
+}: {
+  person: EventLiveRankingEntry;
+  isMe: boolean;
+  compact?: boolean;
+}) {
+  return (
+    <div className={cn("flex items-center gap-3", compact ? "px-3.5 py-3" : "p-3.5")}>
+      <span className={cn("num-mono w-6 text-sm shrink-0", isMe ? "text-accent font-semibold" : "text-ink-3")}>
+        {person.rank}
+      </span>
+      <span className="relative shrink-0">
+        <Avatar
+          src={person.avatarUrl || undefined}
+          fallback={person.name}
+          className={cn("rounded-full", compact ? "size-8" : "size-9")}
+        />
+        {person.isActive && (
+          <span
+            className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full bg-accent ring-2 ring-surface"
+            aria-label="Bailando ahora"
+          />
+        )}
+      </span>
+      <span className="flex-1 min-w-0 flex flex-col">
+        <span className="text-[15px] font-semibold truncate">
+          {person.name}
+          {isMe && <span className="font-normal text-ink-3"> (vos)</span>}
+        </span>
+        {!compact && person.username && (
+          <span className="text-[13px] text-ink-3 truncate">@{person.username}</span>
+        )}
+      </span>
+      <span className={cn("num-mono text-sm font-semibold shrink-0", isMe && "text-accent")}>
+        {fmtSteps(person.steps)}
+      </span>
+    </div>
+  );
+}
+
 export function EventLiveRankingCard({
   eventId,
   eventTitle,
-  eventLocation,
 }: EventLiveRankingProps) {
-  const router = useRouter();
   const { user } = useAuth();
   const { liveEvent, isAtVenue, attendanceConfirmed } = useDanceContext();
   const isUserAtThisEvent = Boolean(
     liveEvent?.id === eventId && (isAtVenue || attendanceConfirmed),
   );
-  const { entries, totalDancers, activeDancers, totalEventSteps, isLoading } =
-    useEventLiveRankingData(eventId, isUserAtThisEvent);
+  const { entries, isLoading } = useEventLiveRankingData(eventId, isUserAtThisEvent);
 
   if (!isUserAtThisEvent) {
     return null;
   }
 
   const topThree = entries.slice(0, 3);
+  const myEntry = user?.id ? entries.find((e) => e.userId === user.id) : undefined;
+  const meOutsideTop = myEntry && myEntry.rank > 3 ? myEntry : undefined;
 
   return (
-    <div
-      onClick={() => router.push(`/events/${eventId}/live`)}
-      className="relative rounded-3xl border-0 bg-[#111114] hover:bg-[#16171D] p-6 sm:p-7 shadow-[0_16px_40px_rgba(0,0,0,0.6)] space-y-4 transition-all cursor-pointer group overflow-hidden"
+    <Link
+      href={`/events/${eventId}/live`}
+      aria-label={`Ver el ranking en vivo de ${eventTitle || "este evento"}`}
+      className="group p-4 rounded-card bg-surface border border-line flex flex-col gap-3.5 hover:bg-surface-2 transition-colors focus-visible:outline-2 focus-visible:outline-accent"
     >
-        <div className="flex items-center justify-between gap-2">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <Trophy className="w-4 h-4 text-[#D4FF00] stroke-[2] shrink-0" />
-              <span className="text-xs font-black uppercase tracking-wider text-white truncate">
-                Ranking del evento
-              </span>
-            </div>
-            {eventTitle && (
-              <p className="text-[11px] font-bold text-neutral-400 truncate mt-0.5 pl-6">
-                {eventTitle}
-              </p>
-            )}
-          </div>
-          <span className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-[#D4FF00]/15 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-[#D4FF00]">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#D4FF00] animate-pulse" />
-            Tiempo Real
-          </span>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex flex-col gap-1">
+          <h2 className="label-mono text-ink-2 m-0">Ranking del evento</h2>
+          {eventTitle && <span className="text-[15px] font-semibold truncate">{eventTitle}</span>}
         </div>
-
-        {!isLoading && topThree.length > 0 ? (
-          <div className="space-y-2 pt-1">
-            {topThree.map((person, idx) => {
-              const isMe = user?.id === person.userId;
-              return (
-                <div
-                  key={person.userId}
-                  className={cn(
-                    "flex items-center gap-3 rounded-2xl px-3.5 py-2.5",
-                    isMe ? "bg-[#D4FF00]/15" : "bg-white/[0.04]",
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "num-display text-xs w-4 text-center shrink-0",
-                      idx === 0
-                        ? "text-[#D4FF00]"
-                        : idx === 1
-                          ? "text-neutral-300"
-                          : "text-amber-500",
-                    )}
-                  >
-                    {idx + 1}
-                  </span>
-                  <Avatar
-                    src={person.avatarUrl || undefined}
-                    fallback={person.name}
-                    size="sm"
-                    className="w-7 h-7 aspect-square shrink-0"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-black text-white truncate">{person.name}</p>
-                  </div>
-                  <div className="flex items-center gap-1 text-[#D4FF00] shrink-0">
-                    <Activity className="w-3 h-3" />
-                    <span className="num-display text-xs">
-                      {person.steps.toLocaleString("es-AR")}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          !isLoading && (
-            <p className="text-xs text-neutral-400 font-medium">
-              Cuando la gente esté en el evento bailando, acá vas a ver a todos en vivo y el ranking de pasos en tiempo real.
-            </p>
-          )
-        )}
-
-      <div className="flex items-center justify-between pt-2 text-xs font-black uppercase tracking-wider text-[#D4FF00] group-hover:translate-x-0.5 transition-transform">
-        <span>Ver todas las personas y ranking en vivo</span>
-        <span>→</span>
+        <LiveBadge className="mt-0.5 shrink-0" />
       </div>
-    </div>
+
+      {isLoading ? (
+        <RowSkeleton rows={3} />
+      ) : topThree.length > 0 ? (
+        <ol className="m-0 p-0 list-none rounded-control overflow-hidden bg-bg border border-line divide-y divide-white/[0.06]">
+          {topThree.map((person) => (
+            <li key={person.userId}>
+              <RankingRow person={person} isMe={user?.id === person.userId} compact />
+            </li>
+          ))}
+          {meOutsideTop && (
+            <li>
+              <RankingRow person={meOutsideTop} isMe compact />
+            </li>
+          )}
+        </ol>
+      ) : (
+        <p className="m-0 text-[15px] text-ink-2">
+          Cuando la gente empiece a bailar, acá vas a ver el ranking de pasos en tiempo real.
+        </p>
+      )}
+
+      <span className="min-h-11 -mb-2 flex items-center gap-1.5 text-sm font-medium text-accent group-hover:text-accent-hover">
+        Ver ranking completo
+        <ChevronRight className="size-4" strokeWidth={2.2} aria-hidden="true" />
+      </span>
+    </Link>
   );
 }
 
@@ -236,14 +279,11 @@ export function EventLiveRankingContent({
   eventTitle,
   eventLocation,
   eventBannerUrl,
-  eventDate,
-  eventLineup,
-  eventGenre,
   onClose,
 }: EventLiveRankingProps & { onClose: () => void }) {
-  const router = useRouter();
   const { user } = useAuth();
   const { liveEvent } = useDanceContext();
+  const [imageError, setImageError] = useState(false);
   const {
     entries,
     totalDancers,
@@ -261,348 +301,139 @@ export function EventLiveRankingContent({
 
   const isSameLiveEvent = liveEvent?.id === eventId;
   const displayTitle =
-    eventTitle || (isSameLiveEvent ? liveEvent?.title : "") || "Evento en Vivo";
+    eventTitle || (isSameLiveEvent ? liveEvent?.title : "") || "Evento en vivo";
   const displayLocation =
-    eventLocation || (isSameLiveEvent ? liveEvent?.location : "") || displayTitle;
+    eventLocation || (isSameLiveEvent ? liveEvent?.location : "") || "";
   const displayBannerUrl =
     eventBannerUrl || (isSameLiveEvent ? liveEvent?.bannerUrl : "") || "";
-  const rawDate = eventDate || (isSameLiveEvent ? liveEvent?.date : "") || "";
-  const startHourLabel = useMemo(() => {
-    if (!rawDate) return "";
-    const parsed = parseEventRealDate(rawDate);
-    if (Number.isNaN(parsed.getTime())) return "";
-    return new Intl.DateTimeFormat("es-AR", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-      timeZone: "America/Argentina/Buenos_Aires",
-    }).format(parsed);
-  }, [rawDate]);
-
-  const lineupList =
-    eventLineup && eventLineup.length > 0
-      ? eventLineup
-      : isSameLiveEvent && liveEvent?.lineup
-        ? liveEvent.lineup
-        : [];
-  const genreLabel =
-    eventGenre || (isSameLiveEvent ? liveEvent?.genre : "") || "";
-  const subtitleText =
-    lineupList.length > 0
-      ? lineupList.join(", ")
-      : genreLabel || "Ranking de pasos en tiempo real";
 
   return (
-    <div className="flex flex-col min-h-[100dvh] bg-[#0B0D10] text-white">
-      {/* Sticky Header */}
-      <DetailHeader
-        position="sticky"
+    <div className="min-h-[100dvh] bg-bg text-ink pb-[calc(2rem+var(--root-safe-bottom))]">
+      <LiveRankingHeader
         onBack={onClose}
-        icon={<Trophy className="w-4 h-4 text-[#D4FF00]" />}
-        title="Ranking del Evento"
-        showSave={false}
-        showShare={false}
-        rightActions={
+        rightAction={
           <button
             type="button"
             onClick={() => void refresh()}
-            className="w-10 h-10 shrink-0 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:bg-white/10 hover:text-[#D4FF00] transition-colors cursor-pointer"
             aria-label="Actualizar ranking"
+            className="size-11 shrink-0 rounded-control bg-surface border border-line flex items-center justify-center hover:bg-surface-2 transition-colors focus-visible:outline-2 focus-visible:outline-accent"
           >
-            <RefreshCw className={cn("w-4 h-4", isRefreshing && "animate-spin text-[#D4FF00]")} />
+            <RefreshCw
+              className={cn("size-[18px]", isRefreshing && "motion-safe:animate-spin text-accent")}
+              aria-hidden="true"
+            />
           </button>
         }
       />
 
-      <div className="flex-1 p-4 pb-24 space-y-5 max-w-2xl w-full mx-auto">
-        {/* Card del Evento (estilo Live Activity Banner con flyer a la izquierda) */}
-        <div
-          onClick={() => router.push(`/events/${eventId}`)}
-          className="w-full overflow-hidden rounded-3xl border-0 bg-[#111114] hover:bg-[#16171D] p-4 flex items-center gap-3.5 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.6)] transition-colors cursor-pointer group"
+      <div className="w-full max-w-2xl mx-auto px-4 pt-4 flex flex-col gap-4">
+        {/* Evento: mismo formato que el Live Activity banner en modo "bailando", sin hora. */}
+        <Link
+          href={`/events/${eventId}`}
+          className="group flex items-center gap-3 p-3 rounded-card bg-surface border border-line hover:bg-surface-2 transition-colors focus-visible:outline-2 focus-visible:outline-accent"
         >
-          <div className="relative w-20 h-20 shrink-0 rounded-2xl overflow-hidden bg-neutral-900 border-0 shadow-md">
-            {displayBannerUrl ? (
-              <Image
+          <span className="relative size-14 shrink-0 rounded-xl overflow-hidden bg-surface-2 border border-line/60">
+            {displayBannerUrl && !imageError ? (
+              <img
                 src={displayBannerUrl}
-                alt={displayTitle}
-                fill
-                unoptimized
-                sizes="80px"
-                className="object-cover transition-transform duration-500 group-hover:scale-105"
+                alt=""
+                onError={() => setImageError(true)}
+                className="size-full object-cover"
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center bg-[#0B0D10]">
-                <Sparkles className="w-6 h-6 text-[#D4FF00]" />
-              </div>
-            )}
-          </div>
-
-          <div className="min-w-0 flex-1 flex flex-col justify-center">
-            <div className="flex items-center justify-between gap-2 mb-0.5">
-              <div className="flex items-center gap-1.5 text-[#D4FF00]">
-                <Clock className="w-3.5 h-3.5 shrink-0 stroke-[2.3]" />
-                <span className="text-xs font-bold tracking-tight text-white">
-                  {startHourLabel || "En vivo"}
-                </span>
-              </div>
-              <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-[#D4FF00]/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-[#D4FF00]">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#D4FF00] animate-pulse" />
-                En Vivo
+              <span className="size-full flex items-center justify-center text-accent">
+                <Music className="size-5" aria-hidden="true" />
               </span>
-            </div>
-
-            <h2 className="text-sm sm:text-lg font-black uppercase tracking-tight text-white leading-tight line-clamp-1 group-hover:text-[#D4FF00] transition-colors">
+            )}
+          </span>
+          <span className="flex-1 min-w-0 flex flex-col gap-1">
+            <LiveBadge />
+            <span className="text-sm font-black uppercase tracking-tight truncate leading-tight">
               {displayTitle}
-            </h2>
+            </span>
+            {displayLocation && (
+              <span className="text-[13px] text-ink-2 truncate">{displayLocation}</span>
+            )}
+          </span>
+          <ChevronRight className="size-4 text-ink-3 group-hover:text-ink transition-colors shrink-0" aria-hidden="true" />
+        </Link>
 
-            <p className="text-[11px] sm:text-xs font-extrabold uppercase tracking-tight text-neutral-400 leading-snug line-clamp-1 mt-0.5">
-              {subtitleText}
-            </p>
-
-            <div className="mt-1.5 inline-flex max-w-full items-center gap-1.5 self-start rounded-full bg-[#0B0D10] px-2.5 py-0.5 text-[10px] sm:text-[11px] font-medium text-neutral-200 border-0">
-              <Music className="w-3 h-3 shrink-0 text-[#D4FF00]" />
-              <span className="truncate">{displayLocation}</span>
-            </div>
+        {/* Resumen: mismo bloque partido que los datos clave del evento. */}
+        <dl className="m-0 grid grid-cols-2 gap-px rounded-card overflow-hidden bg-line border border-line">
+          <div className="bg-surface p-3.5 flex flex-col gap-1">
+            <dt className="label-mono text-ink-3">En el evento</dt>
+            <dd className="m-0 num-mono text-[26px] font-semibold leading-tight">{totalDancers}</dd>
+            <dd className="m-0 text-[13px] text-ink-2">
+              {activeDancers > 0 ? `${activeDancers} bailando ahora` : "Nadie bailando ahora"}
+            </dd>
           </div>
-        </div>
-        {/* Resumen en vivo del evento */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-3xl bg-[#111114] p-4 flex flex-col items-center justify-center text-center shadow-lg">
-            <div className="flex items-center gap-1.5 mb-1">
-              <span className="w-2 h-2 rounded-full bg-[#D4FF00] animate-pulse" />
-              <span className="tech-label text-[#D4FF00]">En el evento</span>
-            </div>
-            <p className="num-display text-3xl text-white">{totalDancers}</p>
-            <p className="tech-label text-[9px] text-neutral-400 mt-1">
-              {activeDancers > 0 ? `${activeDancers} bailando ahora` : "Personas registradas"}
-            </p>
+          <div className="bg-surface p-3.5 flex flex-col gap-1">
+            <dt className="label-mono text-ink-3">Pasos de la fiesta</dt>
+            <dd className="m-0 num-mono text-[26px] font-semibold leading-tight">{fmtSteps(totalEventSteps)}</dd>
+            <dd className="m-0 text-[13px] text-ink-2">entre todos</dd>
           </div>
+        </dl>
 
-          <div className="rounded-3xl bg-[#111114] p-4 flex flex-col items-center justify-center text-center shadow-lg">
-            <span className="tech-label text-neutral-400 mb-1">Pasos de la Fiesta</span>
-            <p className="num-display text-3xl text-[#D4FF00]">
-              {totalEventSteps.toLocaleString("es-AR")}
-            </p>
-            <p className="tech-label text-[9px] text-neutral-400 mt-1">Pasos totales</p>
-          </div>
-        </div>
-
-        {/* Tu posición actual si estás participando */}
+        {/* Tu posición */}
         {myEntry && (
-          <div className="rounded-3xl bg-[#D4FF00] text-neutral-950 p-4 flex items-center justify-between shadow-[0_8px_30px_rgba(212,255,0,0.2)]">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-2xl bg-black text-[#D4FF00] flex items-center justify-center num-display text-sm shrink-0">
-                #{myEntry.rank}
-              </div>
-              <div className="min-w-0">
-                <p className="tech-label text-[9px] text-black/70">Tu posición en vivo</p>
-                <p className="text-sm font-black uppercase tracking-tight text-black truncate">
-                  {myEntry.name}
-                </p>
-              </div>
-            </div>
-            <div className="text-right shrink-0">
-              <p className="num-display text-xl text-black">
-                {myEntry.steps.toLocaleString("es-AR")}
-              </p>
-              <p className="tech-label text-[9px] text-black/70">pasos</p>
-            </div>
-          </div>
+          <section
+            aria-label="Tu posición"
+            className="p-4 rounded-card border border-accent/40 bg-accent/12 flex items-center justify-between gap-3"
+          >
+            <span className="flex flex-col gap-1 min-w-0">
+              <span className="label-mono text-accent">Tu posición</span>
+              <span className="text-[15px]">
+                <span className="num-mono text-[26px] font-semibold leading-none">#{myEntry.rank}</span>
+                <span className="text-ink-2"> de {entries.length}</span>
+              </span>
+            </span>
+            <span className="flex flex-col items-end gap-1 shrink-0">
+              <span className="num-mono text-[26px] font-semibold leading-none text-accent">{fmtSteps(myEntry.steps)}</span>
+              <span className="text-[13px] text-ink-2">pasos</span>
+            </span>
+          </section>
         )}
 
-        {/* Título de sección */}
-        <h3 className="text-xs font-black uppercase tracking-widest text-neutral-300 px-1 pt-1">
-          Todos en el evento
-        </h3>
-
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-3">
-            <Loader2 className="w-7 h-7 animate-spin text-[#D4FF00]" />
-            <p className="text-xs font-bold text-neutral-400">
-              Cargando ranking del evento en tiempo real...
-            </p>
+        {/* Lista completa */}
+        <section aria-labelledby="live-ranking-list" className="flex flex-col gap-2.5 pt-2">
+          <div className="flex items-center justify-between gap-3 px-1">
+            <h2 id="live-ranking-list" className="label-mono text-ink-2 m-0">Todos en el evento</h2>
+            <span className="label-mono text-ink-3">Pasos</span>
           </div>
-        ) : entries.length === 0 ? (
-          <div className="rounded-3xl bg-[#111114] p-8 text-center space-y-2">
-            <Activity className="w-8 h-8 text-[#D4FF00] mx-auto stroke-[1.8]" />
-            <p className="text-sm font-black uppercase tracking-wider text-white">
-              Aún no hay pasos registrados en vivo
-            </p>
-            <p className="text-xs text-neutral-400 max-w-xs mx-auto leading-relaxed">
-              A medida que las personas ingresen al predio del evento y empiecen a bailar, aparecerán acá en tiempo real.
-            </p>
-          </div>
-        ) : (
-          <>
-            {/* Podio Top 3 */}
-            {entries.length >= 3 && (
-              <div className="flex items-end justify-center gap-3 pt-2 pb-1">
-                {/* 2do */}
-                <div
-                  onClick={() =>
-                    entries[1].username &&
-                    router.push(`/profile/${entries[1].username}`)
-                  }
-                  className="flex flex-col items-center gap-2 flex-1 cursor-pointer"
-                >
-                  <div className="relative">
-                    <Avatar
-                      src={entries[1].avatarUrl || undefined}
-                      fallback={entries[1].name}
-                      size="sm"
-                      className="ring-2 ring-neutral-300/30 aspect-square"
-                    />
-                    {entries[1].isActive && (
-                      <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-[#D4FF00] ring-2 ring-[#0B0D10]" />
-                    )}
-                  </div>
-                  <p className="tech-label text-white truncate max-w-[85px]">
-                    {entries[1].name.split(" ")[0]}
-                  </p>
-                  <p className="text-[10px]">
-                    <span className="num-display text-neutral-300">
-                      {entries[1].steps.toLocaleString("es-AR")}
-                    </span>{" "}
-                    <span className="text-[9px]">👟</span>
-                  </p>
-                  <div className="w-full h-16 rounded-t-2xl bg-neutral-300/10 flex items-end justify-center pb-2">
-                    <Medal className="w-5 h-5 text-neutral-300 stroke-[1.8]" />
-                  </div>
-                </div>
 
-                {/* 1ro */}
-                <div
-                  onClick={() =>
-                    entries[0].username &&
-                    router.push(`/profile/${entries[0].username}`)
-                  }
-                  className="flex flex-col items-center gap-2 flex-1 cursor-pointer"
-                >
-                  <div className="relative">
-                    <Avatar
-                      src={entries[0].avatarUrl || undefined}
-                      fallback={entries[0].name}
-                      size="md"
-                      className="ring-2 ring-[#D4FF00] aspect-square"
-                    />
-                    {entries[0].isActive && (
-                      <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-[#D4FF00] ring-2 ring-[#0B0D10]" />
-                    )}
-                  </div>
-                  <p className="tech-label text-white truncate max-w-[90px]">
-                    {entries[0].name.split(" ")[0]}
-                  </p>
-                  <p className="text-[10px]">
-                    <span className="num-display text-[#D4FF00]">
-                      {entries[0].steps.toLocaleString("es-AR")}
-                    </span>{" "}
-                    <span className="text-[9px]">👟</span>
-                  </p>
-                  <div className="w-full h-28 rounded-t-2xl bg-[#D4FF00]/15 flex items-end justify-center pb-2">
-                    <Crown className="w-5 h-5 text-[#D4FF00] stroke-[2]" />
-                  </div>
-                </div>
-
-                {/* 3ro */}
-                <div
-                  onClick={() =>
-                    entries[2].username &&
-                    router.push(`/profile/${entries[2].username}`)
-                  }
-                  className="flex flex-col items-center gap-2 flex-1 cursor-pointer"
-                >
-                  <div className="relative">
-                    <Avatar
-                      src={entries[2].avatarUrl || undefined}
-                      fallback={entries[2].name}
-                      size="sm"
-                      className="ring-2 ring-amber-600/30 aspect-square"
-                    />
-                    {entries[2].isActive && (
-                      <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-[#D4FF00] ring-2 ring-[#0B0D10]" />
-                    )}
-                  </div>
-                  <p className="tech-label text-white truncate max-w-[85px]">
-                    {entries[2].name.split(" ")[0]}
-                  </p>
-                  <p className="text-[10px]">
-                    <span className="num-display text-neutral-300">
-                      {entries[2].steps.toLocaleString("es-AR")}
-                    </span>{" "}
-                    <span className="text-[9px]">👟</span>
-                  </p>
-                  <div className="w-full h-14 rounded-t-2xl bg-amber-600/10 flex items-end justify-center pb-2">
-                    <Medal className="w-5 h-5 text-amber-600 stroke-[1.8]" />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Listado completo de personas en el evento */}
-            <div className="space-y-2">
+          {isLoading ? (
+            <RowSkeleton rows={5} />
+          ) : entries.length === 0 ? (
+            <div className="p-6 rounded-card bg-surface border border-line flex flex-col items-center gap-1.5 text-center">
+              <Activity className="size-6 text-accent" aria-hidden="true" />
+              <p className="m-0 text-[15px] font-semibold">Todavía no hay pasos en vivo</p>
+              <p className="m-0 text-[13px] text-ink-2 max-w-xs">
+                Cuando la gente entre al predio y empiece a bailar, va a aparecer acá en tiempo real.
+              </p>
+            </div>
+          ) : (
+            <ol className="m-0 p-0 list-none rounded-card overflow-hidden bg-surface border border-line divide-y divide-white/[0.06]">
               {entries.map((person) => {
                 const isMe = user?.id === person.userId;
+                const row = <RankingRow person={person} isMe={isMe} />;
                 return (
-                  <div
-                    key={person.userId}
-                    onClick={() => {
-                      if (person.username) {
-                        router.push(`/profile/${person.username}`);
-                      }
-                    }}
-                    className={cn(
-                      "flex items-center gap-3 p-3.5 rounded-2xl transition-all cursor-pointer shadow-lg",
-                      isMe
-                        ? "bg-[#D4FF00]/15 hover:bg-[#D4FF00]/20"
-                        : "bg-[#111114] hover:bg-[#16171D]",
+                  <li key={person.userId} className={cn(isMe && "bg-accent/[0.06]")}>
+                    {person.username ? (
+                      <Link
+                        href={`/profile/${person.username}`}
+                        className="block hover:bg-surface-2 transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
+                      >
+                        {row}
+                      </Link>
+                    ) : (
+                      row
                     )}
-                  >
-                    <span
-                      className={cn(
-                        "num-display text-xs w-6 text-center shrink-0",
-                        person.rank === 1
-                          ? "text-[#D4FF00]"
-                          : person.rank === 2
-                            ? "text-neutral-300"
-                            : person.rank === 3
-                              ? "text-amber-500"
-                              : "text-neutral-500",
-                      )}
-                    >
-                      {person.rank}
-                    </span>
-
-                    <Avatar
-                      src={person.avatarUrl || undefined}
-                      fallback={person.name}
-                      size="sm"
-                      className="aspect-square shrink-0"
-                    />
-
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-black text-white truncate">
-                        {person.name}
-                      </p>
-                      {person.username && (
-                        <p className="text-[10px] text-neutral-400 font-medium truncate">
-                          @{person.username}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-1 text-[#D4FF00] shrink-0">
-                      <Activity className="w-3.5 h-3.5 stroke-[1.8]" />
-                      <span className="num-display text-xs">
-                        {person.steps.toLocaleString("es-AR")}
-                      </span>
-                      <span className="tech-label text-[9px] text-neutral-400">pasos</span>
-                    </div>
-                  </div>
+                  </li>
                 );
               })}
-            </div>
-          </>
-        )}
+            </ol>
+          )}
+        </section>
       </div>
     </div>
   );
