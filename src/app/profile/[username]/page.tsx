@@ -7,6 +7,7 @@ import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button";
 import { Award, Check, ChevronLeft, ChevronRight, Grid3X3, Loader2, Plus, Settings, Share2, ShieldCheck } from "lucide-react";
+import { SwipeBack } from "@/components/ui/SwipeBack";
 import { MOCK_POSTS } from "@/lib/mocks";
 import { CreatePhotoModal } from "@/components/profile/CreatePhotoModal";
 import { ProfileSkeleton } from "@/components/profile/ProfileSkeleton";
@@ -251,6 +252,7 @@ export default function UserProfilePage() {
     <div className="flex min-h-[100dvh] flex-col bg-bg pb-[calc(var(--root-mobile-nav-clearance)+1rem)] text-ink md:pb-16">
       <header className="sticky top-0 z-30 w-full bg-bg/95 backdrop-blur-md border-b border-line">
         <div className="w-full max-w-3xl mx-auto px-4 pt-[calc(0.75rem+var(--root-safe-top))] pb-3 md:pt-6 flex items-center gap-3">
+        {(fromSearch || fromCommunities) && <SwipeBack onBack={handleProfileBack} />}
         {(fromSearch || fromCommunities) && (
           <button
             type="button"

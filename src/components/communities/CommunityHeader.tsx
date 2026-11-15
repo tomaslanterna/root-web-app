@@ -3,6 +3,7 @@
 import { Check, ChevronLeft, Info, Loader2 } from "lucide-react";
 import type { Community } from "@/types/communities";
 import { CommunityCover } from "./CommunityCover";
+import { SwipeBack } from "@/components/ui/SwipeBack";
 
 interface CommunityHeaderProps {
   community: Pick<
@@ -34,6 +35,7 @@ export function CommunityHeader({
       <div className="relative h-[200px] bg-surface-2">
         <CommunityCover coverImageUrl={community.coverImageUrl} category={community.category} sizes="100vw" />
         <div className="absolute top-[calc(1rem+var(--root-safe-top))] md:top-4 inset-x-4 flex justify-between">
+          <SwipeBack onBack={onBack} />
           <button type="button" onClick={onBack} aria-label="Volver" className={roundButton}>
             <ChevronLeft className="size-[22px]" aria-hidden="true" />
           </button>

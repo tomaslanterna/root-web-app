@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Activity, ChevronDown, ChevronLeft, ChevronRight, Loader2, MapPin, Plus, Users } from "lucide-react";
+import { SwipeBack } from "@/components/ui/SwipeBack";
 import { useAuth } from "@/context/AuthContext";
 import { useDanceContext } from "@/context/DanceContext";
 import { useDanceStats } from "@/hooks/useDanceStats";
@@ -182,6 +183,7 @@ export default function DanceRankerPage() {
     <div className="num-display min-h-[100dvh] bg-bg text-ink pb-[calc(var(--root-mobile-nav-clearance)+1rem)] md:pb-16">
       <header className="sticky top-0 z-30 w-full bg-bg/95 backdrop-blur-md border-b border-line">
         <div className="w-full max-w-2xl mx-auto px-4 pt-[calc(0.75rem+var(--root-safe-top))] pb-3 md:pt-6 flex items-center gap-3">
+          <SwipeBack />
           <button
             type="button"
             onClick={() => router.back()}
