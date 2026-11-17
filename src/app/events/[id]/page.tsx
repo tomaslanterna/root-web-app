@@ -131,16 +131,10 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     }
   }
 
-  const handleBuyTicket = (tierId?: string) => {
-    if (!event) return;
-    const customTicketUrl = (event as any)?.ticketUrl || (event as any)?.affiliateUrl;
-    if (customTicketUrl) {
-      window.open(customTicketUrl, "_blank", "noopener,noreferrer");
-      return;
-    }
-    // Redirección segura con atribución RRPP oficial de Root
-    const partnerUrl = `https://www.passline.com/sitio?q=${encodeURIComponent(event.title)}&ref=root_rrpp`;
-    window.open(partnerUrl, "_blank", "noopener,noreferrer");
+  const handleBuyTicket = () => {
+    const ticketUrl = event?.ticketUrl?.trim();
+    if (!ticketUrl) return;
+    window.open(ticketUrl, "_blank", "noopener,noreferrer");
   };
 
   const ticketTiers = useMemo(() => {
@@ -214,6 +208,8 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         : `$ ${event.price.toLocaleString("es-AR")}`;
 
   const banner = event.cinematicBannerUrl?.trim() || fallbackBanner;
+  // Sin ticket_url no hay dónde comprar: no se muestra la sección de entradas ni el botón.
+  const hasTicketUrl = Boolean(event.ticketUrl?.trim());
   const selectedTier =
     ticketTiers?.find((tier) => tier.id === selectedTierId) ??
     ticketTiers?.find((tier) => tier.status !== "sold_out");
@@ -248,8 +244,32 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         </div>
       )}
 
+      <SwipeBack onBack={goBack} />
+
+      {/* Header fijo: volver y compartir quedan arriba mientras se hace scroll */}
+      <header className="fixed inset-x-0 top-0 z-40 pointer-events-none">
+        <div className="mx-auto flex w-full max-w-3xl justify-between px-4 pt-[calc(1rem+var(--root-safe-top))] md:px-12 md:pt-10">
+          <button
+            type="button"
+            aria-label="Volver"
+            onClick={goBack}
+            className={cn(roundButton, "pointer-events-auto")}
+          >
+            <ChevronLeft className="size-[22px]" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            aria-label="Compartir evento"
+            onClick={handleShare}
+            className={cn(roundButton, "pointer-events-auto")}
+          >
+            <Share className="size-5" aria-hidden="true" />
+          </button>
+        </div>
+      </header>
+
       <div className="w-full max-w-3xl mx-auto md:px-8 md:pt-6">
-        {/* Póster con acciones flotantes */}
+        {/* Póster */}
         <div
           role="img"
           aria-label={`Póster de ${event.title}`}
@@ -263,22 +283,6 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             sizes="(max-width: 768px) 100vw, 768px"
             className="object-cover object-center"
           />
-          <div className="absolute top-[calc(1rem+var(--root-safe-top))] md:top-4 inset-x-4 flex justify-between z-10">
-            <SwipeBack onBack={goBack} />
-            <button
-              type="button"
-              aria-label="Volver"
-              onClick={goBack}
-              className={roundButton}
-            >
-              <ChevronLeft className="size-[22px]" aria-hidden="true" />
-            </button>
-            <div className="flex gap-2">
-              <button type="button" aria-label="Compartir evento" onClick={handleShare} className={roundButton}>
-                <Share className="size-5" aria-hidden="true" />
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* Identidad */}
@@ -483,115 +487,117 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           )}
         </div>
 
-        {/* Entradas */}
-        <section id="tickets-section" aria-labelledby="event-tickets" className="mx-4 md:mx-0 mt-8 scroll-mt-28">
-          <div className="rounded-card bg-surface border border-line p-4 md:p-5 flex flex-col gap-4">
-            {/* Header replegable */}
-            <button
-              type="button"
-              onClick={() => setIsTicketsExpanded((prev) => !prev)}
-              aria-expanded={isTicketsExpanded}
-              aria-controls="event-tickets-content"
-              className="flex items-center justify-between gap-3 text-left w-full group focus-visible:outline-2 focus-visible:outline-accent rounded-lg cursor-pointer"
-            >
-              <div className="flex flex-col gap-1 min-w-0">
-                <h2 id="event-tickets" className="font-display text-[22px] m-0">Entradas</h2>
-                <span className="num-mono text-sm text-ink-2 font-medium">
-                  {selectedTier ? selectedTier.priceLabel : priceLabel}
-                  {ticketTiers && ticketTiers.length > 0 && (
-                    <span className="text-xs text-ink-3 ml-2 font-normal">
-                      ({ticketTiers.length} {ticketTiers.length === 1 ? "lote" : "lotes"})
-                    </span>
-                  )}
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-accent group-hover:text-accent-hover transition-colors shrink-0">
-                <span>{isTicketsExpanded ? "Ocultar precios" : "Ver precios"}</span>
-                <ChevronDown
-                  className={cn(
-                    "size-4 transition-transform duration-200",
-                    isTicketsExpanded && "rotate-180",
-                  )}
-                  aria-hidden="true"
-                />
-              </div>
-            </button>
+        {/* Entradas: solo si el evento tiene ticket_url */}
+        {hasTicketUrl && (
+          <section id="tickets-section" aria-labelledby="event-tickets" className="mx-4 md:mx-0 mt-8 scroll-mt-28">
+            <div className="rounded-card bg-surface border border-line p-4 md:p-5 flex flex-col gap-4">
+              {/* Header replegable */}
+              <button
+                type="button"
+                onClick={() => setIsTicketsExpanded((prev) => !prev)}
+                aria-expanded={isTicketsExpanded}
+                aria-controls="event-tickets-content"
+                className="flex items-center justify-between gap-3 text-left w-full group focus-visible:outline-2 focus-visible:outline-accent rounded-lg cursor-pointer"
+              >
+                <div className="flex flex-col gap-1 min-w-0">
+                  <h2 id="event-tickets" className="font-display text-[22px] m-0">Entradas</h2>
+                  <span className="num-mono text-sm text-ink-2 font-medium">
+                    {selectedTier ? selectedTier.priceLabel : priceLabel}
+                    {ticketTiers && ticketTiers.length > 0 && (
+                      <span className="text-xs text-ink-3 ml-2 font-normal">
+                        ({ticketTiers.length} {ticketTiers.length === 1 ? "lote" : "lotes"})
+                      </span>
+                    )}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-accent group-hover:text-accent-hover transition-colors shrink-0">
+                  <span>{isTicketsExpanded ? "Ocultar precios" : "Ver precios"}</span>
+                  <ChevronDown
+                    className={cn(
+                      "size-4 transition-transform duration-200",
+                      isTicketsExpanded && "rotate-180",
+                    )}
+                    aria-hidden="true"
+                  />
+                </div>
+              </button>
 
-            {/* Precios de entradas dentro de sección replegable */}
-            {isTicketsExpanded && (
-              <div id="event-tickets-content" className="pt-3 border-t border-line animate-in fade-in duration-200 flex flex-col gap-2.5">
-                {event.ticketTiers == null ? (
-                  <p className="m-0 p-3.5 rounded-control bg-surface-2 border border-line text-[14px] text-ink-2">
-                    Todavía no hay información de entradas oficiales para este evento.
-                  </p>
-                ) : event.ticketTiers.length === 0 ? (
-                  <p className="m-0 p-3.5 rounded-control bg-surface-2 border border-line text-[14px] text-ink-2">
-                    Estamos buscando las entradas oficiales de este evento.
-                  </p>
-                ) : (
-                  <fieldset className="m-0 p-0 border-0 flex flex-col gap-2.5">
-                    <legend className="sr-only">Elegí un lote</legend>
-                    {ticketTiers?.map((tier) => {
-                      const isSoldOut = tier.status === "sold_out";
-                      const isSelected = !isSoldOut && selectedTier?.id === tier.id;
-                      if (isSoldOut) {
+              {/* Precios de entradas dentro de sección replegable */}
+              {isTicketsExpanded && (
+                <div id="event-tickets-content" className="pt-3 border-t border-line animate-in fade-in duration-200 flex flex-col gap-2.5">
+                  {event.ticketTiers == null ? (
+                    <p className="m-0 p-3.5 rounded-control bg-surface-2 border border-line text-[14px] text-ink-2">
+                      Todavía no hay información de entradas oficiales para este evento.
+                    </p>
+                  ) : event.ticketTiers.length === 0 ? (
+                    <p className="m-0 p-3.5 rounded-control bg-surface-2 border border-line text-[14px] text-ink-2">
+                      Estamos buscando las entradas oficiales de este evento.
+                    </p>
+                  ) : (
+                    <fieldset className="m-0 p-0 border-0 flex flex-col gap-2.5">
+                      <legend className="sr-only">Elegí un lote</legend>
+                      {ticketTiers?.map((tier) => {
+                        const isSoldOut = tier.status === "sold_out";
+                        const isSelected = !isSoldOut && selectedTier?.id === tier.id;
+                        if (isSoldOut) {
+                          return (
+                            <div
+                              key={tier.id}
+                              aria-disabled="true"
+                              className="p-3.5 rounded-control border border-dashed border-line-strong text-ink-3 flex items-center justify-between gap-3"
+                            >
+                              <span className="flex flex-col gap-[2px]">
+                                <span className="text-[14px] font-semibold line-through">{tier.name}</span>
+                                <span className="label-mono">Agotado</span>
+                              </span>
+                              <span className="num-mono text-sm line-through">{tier.priceLabel}</span>
+                            </div>
+                          );
+                        }
                         return (
-                          <div
+                          <label
                             key={tier.id}
-                            aria-disabled="true"
-                            className="p-3.5 rounded-control border border-dashed border-line-strong text-ink-3 flex items-center justify-between gap-3"
+                            className={cn(
+                              "p-3.5 rounded-control flex items-center gap-3 cursor-pointer transition-colors",
+                              isSelected
+                                ? "border-[1.5px] border-accent bg-accent/[0.06]"
+                                : "border border-white/10 bg-surface-2 hover:bg-[#23272D]",
+                            )}
                           >
-                            <span className="flex flex-col gap-[2px]">
-                              <span className="text-[14px] font-semibold line-through">{tier.name}</span>
-                              <span className="label-mono">Agotado</span>
+                            <input
+                              type="radio"
+                              name="ticket-tier"
+                              checked={isSelected}
+                              onChange={() => setSelectedTierId(tier.id)}
+                              className="size-4 m-0 accent-accent"
+                            />
+                            <span className="flex-1 min-w-0 flex flex-col gap-[2px]">
+                              <span className="text-[14px] font-semibold">{tier.name}</span>
+                              <span className={cn("label-mono", tier.status === "limited" ? "text-accent" : "text-ink-3")}>
+                                {tier.status === "limited" ? "Disponible · quedan pocas" : "Disponible"}
+                              </span>
                             </span>
-                            <span className="num-mono text-sm line-through">{tier.priceLabel}</span>
-                          </div>
+                            <span className="num-mono text-base font-semibold">{tier.priceLabel}</span>
+                          </label>
                         );
-                      }
-                      return (
-                        <label
-                          key={tier.id}
-                          className={cn(
-                            "p-3.5 rounded-control flex items-center gap-3 cursor-pointer transition-colors",
-                            isSelected
-                              ? "border-[1.5px] border-accent bg-accent/[0.06]"
-                              : "border border-white/10 bg-surface-2 hover:bg-[#23272D]",
-                          )}
-                        >
-                          <input
-                            type="radio"
-                            name="ticket-tier"
-                            checked={isSelected}
-                            onChange={() => setSelectedTierId(tier.id)}
-                            className="size-4 m-0 accent-accent"
-                          />
-                          <span className="flex-1 min-w-0 flex flex-col gap-[2px]">
-                            <span className="text-[14px] font-semibold">{tier.name}</span>
-                            <span className={cn("label-mono", tier.status === "limited" ? "text-accent" : "text-ink-3")}>
-                              {tier.status === "limited" ? "Disponible · quedan pocas" : "Disponible"}
-                            </span>
-                          </span>
-                          <span className="num-mono text-base font-semibold">{tier.priceLabel}</span>
-                        </label>
-                      );
-                    })}
-                  </fieldset>
-                )}
-              </div>
-            )}
+                      })}
+                    </fieldset>
+                  )}
+                </div>
+              )}
 
-            {/* Botón Conseguir ticket al final de los tickets, visible tanto replegada como expandida */}
-            <Button
-              size="lg"
-              onClick={() => handleBuyTicket(selectedTier?.id)}
-              className="w-full flex items-center justify-center gap-2 text-base font-bold shadow-[0_4px_20px_rgba(212,255,0,0.15)]"
-            >
-              <span>Conseguir ticket</span>
-              <ArrowUpRight className="size-[18px]" strokeWidth={2.4} aria-hidden="true" />
-            </Button>
-          </div>
-        </section>
+              {/* Botón Conseguir ticket al final de los tickets, visible tanto replegada como expandida */}
+              <Button
+                size="lg"
+                onClick={handleBuyTicket}
+                className="w-full flex items-center justify-center gap-2 text-base font-bold shadow-[0_4px_20px_rgba(212,255,0,0.15)]"
+              >
+                <span>Conseguir ticket</span>
+                <ArrowUpRight className="size-[18px]" strokeWidth={2.4} aria-hidden="true" />
+              </Button>
+            </div>
+          </section>
+        )}
 
         {/* Muro */}
         <section className="mx-4 md:mx-0 mt-8">
