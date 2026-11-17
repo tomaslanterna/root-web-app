@@ -60,7 +60,15 @@
   letter-spacing: 0.05em;
 }
 
+/* Pantalla anterior al volver con el swipe: entra con parallax y sale del oscurecido. */
+@keyframes pop-enter {
+  from { transform: translate3d(-28%, 0, 0); filter: brightness(0.55); }
+  to { transform: translate3d(0, 0, 0); filter: brightness(1); }
+}
+main[data-pop-enter] { animation: pop-enter 280ms cubic-bezier(0.22, 0.61, 0.36, 1) both; }
+
 @media (prefers-reduced-motion: reduce) {
+  main[data-pop-enter] { animation: none; }
   .chat-inbox-screen { animation: none; transform: none !important; transition: none !important; }
   .chat-inbox-preview { visibility: hidden; }
   .feed-swipe, .feed-inbox-content, .events-swipe, .events-inbox-content { transform: none !important; transition: none !important; }

@@ -1,12 +1,9 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { Capacitor } from "@capacitor/core";
-import { ChevronLeft } from "lucide-react";
 import { useHorizontalSwipe } from "@/hooks/useHorizontalSwipe";
-import { swipeThreshold } from "@/lib/horizontalSwipe";
 import { isActiveSwipeBack, registerSwipeBack, subscribeSwipeBack } from "@/lib/swipeBack";
 
 interface SwipeBackProps {
@@ -17,41 +14,94 @@ interface SwipeBackProps {
   enabled?: boolean;
 }
 
-// Swipe right anywhere on the screen to go back. Render it next to the back
-// button; it listens on the enclosing <main>, not on the document.
+const EASE = "cubic-bezier(0.22, 0.61, 0.36, 1)";
+const LEAVE_MS = 180;
+const ENTER_MS = 280;
+
+// DOM writes live outside the component: <main> belongs to the root layout.
+const lockPage = () => { document.documentElement.style.overflowX = "hidden"; };
+const unlockPage = () => { document.documentElement.style.overflowX = ""; };
+
+// iOS-style interactive back: the whole screen (<main>) follows the finger and
+// slides away; the previous screen then enters with a short parallax.
+// Render it next to the back button; it listens on the enclosing <main>.
 export function SwipeBack({ onBack, href, enabled = true }: SwipeBackProps) {
   const router = useRouter();
   const [owner] = useState(() => ({}));
   useEffect(() => registerSwipeBack(owner), [owner]);
   const active = useSyncExternalStore(subscribeSwipeBack, () => isActiveSwipeBack(owner), () => false);
-  const { ref, distance, dragging } = useHorizontalSwipe(
+
+  const mainRef = useRef<HTMLElement | null>(null);
+  const leaving = useRef(false);
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const clear = () => {
+    const main = mainRef.current;
+    if (!main) return;
+    main.style.transition = "";
+    main.style.transform = "";
+    main.style.boxShadow = "";
+    main.style.willChange = "";
+    unlockPage();
+  };
+  const later = (fn: () => void, ms: number) => { timers.current.push(setTimeout(fn, ms)); };
+
+  const { ref } = useHorizontalSwipe(
     1,
     enabled && active,
     () => {
-      if (onBack) onBack();
-      else if (href) router.push(href);
-      else router.back();
+      const main = mainRef.current;
+      const go = () => {
+        if (onBack) onBack();
+        else if (href) router.push(href);
+        else router.back();
+      };
+      if (!main) { go(); return; }
+      leaving.current = true;
+      main.style.transition = `transform ${LEAVE_MS}ms ${EASE}`;
+      main.style.transform = "translate3d(100%, 0, 0)";
+      later(go, LEAVE_MS);
+      // Navigation never landed (e.g. blocked): bring the screen back.
+      later(() => { leaving.current = false; clear(); }, 2500);
     },
-    undefined,
+    {
+      onProgress: (distance) => {
+        const main = mainRef.current ?? ref.current?.closest<HTMLElement>("main") ?? null;
+        if (!main || leaving.current) return;
+        if (!mainRef.current) {
+          mainRef.current = main;
+          main.style.willChange = "transform";
+          main.style.boxShadow = "-18px 0 44px rgba(0, 0, 0, 0.55)";
+          // The shifted screen must not widen the page.
+          lockPage();
+        }
+        main.style.transition = "none";
+        main.style.transform = `translate3d(${Math.max(0, distance)}px, 0, 0)`;
+      },
+      onCancel: () => {
+        const main = mainRef.current;
+        if (!main || leaving.current) return;
+        main.style.transition = `transform ${LEAVE_MS}ms ${EASE}`;
+        main.style.transform = "translate3d(0, 0, 0)";
+        later(clear, LEAVE_MS + 20);
+      },
+    },
     // The native iOS shell has no system back gesture, so the left edge is ours there.
     // Android and mobile browsers already go back from the edge.
     { scope: "main", edges: Capacitor.getPlatform() === "ios" },
   );
-  const armed = dragging && distance >= swipeThreshold(window.innerWidth);
 
-  return (
-    <>
-      <div ref={ref} hidden />
-      {dragging && createPortal(
-        <div
-          aria-hidden="true"
-          className={`pointer-events-none fixed left-0 top-1/2 z-[70] flex size-11 items-center justify-center rounded-full border shadow-[0_8px_24px_rgba(0,0,0,0.5)] transition-colors ${armed ? "border-accent bg-accent text-on-accent" : "border-line bg-surface text-ink"}`}
-          style={{ transform: `translate(${Math.min(distance, 132) - 48}px, -50%)`, opacity: Math.min(1, distance / 48) }}
-        >
-          <ChevronLeft className="size-[22px]" />
-        </div>,
-        document.body,
-      )}
-    </>
-  );
+  useEffect(() => () => {
+    timers.current.forEach(clearTimeout);
+    const main = mainRef.current;
+    if (!main) return;
+    clear();
+    if (leaving.current) {
+      // <main> outlives the route: replay the previous screen's entrance on it.
+      main.dataset.popEnter = "";
+      setTimeout(() => { delete main.dataset.popEnter; }, ENTER_MS + 40);
+    }
+  }, []);
+
+  return <div ref={ref} hidden />;
 }
