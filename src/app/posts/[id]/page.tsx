@@ -10,7 +10,6 @@ import {
   MessageCircle,
   Share2,
   Check,
-  MoreHorizontal,
   BadgeCheck,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
@@ -177,67 +176,50 @@ export default function PostDetailPage({
         </div>
       )}
 
-      {/* Header Superior idéntico a /events/[id] pero sin el logo de root */}
+      {/* Header superior: volver, autor con su info y compartir en una sola fila.
+          Barra sólida que ocupa su propio lugar (sin degradé encima de la publicación). */}
       <DetailHeader
+        position="sticky"
+        className="max-w-xl"
         showBrand={false}
         showSave={false}
         showShare={true}
         onBack={() => router.back()}
         onShare={handleShare}
         isCopied={copiedLink}
-      />
+      >
+        <Link
+          href={post.authorName ? `/profile/${post.authorName}` : "#"}
+          className="flex items-center gap-3 min-w-0 group"
+        >
+          <Avatar
+            src={post.authorAvatar}
+            fallback={post.authorName?.charAt(0) || "U"}
+            size="md"
+            className="ring-1 ring-white/20 group-hover:ring-[#D4FF00]/50 transition-all shrink-0"
+          />
+          <div className="min-w-0">
+            <p className="truncate text-xs font-black uppercase tracking-wider text-white group-hover:text-[#D4FF00] transition-colors flex items-center gap-1">
+              <span className="truncate">{post.authorName || "Usuario"}</span>
+              {post.isVerified && (
+                <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-[#D4FF00] fill-current" />
+              )}
+            </p>
+            <p className="tech-mono text-[9px] text-neutral-500">
+              {new Date(post.timestamp).toLocaleDateString("es-AR", {
+                day: "numeric",
+                month: "short",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </p>
+          </div>
+        </Link>
+      </DetailHeader>
 
       {/* Contenedor de la publicación */}
-      <main className="w-full max-w-xl mx-auto flex-1 flex flex-col px-0 sm:px-4 pt-safe-1 sm:pt-20">
+      <main className="w-full max-w-xl mx-auto flex-1 flex flex-col px-0 sm:px-4 sm:pt-4">
         <article className="overflow-hidden bg-[#111114] sm:rounded-3xl border-0 shadow-[0_16px_40px_-12px_rgba(0,0,0,0.7)]">
-          {/* Cabecera del Autor - Deja espacio para el botón de GoBack a la izquierda y el Share a la derecha en mobile */}
-          <div className="flex items-center justify-between min-h-10 py-1 pl-16 pr-14 sm:p-4">
-            <Link
-              href={post.authorName ? `/profile/${post.authorName}` : "#"}
-              className="flex items-center gap-3 min-w-0 group"
-            >
-              <Avatar
-                src={post.authorAvatar}
-                fallback={post.authorName?.charAt(0) || "U"}
-                size="sm"
-                className="ring-1 ring-white/20 group-hover:ring-[#D4FF00]/50 transition-all shrink-0"
-              />
-              <div className="min-w-0">
-                <p className="truncate text-xs font-black uppercase tracking-wider text-white group-hover:text-[#D4FF00] transition-colors flex items-center gap-1">
-                  <span>{post.authorName || "Usuario"}</span>
-                  {post.isVerified && (
-                    <BadgeCheck className="h-3.5 w-3.5 text-[#D4FF00] fill-current" />
-                  )}
-                </p>
-                <p className="tech-mono text-[9px] text-neutral-500">
-                  {new Date(post.timestamp).toLocaleDateString("es-AR", {
-                    day: "numeric",
-                    month: "short",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </p>
-              </div>
-            </Link>
-
-            {post.communityId ? (
-              <ReportContentAction
-                communityId={post.communityId}
-                targetType="post"
-                targetId={post.id}
-              />
-            ) : (
-              <button
-                type="button"
-                onClick={handleShare}
-                className="hidden sm:block p-1.5 text-neutral-400 hover:text-white transition-colors"
-                aria-label="Más opciones"
-              >
-                <MoreHorizontal className="h-5 w-5" />
-              </button>
-            )}
-          </div>
-
           {/* Imagen de la publicación (con soporte de doble tap para dar Me Gusta) */}
           {post.headerImageUrl && (
             <div
@@ -303,6 +285,14 @@ export default function PostDetailPage({
                   )}
                 </button>
               </div>
+
+              {post.communityId && (
+                <ReportContentAction
+                  communityId={post.communityId}
+                  targetType="post"
+                  targetId={post.id}
+                />
+              )}
             </div>
 
             {/* Contador de Likes */}

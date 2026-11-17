@@ -112,7 +112,7 @@ export function ChatList({ className, onBack, backButtonRef }: { className?: str
         </button>
       </header>
 
-      <div className="mx-4 mt-4 h-9 md:h-10 px-3 flex items-center gap-2 rounded-xl bg-surface border border-white/10 text-ink-3 focus-within:border-accent">
+      <div className="mx-4 mt-4 h-9 md:h-10 shrink-0 px-3 flex items-center gap-2 rounded-xl bg-surface border border-line focus-within:border-accent text-ink-3 transition-colors">
         <Search className="size-4 shrink-0" aria-hidden="true" />
         <input
           type="search"

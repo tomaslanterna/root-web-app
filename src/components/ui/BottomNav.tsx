@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useSyncExternalStore } from "react";
+import { useState, useEffect, useRef, useSyncExternalStore, type CSSProperties } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -67,13 +67,13 @@ export function BottomNav() {
 
       const delta = currentScrollY - lastScrollY.current;
 
-      // Al scrollear hacia abajo se oculta el header flotante de desktop
+      // Hacia abajo: se oculta el header flotante de desktop y el dock móvil se achica
       if (delta > 8) {
-        setIsVisible(false); // Para el header flotante de desktop
+        setIsVisible(false);
       }
-      // Al scrollear hacia arriba vuelve a aparecer
+      // Hacia arriba: vuelven a su tamaño real
       else if (delta < -8) {
-        setIsVisible(true); // Para el header flotante de desktop
+        setIsVisible(true);
       }
 
       lastScrollY.current = currentScrollY;
@@ -121,6 +121,9 @@ export function BottomNav() {
   };
 
   const isProfileActive = pathname.startsWith("/profile");
+
+  // Como Instagram: al scrollear hacia abajo el dock se achica; al subir recupera su tamaño.
+  const isCompact = !isVisible;
 
   // Items para la cápsula flotante de escritorio
   const desktopCenterItems = [
@@ -298,7 +301,15 @@ export function BottomNav() {
             : "translate-y-0",
         )}
       >
-        <div className="w-full h-16 px-1.5 flex items-center justify-around gap-1 rounded-hero bg-[#15171B] border border-line shadow-[0_12px_32px_rgba(0,0,0,0.5)]">
+        <div
+          style={{ "--dock-items": visibleMobileItems.length } as CSSProperties}
+          className={cn(
+            "flex items-center justify-around gap-1 rounded-hero bg-[#15171B] border border-line px-1.5 transition-[width,height,box-shadow] duration-300 ease-out motion-reduce:transition-none",
+            isCompact
+              ? "h-12 w-[calc(var(--dock-items)*3.25rem+0.75rem)] shadow-[0_8px_20px_rgba(0,0,0,0.45)]"
+              : "h-16 w-full shadow-[0_12px_32px_rgba(0,0,0,0.5)]",
+          )}
+        >
           {visibleMobileItems.map((item) => {
             const isActive =
               pathname === item.href ||
@@ -315,7 +326,8 @@ export function BottomNav() {
                 aria-label={item.label}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "flex-1 min-w-0 h-12 rounded-card flex items-center justify-center transition-colors duration-200 active:scale-[0.95] focus-visible:outline-2 focus-visible:outline-accent",
+                  "flex-1 min-w-0 rounded-card flex items-center justify-center transition-[height,color,background-color] duration-300 motion-reduce:transition-none active:scale-[0.95] focus-visible:outline-2 focus-visible:outline-accent",
+                  isCompact ? "h-9" : "h-12",
                   isActive ? "bg-accent/10 text-ink" : "text-[#8A9099] hover:text-ink",
                 )}
               >
@@ -324,14 +336,19 @@ export function BottomNav() {
                     src={user!.avatarUrl!.trim()}
                     alt=""
                     className={cn(
-                      "size-[26px] rounded-full object-cover",
+                      "rounded-full object-cover transition-[width,height] duration-300 motion-reduce:transition-none",
+                      isCompact ? "size-[22px]" : "size-[26px]",
                       isActive ? "ring-2 ring-accent" : "ring-1 ring-white/20",
                     )}
                   />
                 ) : (
                   <Icon
                     aria-hidden="true"
-                    className={cn("size-[26px]", isActive && "text-accent")}
+                    className={cn(
+                      "transition-[width,height] duration-300 motion-reduce:transition-none",
+                      isCompact ? "size-[22px]" : "size-[26px]",
+                      isActive && "text-accent",
+                    )}
                     strokeWidth={2}
                   />
                 )}
