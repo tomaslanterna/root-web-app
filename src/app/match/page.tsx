@@ -128,9 +128,10 @@ export default function MatchPage() {
               <button
                 type="button"
                 onClick={() => setIsCreateModalOpen(true)}
+                aria-label="Crear crew"
                 className="col-start-2 row-span-2 row-start-1 self-center shrink-0 h-10 px-3 rounded-xl bg-white text-black text-[13px] font-semibold flex items-center gap-1 whitespace-nowrap hover:bg-ink active:scale-[0.97] transition-[background-color,transform] focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2"
               >
-                <Plus className="size-4" strokeWidth={2.4} aria-hidden="true" /> Crear crew
+                <Plus className="size-4" strokeWidth={2.4} aria-hidden="true" /> Crear
               </button>
               <span className="col-start-1 text-sm font-medium leading-snug text-white">
                 De 2 a 10 personas a competir
