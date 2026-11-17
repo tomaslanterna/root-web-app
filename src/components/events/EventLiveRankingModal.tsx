@@ -197,9 +197,9 @@ function RankingRow({
         )}
       </span>
       <span className="flex-1 min-w-0 flex flex-col">
-        <span className="text-[15px] font-semibold truncate">
-          {person.name}
-          {isMe && <span className="font-normal text-ink-3"> (vos)</span>}
+        <span className="flex items-baseline gap-1 min-w-0 text-[15px]">
+          <span className="font-semibold truncate">{person.name}</span>
+          {isMe && <span className="shrink-0 text-ink-3">(vos)</span>}
         </span>
         {!compact && person.username && (
           <span className="text-[13px] text-ink-3 truncate">@{person.username}</span>
