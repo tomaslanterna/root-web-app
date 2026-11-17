@@ -1,23 +1,32 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Upload, CheckCircle2, XCircle, Loader2, ScanFace, ArrowRight, RefreshCcw } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Camera, CheckCircle2, XCircle, Loader2, ScanFace, ArrowRight, RefreshCcw, ChevronLeft } from 'lucide-react';
 
 import { kycApi } from '@/services/kyc';
 import { useMutation } from '@/hooks/useMutation';
 import { useAuth } from '@/context/AuthContext';
+import { Button } from '@/components/ui/Button';
+import { SwipeBack } from '@/components/ui/SwipeBack';
+import { cn } from '@/lib/utils';
 
 type Step = 'INTRO' | 'FACE' | 'DOC_FRONT' | 'DOC_BACK' | 'PROCESSING' | 'RESULT';
 
+const STATUS_ALIGN = 'Alineá tu rostro en el óvalo...';
+const STATUS_ASKING_PERMISSION = 'Solicitando permisos de cámara...';
+const STATUS_STARTING_REAR = 'Iniciando cámara trasera...';
+
 export default function KycFlow() {
+  const router = useRouter();
   const { user } = useAuth();
   const [step, setStep] = useState<Step>('INTRO');
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<{ status: 'APPROVED' | 'REJECTED'; message: string } | null>(null);
   
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
-  const [scanStatus, setScanStatus] = useState("Alinea tu rostro en el óvalo...");
+  const [scanStatus, setScanStatus] = useState(STATUS_ALIGN);
   
   // Previews
   const [facePreview, setFacePreview] = useState<string | null>(null);
@@ -28,6 +37,8 @@ export default function KycFlow() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const scanningRef = useRef<NodeJS.Timeout | null>(null);
+  // El stream se guarda aparte: al desmontar, React ya soltó videoRef y no habría cómo apagar la cámara.
+  const streamRef = useRef<MediaStream | null>(null);
 
   // --- Mutations ---
   const { mutate: createSession } = useMutation(
@@ -102,7 +113,7 @@ export default function KycFlow() {
         setScanStatus("Error de conexión");
         return;
       }
-      setScanStatus(facingMode === 'user' ? "Solicitando permisos de cámara..." : "Iniciando cámara trasera...");
+      setScanStatus(facingMode === 'user' ? STATUS_ASKING_PERMISSION : STATUS_STARTING_REAR);
       
       const constraints = facingMode === 'environment' 
         ? { video: { facingMode: { exact: "environment" } } }
@@ -115,6 +126,7 @@ export default function KycFlow() {
         throw e;
       });
       
+      streamRef.current = stream;
       setIsCameraActive(true);
       
       setTimeout(() => {
@@ -133,11 +145,10 @@ export default function KycFlow() {
   };
 
   const stopCamera = () => {
-    if (videoRef.current && videoRef.current.srcObject) {
-      const stream = videoRef.current.srcObject as MediaStream;
-      stream.getTracks().forEach(track => track.stop());
-      setIsCameraActive(false);
-    }
+    streamRef.current?.getTracks().forEach(track => track.stop());
+    streamRef.current = null;
+    if (videoRef.current) videoRef.current.srcObject = null;
+    setIsCameraActive(false);
     if (scanningRef.current) {
       clearInterval(scanningRef.current);
     }
@@ -145,7 +156,7 @@ export default function KycFlow() {
 
   const startFakeScanning = () => {
     setScanProgress(0);
-    setScanStatus("Alinea tu rostro en el óvalo...");
+    setScanStatus(STATUS_ALIGN);
     
     let progress = 0;
     scanningRef.current = setInterval(() => {
@@ -153,7 +164,7 @@ export default function KycFlow() {
       setScanProgress(progress);
       
       if (progress === 20) {
-        setScanStatus("Rostro detectado, mantente quieto...");
+        setScanStatus("Rostro detectado, mantenete quieto...");
       } else if (progress === 60) {
         setScanStatus("Analizando rasgos faciales...");
       } else if (progress === 90) {
@@ -172,6 +183,18 @@ export default function KycFlow() {
     return () => {
       if (scanningRef.current) clearInterval(scanningRef.current);
       stopCamera();
+    };
+  }, []);
+
+  // La pantalla ocupa exactamente el viewport: el documento no scrollea por detrás.
+  useEffect(() => {
+    const { overflow: htmlOverflow } = document.documentElement.style;
+    const { overflow: bodyOverflow } = document.body.style;
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.documentElement.style.overflow = htmlOverflow;
+      document.body.style.overflow = bodyOverflow;
     };
   }, []);
 
@@ -270,229 +293,250 @@ export default function KycFlow() {
     }
   };
 
+  const busy = step === 'PROCESSING' || isUploadingFace || isUploadingDoc;
+  // Deslizar para volver solo donde no se pisa una captura en curso.
+  const swipeBackEnabled = step === 'INTRO' || step === 'RESULT';
+
+  // Vuelve a la pantalla anterior del stack (el perfil); si se entró directo, va al perfil.
+  const goBack = () => {
+    if (busy) return;
+    stopCamera();
+    if (typeof window !== 'undefined' && window.history.length > 1) router.back();
+    else router.replace('/profile');
+  };
+
+  const stepNumber = step === 'FACE' ? 1 : step === 'DOC_FRONT' ? 2 : step === 'DOC_BACK' ? 3 : null;
+  const docPreview = step === 'DOC_FRONT' ? docFrontPreview : docBackPreview;
+
+  const frame = 'relative w-[min(100%,320px,calc(30dvh*1.58))] aspect-[1.58/1] rounded-hero overflow-hidden bg-black z-10';
+  const oval = 'h-[min(16rem,32dvh)] aspect-[3/4] rounded-[50%] overflow-hidden relative bg-black';
+
   return (
-    <div className="flex flex-col items-center justify-center w-full min-h-[100dvh] p-4 font-sans text-white bg-[#0B0D10]">
-      <div className="w-full max-w-sm rounded-3xl overflow-hidden bg-[#14171F] border border-white/10 shadow-2xl relative">
-        
-        {step === 'INTRO' && (
-          <div className="p-6 flex flex-col items-center text-center space-y-5">
-            <div className="w-16 h-16 rounded-full bg-[#D4FF00]/10 flex items-center justify-center mb-2">
-              <Camera className="w-8 h-8 text-[#D4FF00]" />
-            </div>
-            <div>
-              <h2 className="text-lg font-black uppercase tracking-tight">Verifica tu Identidad</h2>
-              <p className="text-xs text-neutral-400 mt-2 font-medium">
-                Para la compraventa segura de entradas, necesitamos validar tu identidad con tu documento uruguayo.
-              </p>
-            </div>
-            <button 
-              type="button"
-              onClick={handleStart}
-              className="w-full bg-[#D4FF00] text-neutral-950 text-sm font-black uppercase tracking-wider py-3.5 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-transform shadow-lg shadow-[#D4FF00]/20"
-            >
-              Comenzar
-            </button>
-          </div>
-        )}
+    <main className="fixed inset-0 z-40 bg-bg text-ink flex flex-col overflow-hidden">
+      {/* Header unificado Nocturno Editorial */}
+      <header className="shrink-0 z-30 w-full bg-bg/95 backdrop-blur-md border-b border-line">
+        <div className="w-full max-w-2xl mx-auto px-4 pt-[calc(0.75rem+var(--root-safe-top))] pb-3 md:pt-6 flex items-center gap-3">
+          <SwipeBack onBack={goBack} enabled={swipeBackEnabled} />
+          <button
+            type="button"
+            onClick={goBack}
+            disabled={busy}
+            aria-label="Volver al perfil"
+            className="size-11 shrink-0 rounded-control bg-surface border border-line flex items-center justify-center hover:bg-surface-2 transition-colors focus-visible:outline-2 focus-visible:outline-accent cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
+          >
+            <ChevronLeft className="size-[22px]" aria-hidden="true" />
+          </button>
+          <h1 className="font-display text-[32px] m-0 flex-1 min-w-0 truncate">Verificación</h1>
+        </div>
+      </header>
 
-        {step === 'FACE' && (
-          <div className="relative flex flex-col items-center justify-center bg-[#0B0D10] py-12 px-4 min-h-[400px] w-full">
-            <div className="absolute top-6 inset-x-0 flex flex-col items-center z-10 px-4 space-y-1">
-              <h3 className="text-sm font-black uppercase tracking-wider text-white">Escaneo Facial</h3>
-              <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest">{facePreview ? "Revisa tu foto" : scanStatus}</p>
-            </div>
-
-            {facePreview ? (
-              <div className="relative flex flex-col items-center mt-6 w-full">
-                <div className="w-48 h-64 rounded-[50%] overflow-hidden relative bg-black shadow-[0_0_40px_rgba(212,255,0,0.15)] z-10 border-4 border-[#D4FF00]">
-                  <img 
-                    src={facePreview} 
-                    alt="Selfie" 
-                    className="absolute inset-0 w-full h-full object-cover" 
-                    style={{ transform: 'scale(1.3) scaleX(-1)' }}
-                  />
-                </div>
-                <div className="flex gap-4 mt-10 w-full px-4">
-                  <button onClick={retakePhoto} className="flex-1 bg-white/10 text-white py-3.5 rounded-xl font-bold text-xs uppercase flex items-center justify-center gap-2 transition-colors hover:bg-white/20">
-                    <RefreshCcw className="w-4 h-4" /> Repetir
-                  </button>
-                  <button onClick={handleContinueFace} disabled={isUploadingFace} className="flex-1 bg-[#D4FF00] text-black py-3.5 rounded-xl font-bold text-xs uppercase flex items-center justify-center gap-2 disabled:opacity-50">
-                    {isUploadingFace ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Continuar'} {!isUploadingFace && <ArrowRight className="w-4 h-4" />}
-                  </button>
-                </div>
+      <div className="flex-1 min-h-0 w-full max-w-md mx-auto px-4 pt-4 pb-[calc(1rem+var(--root-safe-bottom))] flex items-center justify-center">
+        <section className="w-full max-h-full rounded-card border border-line bg-surface overflow-hidden relative">
+          {step === 'INTRO' && (
+            <div className="p-6 flex flex-col items-center text-center gap-5">
+              <div className="size-16 rounded-full bg-accent/10 flex items-center justify-center">
+                <Camera className="size-8 text-accent" aria-hidden="true" />
               </div>
-            ) : isCameraActive ? (
-              <div className="relative flex flex-col items-center mt-6">
-                <div 
-                  className="w-48 h-64 rounded-[50%] overflow-hidden relative bg-black shadow-[0_0_40px_rgba(212,255,0,0.15)] z-10"
-                  style={{
-                    boxShadow: `0 0 0 4px rgba(212,255,0,${scanProgress / 100})`,
-                    transition: 'box-shadow 0.2s ease-out'
-                  }}
-                >
-                  <video 
-                    ref={videoRef} 
-                    className="absolute inset-0 w-full h-full object-cover" 
-                    style={{ transform: 'scale(1.3) scaleX(-1)' }}
-                    playsInline 
-                    muted 
-                  />
-                  <div 
-                    className="absolute inset-x-0 h-1 bg-[#D4FF00] shadow-[0_0_15px_#D4FF00] opacity-60 z-20"
-                    style={{ top: `${scanProgress}%`, transition: 'top 0.1s linear' }}
-                  />
-                </div>
-                <div className="w-32 h-1.5 bg-white/10 rounded-full mt-8 overflow-hidden">
-                  <div className="h-full bg-[#D4FF00] rounded-full transition-all duration-100" style={{ width: `${scanProgress}%` }} />
-                </div>
-              </div>
-            ) : scanStatus === "Solicitando permisos de cámara..." ? (
-              <div className="w-full flex flex-col items-center justify-center space-y-4 px-6 text-center mt-8">
-                 <Loader2 className="w-12 h-12 text-[#D4FF00] animate-spin mb-2" />
-                 <p className="text-xs text-neutral-400 font-medium">Acepta los permisos de cámara en tu navegador para continuar.</p>
-              </div>
-            ) : (
-              <div className="w-full flex flex-col items-center justify-center space-y-4 px-6 text-center mt-8">
-                <ScanFace className="w-12 h-12 text-neutral-600 mb-2" />
-                <p className="text-xs text-neutral-400 font-medium">El navegador bloqueó la cámara. Verifica los permisos.</p>
-                <button onClick={() => startCamera('user')} className="bg-[#D4FF00] text-neutral-950 px-6 py-3 rounded-full text-xs font-black uppercase tracking-wider">
-                  Reintentar
-                </button>
-              </div>
-            )}
-            <canvas ref={canvasRef} className="hidden" />
-          </div>
-        )}
-
-        {(step === 'DOC_FRONT' || step === 'DOC_BACK') && (
-          <div className="relative flex flex-col items-center justify-center bg-[#0B0D10] py-12 px-4 min-h-[400px] w-full">
-            <div className="absolute top-6 inset-x-0 flex flex-col items-center z-10 px-4 space-y-1">
-              <h3 className="text-sm font-black uppercase tracking-wider text-[#D4FF00]">
-                {step === 'DOC_FRONT' ? 'Frente del Documento' : 'Dorso del Documento'}
-              </h3>
-              <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest text-center">
-                {(step === 'DOC_FRONT' && docFrontPreview) || (step === 'DOC_BACK' && docBackPreview) ? "Revisa tu foto" : "Centra tu cédula en el rectángulo"}
-              </p>
-            </div>
-
-            {(step === 'DOC_FRONT' && docFrontPreview) || (step === 'DOC_BACK' && docBackPreview) ? (
-              <div className="relative flex flex-col items-center mt-6 w-full">
-                <div className="w-full max-w-[320px] aspect-[1.58/1] rounded-2xl overflow-hidden relative bg-black shadow-[0_0_40px_rgba(212,255,0,0.1)] z-10 border-2 border-[#D4FF00]">
-                  <img src={step === 'DOC_FRONT' ? docFrontPreview! : docBackPreview!} alt="Documento" className="absolute inset-0 w-full h-full object-cover" />
-                </div>
-                <div className="flex gap-4 mt-10 w-full px-2">
-                  <button onClick={retakePhoto} className="flex-1 bg-white/10 text-white py-3.5 rounded-xl font-bold text-xs uppercase flex items-center justify-center gap-2 transition-colors hover:bg-white/20">
-                    <RefreshCcw className="w-4 h-4" /> Repetir
-                  </button>
-                  <button onClick={handleContinueDoc} disabled={isUploadingDoc} className="flex-1 bg-[#D4FF00] text-black py-3.5 rounded-xl font-bold text-xs uppercase flex items-center justify-center gap-2 disabled:opacity-50">
-                    {isUploadingDoc ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Continuar'} {!isUploadingDoc && <ArrowRight className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-            ) : isCameraActive ? (
-              <div className="relative flex flex-col items-center mt-6 w-full">
-                <div className="w-full max-w-[320px] aspect-[1.58/1] rounded-2xl overflow-hidden relative bg-black shadow-[0_0_40px_rgba(212,255,0,0.1)] z-10 border-2 border-[#D4FF00]/50">
-                  <video 
-                    ref={videoRef} 
-                    className="absolute inset-0 w-full h-full object-cover" 
-                    playsInline 
-                    muted 
-                  />
-                  <div className="absolute inset-0 border-[4px] border-transparent opacity-50 z-20 pointer-events-none" />
-                </div>
-                <button 
-                  type="button"
-                  onClick={captureDocument}
-                  className="mt-10 bg-[#D4FF00] text-neutral-950 w-16 h-16 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(212,255,0,0.3)] active:scale-95 transition-transform border-4 border-white/20"
-                >
-                  <Camera className="w-7 h-7" />
-                </button>
-              </div>
-            ) : scanStatus === "Iniciando cámara trasera..." ? (
-              <div className="w-full flex flex-col items-center justify-center space-y-4 px-6 text-center mt-8">
-                 <Loader2 className="w-12 h-12 text-[#D4FF00] animate-spin mb-2" />
-                 <p className="text-xs text-neutral-400 font-medium">Iniciando cámara...</p>
-              </div>
-            ) : (
-              <div className="w-full flex flex-col items-center justify-center space-y-4 px-6 text-center mt-8">
-                <ScanFace className="w-12 h-12 text-neutral-600 mb-2" />
-                <p className="text-xs text-neutral-400 font-medium">
-                  No se pudo acceder a la cámara trasera. Revisa los permisos e intenta nuevamente.
+              <div className="space-y-2">
+                <h2 className="font-display text-[26px] m-0">Verificá tu identidad</h2>
+                <p className="m-0 text-sm text-ink-2">
+                  Para la compraventa segura de entradas, necesitamos validar tu identidad con tu documento uruguayo.
                 </p>
-                <button onClick={() => startCamera('environment')} className="bg-[#D4FF00] text-neutral-950 px-6 py-3 rounded-full text-xs font-black uppercase tracking-wider">
-                  Reintentar
-                </button>
               </div>
-            )}
-            
-            <canvas ref={canvasRef} className="hidden" />
-          </div>
-        )}
-
-        {step === 'PROCESSING' && (
-          <div className="p-10 flex flex-col items-center text-center space-y-6">
-            <Loader2 className="w-12 h-12 text-[#D4FF00] animate-spin" />
-            <div>
-              <h2 className="text-sm font-black uppercase tracking-widest text-white mb-2">Analizando...</h2>
-              <p className="text-xs text-neutral-400 font-medium">Verificando tu identidad con IA, esto tomará unos segundos.</p>
+              <Button type="button" size="full" onClick={handleStart}>
+                Comenzar
+              </Button>
             </div>
-          </div>
-        )}
+          )}
 
-        {step === 'RESULT' && (
-          <div className="p-8 flex flex-col items-center text-center space-y-6">
-            <div className="relative">
-              {result?.status === 'APPROVED' ? (
-                <div className="w-20 h-20 rounded-full bg-[#D4FF00]/20 flex items-center justify-center relative z-10">
-                  <CheckCircle2 className="w-10 h-10 text-[#D4FF00]" />
+          {step === 'FACE' && (
+            <div className="flex flex-col items-center gap-5 px-4 py-5 w-full bg-bg">
+              <div className="flex flex-col items-center gap-1 text-center">
+                <span className="label-mono text-ink-3">Paso 1 de 3</span>
+                <h2 className="font-display text-[22px] m-0">Escaneo facial</h2>
+                <p className="m-0 text-xs text-ink-2">{facePreview ? 'Revisá tu foto' : scanStatus}</p>
+              </div>
+
+              {facePreview ? (
+                <div className="flex flex-col items-center gap-5 w-full">
+                  <div className={cn(oval, 'border-4 border-accent shadow-[0_0_40px_rgba(212,255,0,0.15)]')}>
+                    <img
+                      src={facePreview}
+                      alt="Selfie"
+                      className="absolute inset-0 w-full h-full object-cover"
+                      style={{ transform: 'scale(1.3) scaleX(-1)' }}
+                    />
+                  </div>
+                  <div className="flex gap-3 w-full">
+                    <Button type="button" variant="secondary" onClick={retakePhoto} className="flex-1">
+                      <RefreshCcw className="size-4" aria-hidden="true" /> Repetir
+                    </Button>
+                    <Button type="button" onClick={handleContinueFace} disabled={isUploadingFace} className="flex-1">
+                      {isUploadingFace ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <>Continuar <ArrowRight className="size-4" aria-hidden="true" /></>}
+                    </Button>
+                  </div>
+                </div>
+              ) : isCameraActive ? (
+                <div className="flex flex-col items-center gap-5">
+                  <div
+                    className={oval}
+                    style={{
+                      boxShadow: `0 0 0 4px rgba(212,255,0,${scanProgress / 100})`,
+                      transition: 'box-shadow 0.2s ease-out',
+                    }}
+                  >
+                    <video
+                      ref={videoRef}
+                      className="absolute inset-0 w-full h-full object-cover"
+                      style={{ transform: 'scale(1.3) scaleX(-1)' }}
+                      playsInline
+                      muted
+                    />
+                    <div
+                      className="absolute inset-x-0 h-1 bg-accent shadow-[0_0_15px_var(--color-accent)] opacity-60 z-20"
+                      style={{ top: `${scanProgress}%`, transition: 'top 0.1s linear' }}
+                    />
+                  </div>
+                  <div className="w-32 h-1.5 bg-white/10 rounded-full overflow-hidden" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={scanProgress} aria-label="Progreso del escaneo">
+                    <div className="h-full bg-accent rounded-full transition-all duration-100" style={{ width: `${scanProgress}%` }} />
+                  </div>
+                </div>
+              ) : scanStatus === STATUS_ASKING_PERMISSION ? (
+                <div className="flex flex-col items-center gap-3 px-4 text-center">
+                  <Loader2 className="size-12 text-accent animate-spin" aria-hidden="true" />
+                  <p className="m-0 text-sm text-ink-2">Aceptá los permisos de cámara en tu navegador para continuar.</p>
                 </div>
               ) : (
-                <div className="w-20 h-20 rounded-full bg-rose-500/20 flex items-center justify-center relative z-10">
-                  <XCircle className="w-10 h-10 text-rose-500" />
+                <div className="flex flex-col items-center gap-4 px-4 text-center">
+                  <ScanFace className="size-12 text-ink-3" aria-hidden="true" />
+                  <p className="m-0 text-sm text-ink-2">El navegador bloqueó la cámara. Verificá los permisos.</p>
+                  <Button type="button" size="sm" onClick={() => startCamera('user')}>
+                    Reintentar
+                  </Button>
                 </div>
               )}
-              <div className={`absolute inset-0 blur-xl ${result?.status === 'APPROVED' ? 'bg-[#D4FF00]/20' : 'bg-rose-500/20'}`} />
+              <canvas ref={canvasRef} className="hidden" />
             </div>
+          )}
 
-            <div>
-              <h2 className="text-lg font-black uppercase tracking-tight text-white mb-2">
-                {result?.status === 'APPROVED' ? '¡Verificación Exitosa!' : 'Verificación Fallida'}
-              </h2>
-              <p className="text-xs text-neutral-400 font-medium">{result?.message}</p>
-            </div>
-
-            {result?.status === 'APPROVED' ? (
-              <button 
-                type="button"
-                onClick={() => window.location.href = '/profile'}
-                className="w-full bg-[#D4FF00] text-neutral-950 shadow-lg shadow-[#D4FF00]/20 text-sm font-black uppercase tracking-wider py-3.5 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-transform"
-              >
-                Ir a mi Perfil
-              </button>
-            ) : (
-              <div className="flex flex-col gap-3 w-full">
-                <button 
-                  type="button"
-                  onClick={() => {
-                    setResult(null);
-                    setStep('INTRO');
-                  }}
-                  className="w-full bg-[#D4FF00] text-neutral-950 shadow-lg shadow-[#D4FF00]/20 text-sm font-black uppercase tracking-wider py-3.5 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-transform"
-                >
-                  Intentar Nuevamente
-                </button>
-                <button 
-                  type="button"
-                  onClick={() => window.location.href = '/profile'}
-                  className="w-full bg-white/10 text-white text-sm font-black uppercase tracking-wider py-3.5 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-transform"
-                >
-                  Volver al Perfil
-                </button>
+          {(step === 'DOC_FRONT' || step === 'DOC_BACK') && (
+            <div className="flex flex-col items-center gap-5 px-4 py-5 w-full bg-bg">
+              <div className="flex flex-col items-center gap-1 text-center">
+                <span className="label-mono text-ink-3">Paso {stepNumber} de 3</span>
+                <h2 className="font-display text-[22px] m-0">
+                  {step === 'DOC_FRONT' ? 'Frente del documento' : 'Dorso del documento'}
+                </h2>
+                <p className="m-0 text-xs text-ink-2">
+                  {docPreview ? 'Revisá tu foto' : 'Centrá tu cédula en el rectángulo'}
+                </p>
               </div>
-            )}
-          </div>
-        )}
+
+              {docPreview ? (
+                <div className="flex flex-col items-center gap-5 w-full">
+                  <div className={cn(frame, 'border-2 border-accent shadow-[0_0_40px_rgba(212,255,0,0.1)]')}>
+                    <img src={docPreview} alt="Documento" className="absolute inset-0 w-full h-full object-cover" />
+                  </div>
+                  <div className="flex gap-3 w-full">
+                    <Button type="button" variant="secondary" onClick={retakePhoto} className="flex-1">
+                      <RefreshCcw className="size-4" aria-hidden="true" /> Repetir
+                    </Button>
+                    <Button type="button" onClick={handleContinueDoc} disabled={isUploadingDoc} className="flex-1">
+                      {isUploadingDoc ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <>Continuar <ArrowRight className="size-4" aria-hidden="true" /></>}
+                    </Button>
+                  </div>
+                </div>
+              ) : isCameraActive ? (
+                <div className="flex flex-col items-center gap-5 w-full">
+                  <div className={cn(frame, 'border-2 border-accent/50 shadow-[0_0_40px_rgba(212,255,0,0.1)]')}>
+                    <video ref={videoRef} className="absolute inset-0 w-full h-full object-cover" playsInline muted />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={captureDocument}
+                    aria-label="Sacar foto"
+                    className="size-16 rounded-full bg-accent text-on-accent flex items-center justify-center border-4 border-line-strong shadow-[0_0_20px_rgba(212,255,0,0.3)] active:scale-95 transition-transform focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent cursor-pointer"
+                  >
+                    <Camera className="size-7" aria-hidden="true" />
+                  </button>
+                </div>
+              ) : scanStatus === STATUS_STARTING_REAR ? (
+                <div className="flex flex-col items-center gap-3 px-4 text-center">
+                  <Loader2 className="size-12 text-accent animate-spin" aria-hidden="true" />
+                  <p className="m-0 text-sm text-ink-2">Iniciando cámara...</p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-4 px-4 text-center">
+                  <ScanFace className="size-12 text-ink-3" aria-hidden="true" />
+                  <p className="m-0 text-sm text-ink-2">
+                    No se pudo acceder a la cámara trasera. Revisá los permisos e intentá nuevamente.
+                  </p>
+                  <Button type="button" size="sm" onClick={() => startCamera('environment')}>
+                    Reintentar
+                  </Button>
+                </div>
+              )}
+
+              <canvas ref={canvasRef} className="hidden" />
+            </div>
+          )}
+
+          {step === 'PROCESSING' && (
+            <div className="p-10 flex flex-col items-center text-center gap-6" role="status" aria-live="polite">
+              <Loader2 className="size-12 text-accent animate-spin" aria-hidden="true" />
+              <div className="space-y-2">
+                <h2 className="font-display text-[22px] m-0">Analizando…</h2>
+                <p className="m-0 text-sm text-ink-2">Verificando tu identidad con IA, esto tomará unos segundos.</p>
+              </div>
+            </div>
+          )}
+
+          {step === 'RESULT' && (
+            <div className="p-8 flex flex-col items-center text-center gap-6">
+              <div className="relative">
+                {result?.status === 'APPROVED' ? (
+                  <div className="size-20 rounded-full bg-accent/15 flex items-center justify-center relative z-10">
+                    <CheckCircle2 className="size-10 text-accent" aria-hidden="true" />
+                  </div>
+                ) : (
+                  <div className="size-20 rounded-full bg-danger/15 flex items-center justify-center relative z-10">
+                    <XCircle className="size-10 text-danger" aria-hidden="true" />
+                  </div>
+                )}
+                <div className={cn('absolute inset-0 blur-xl', result?.status === 'APPROVED' ? 'bg-accent/20' : 'bg-danger/20')} />
+              </div>
+
+              <div className="space-y-2">
+                <h2 className="font-display text-[24px] m-0">
+                  {result?.status === 'APPROVED' ? '¡Verificación exitosa!' : 'Verificación fallida'}
+                </h2>
+                <p className="m-0 text-sm text-ink-2" role={result?.status === 'APPROVED' ? 'status' : 'alert'}>{result?.message}</p>
+              </div>
+
+              {result?.status === 'APPROVED' ? (
+                <Button type="button" size="full" onClick={() => (window.location.href = '/profile')}>
+                  Ir a mi perfil
+                </Button>
+              ) : (
+                <div className="flex flex-col gap-3 w-full">
+                  <Button
+                    type="button"
+                    size="full"
+                    onClick={() => {
+                      setResult(null);
+                      setStep('INTRO');
+                    }}
+                  >
+                    Intentar nuevamente
+                  </Button>
+                  <Button type="button" size="full" variant="secondary" onClick={goBack}>
+                    Volver al perfil
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+        </section>
       </div>
-    </div>
+    </main>
   );
 }

@@ -64,3 +64,8 @@ test("native listener uses current pathname and is removed on unmount (also late
     assert.equal(removed, 1);
   }
 });
+test("Android Back on /kyc goes back in history, or to the profile on a cold start", () => {
+  const { nativeBackDestination: back } = runtime();
+  assert.equal(back("/kyc", true), "history-back");
+  assert.equal(back("/kyc", false), "/profile");
+});
