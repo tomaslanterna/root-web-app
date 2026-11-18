@@ -4,11 +4,13 @@ import type {} from "@capacitor/push-notifications";
 const config: CapacitorConfig = {
   appId: "com.emnetwork.root",
   appName: "root",
+  // Mismo fondo que el splash nativo y el loader web: sin destello blanco mientras carga la webview.
+  backgroundColor: "#0A0B0D",
   // Next uses dynamic routes: the native shell loads server.url, not a static export.
   webDir: "native-shell",
   server: {
-    // Aquí ponemos la IP de tu red local y el puerto de Next.js
-    url: "https://root-web-app.vercel.app",
+    // Producción por defecto. Para correr todo local: npm run cap:local (usa la IP de la red y el puerto 3000).
+    url: process.env.CAP_SERVER_URL || "https://root-web-app.vercel.app",
     cleartext: true, // Permite conexiones HTTP (sin SSL) en el emulador
     allowNavigation: ["*"],
   },
@@ -17,6 +19,16 @@ const config: CapacitorConfig = {
       insetsHandling: "css",
       initialViewportFitValueHint: "cover",
       style: "DARK",
+    },
+    // La "r" nativa queda visible mientras carga la webview; la web la oculta apenas pinta su loader
+    // (AppSplash). La duración es el tope por si la página no llega.
+    SplashScreen: {
+      launchAutoHide: true,
+      launchShowDuration: 6000,
+      launchFadeOutDuration: 200,
+      backgroundColor: "#0A0B0D",
+      showSpinner: false,
+      androidScaleType: "CENTER_CROP",
     },
     PushNotifications: {
       presentationOptions: ["sound", "alert"],

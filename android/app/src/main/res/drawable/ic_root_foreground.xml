@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
-    <!-- Root's r stays inside the adaptive icon's central safe area. -->
-    <group android:scaleX="3" android:scaleY="3" android:translateX="15" android:translateY="15">
-        <path android:fillColor="#0B0D10" android:pathData="M7,20 L8.95,7 L12.95,7 L12.65,9 C13.95,7 16.1,6 18.95,7 L18.35,11 C14.5,10 12.2,12 11.6,16 L11,20 Z" />
+    <!-- La "r" de root (Archivo, la del isotipo) dentro de la zona segura del ícono adaptativo: el trazado
+         está en un lienzo de 2048 y se escala a los 72dp visibles, centrados en los 108dp. -->
+    <group android:scaleX="0.03515625" android:scaleY="0.03515625" android:translateX="18" android:translateY="18">
+        <path android:fillColor="#0A0B0D" android:pathData="M 1255.5 728 C 1235.8 729.4, 1219.8 732.2, 1197.5 738.2 C 1151.4 750.5, 1109.9 775.8, 1076.6 812 C 1064 825.6, 1046.8 849.5, 1039 864.4 L 1036.5 869 1029.8 869 C 1026 869, 1023 868.7, 1023 868.3 C 1023 867.9, 1018.3 840.5, 1012.5 807.4 C 1006.7 774.3, 1002 747, 1002 746.6 C 1002 746.3, 943.3 746, 871.5 746 L 741 746 741 1124.5 L 741 1503 901.5 1503 L 1062 1503 1062 1327.4 C 1062 1211.1, 1062.4 1147.7, 1063.1 1139.7 C 1066.7 1098.7, 1080.5 1063.3, 1103.4 1036.7 C 1122 1015.1, 1152.4 997.3, 1183.5 990 C 1205.8 984.7, 1205.5 984.7, 1298.3 984.3 L 1385 983.9 1384.8 864.8 L 1384.5 745.7 1379 743.8 C 1367.1 739.6, 1350.1 734.9, 1340.1 733 C 1315.5 728.4, 1280.1 726.3, 1255.5 728" />
     </group>
 </vector>
