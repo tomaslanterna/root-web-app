@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { Health } from '@capgo/capacitor-health';
 import { Capacitor, registerPlugin, type PluginListenerHandle } from '@capacitor/core';
+import { listenAndroidLiveSteps } from '@/lib/androidLiveActivity';
 
 interface NativePedometerQueryResult {
   available: boolean;
@@ -238,6 +239,14 @@ export function usePedometer() {
       } catch (err) {
         console.log("🌉 [BRIDGE SWIFT CMPedometer startLiveUpdates]: No disponible aún:", err);
       }
+    }
+
+    // Android (aparte de iOS): pasos en vivo del sensor, que emite el servicio de la notificación.
+    if (Capacitor.getPlatform() === 'android') {
+      const androidHandle = await listenAndroidLiveSteps((liveSteps) => {
+        applySensorTotal(liveSteps, 'AndroidSensor-Live');
+      });
+      if (androidHandle) liveListenersRef.current.push(androidHandle);
     }
 
     await pollHealthSteps();

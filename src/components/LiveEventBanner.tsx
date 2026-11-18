@@ -3,10 +3,9 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { Clock, Music, ChevronRight } from "lucide-react";
-import { Capacitor } from "@capacitor/core";
 import { useDanceContext } from "@/context/DanceContext";
 import { parseEventRealDate } from "@/hooks/useDanceSync";
-import { NativePedometer } from "@/hooks/usePedometer";
+import { stopLiveActivity, supportsLiveActivity, syncLiveActivity } from "@/lib/liveActivity";
 
 function formatStartHour(rawDate: string | Date): string {
   const parsed = parseEventRealDate(rawDate);
@@ -76,9 +75,7 @@ export function LiveEventBanner({
 
   useEffect(() => {
     if (!liveEvent) {
-      if (!forcedMode && Capacitor.isNativePlatform() && Capacitor.getPlatform() === "ios") {
-        void NativePedometer.stopLiveActivity().catch(() => {});
-      }
+      if (!forcedMode) void stopLiveActivity();
       return;
     }
     const timer = setInterval(() => {
@@ -108,17 +105,17 @@ export function LiveEventBanner({
   const msUntilStartForLockScreen = eventStartMsForEffect - nowMs;
   const isWithinFiveHours = msUntilStartForLockScreen <= FIVE_HOURS_MS;
 
-  // Sincronizar con el Widget de Pantalla de Bloqueo de iOS (Live Activity)
+  // Sincronizar con la pantalla de bloqueo: Live Activity en iOS, notificación en curso en Android
   useEffect(() => {
     if (forcedMode) return; // No sobreescribir la Live Activity real con datos mock
     if (!liveEvent) return;
-    if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== "ios") return;
+    if (!supportsLiveActivity()) return;
 
     // Si aún no arrancó el evento pero faltan más de 5 horas, la Live Activity en
     // pantalla de bloqueo y Dynamic Island no debe mostrarse (se finaliza si estaba activa).
     // En la app se sigue mostrando desde el comienzo del día sin restricción.
     if (modeForEffect === "before_start" && !isWithinFiveHours) {
-      void NativePedometer.stopLiveActivity().catch(() => {});
+      void stopLiveActivity();
       return;
     }
 
@@ -143,7 +140,7 @@ export function LiveEventBanner({
           ? "Ver entradas y detalles"
           : "Ver ubicación del evento";
 
-    void NativePedometer.syncLiveActivity({
+    void syncLiveActivity({
       eventId: liveEvent.id,
       eventTitle: liveEvent.title,
       startHourLabel: formatStartHour(liveEvent.date),
@@ -157,10 +154,10 @@ export function LiveEventBanner({
       eventStartEpochMs: eventStartMsForEffect,
     })
       .then((res) => {
-        console.log("🔒 [iOS LOCK SCREEN LIVE ACTIVITY]:", res);
+        console.log("🔒 [LOCK SCREEN LIVE ACTIVITY]:", res);
       })
       .catch((err) => {
-        console.warn("🔒 [iOS LOCK SCREEN LIVE ACTIVITY ERROR]:", err);
+        console.warn("🔒 [LOCK SCREEN LIVE ACTIVITY ERROR]:", err);
       });
   }, [
     liveEvent,

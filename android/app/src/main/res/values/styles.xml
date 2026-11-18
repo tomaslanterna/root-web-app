@@ -17,6 +17,10 @@
 
 
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
+        <!-- Antes de Android 12: la imagen de pantalla completa. -->
         <item name="android:background">@drawable/splash</item>
+        <!-- Android 12+: el splash del sistema, con el logo de root sobre el fondo oscuro. -->
+        <item name="windowSplashScreenBackground">@color/root_splash_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_icon</item>
     </style>
 </resources>

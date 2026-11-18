@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Capacitor } from "@capacitor/core";
+import { SplashScreen } from "@capacitor/splash-screen";
 
 /** Una vuelta completa del GIF (48 cuadros, 1,92 s): el logo siempre termina su animación. */
 const MIN_VISIBLE_MS = 1920;
@@ -15,6 +17,25 @@ const FADE_MS = 300;
  */
 export function AppSplash() {
   const [phase, setPhase] = useState<"visible" | "leaving" | "gone">("visible");
+  const gifRef = useRef<HTMLImageElement>(null);
+
+  // En la app nativa la "r" del splash se queda hasta que este loader ya está pintado:
+  // 1) "r" nativa mientras carga la webview, 2) loader web (GIF) mientras la página hace sus requests.
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    const hideNative = () => void SplashScreen.hide({ fadeOutDuration: 200 }).catch(() => undefined);
+    const gif = gifRef.current;
+    if (!gif || gif.complete) {
+      hideNative();
+      return;
+    }
+    gif.addEventListener("load", hideNative, { once: true });
+    gif.addEventListener("error", hideNative, { once: true });
+    return () => {
+      gif.removeEventListener("load", hideNative);
+      gif.removeEventListener("error", hideNative);
+    };
+  }, []);
 
   useEffect(() => {
     const startedAt = performance.now();
@@ -48,12 +69,13 @@ export function AppSplash() {
     <div
       role="status"
       aria-label="Cargando root"
-      className={`fixed inset-0 z-[100] flex items-center justify-center bg-bg transition-opacity duration-300 ease-out motion-reduce:transition-none ${
+      className={`fixed inset-0 z-[100] flex items-center justify-center bg-[#0a0a0c] transition-opacity duration-300 ease-out motion-reduce:transition-none ${
         phase === "leaving" ? "opacity-0 pointer-events-none" : "opacity-100"
       }`}
     >
       {/* eslint-disable-next-line @next/next/no-img-element -- GIF animado: next/image lo congelaría al optimizarlo */}
       <img
+        ref={gifRef}
         src="/brand/root-loader.gif"
         alt=""
         width={960}

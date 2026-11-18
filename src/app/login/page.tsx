@@ -8,6 +8,7 @@ import { Loader2 } from "lucide-react";
 import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
 import { useLogin } from "@/hooks/useLogin";
 import Image from "next/image";
+import { RootLogo } from "@/components/ui/RootLogo";
 import { Capacitor } from "@capacitor/core";
 import { GoogleSignIn } from "@capawesome/capacitor-google-sign-in";
 
@@ -152,10 +153,9 @@ export default function LoginPage() {
       {/* Formulario */}
       <div className="flex-1 md:w-1/2 flex flex-col justify-center px-6 md:px-12 pt-[calc(5.5rem+var(--root-safe-top))] md:pt-0 pb-[var(--root-mobile-nav-clearance)] md:pb-0 animate-fade-in max-w-md mx-auto w-full">
         <div className="flex flex-col gap-3.5">
-          <span aria-hidden="true" className="font-display size-14 rounded-card bg-accent text-on-accent flex items-center justify-center text-3xl">
-            r
-          </span>
-          <h1 className="font-display text-[44px] m-0">root</h1>
+          <h1 className="m-0">
+            <RootLogo size={56} />
+          </h1>
           <p className="text-base leading-normal text-ink-2">
             La red de la música electrónica. Encontrá la fiesta, armá tu crew, salí.
           </p>

@@ -7,8 +7,7 @@ import { useEventPresence } from "@/hooks/useEventPresence";
 import type { LiveEvent, LiveStatus } from "@/services/presence";
 import { useAuth } from "@/context/AuthContext";
 import { useDanceSync, parseEventRealDate } from "@/hooks/useDanceSync";
-import { NativePedometer } from "@/hooks/usePedometer";
-import { Capacitor } from "@capacitor/core";
+import { stopLiveActivity } from "@/lib/liveActivity";
 
 interface DanceContextProps {
   liveEvent: LiveEvent | null;
@@ -53,9 +52,7 @@ export function DanceProvider({ children }: { children: React.ReactNode }) {
       setLiveEvent(null);
       setIsAtVenue(false);
       setAttendanceConfirmed(false);
-      if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === "ios") {
-        void NativePedometer.stopLiveActivity().catch(() => {});
-      }
+      void stopLiveActivity();
       return;
     }
 
@@ -104,9 +101,7 @@ export function DanceProvider({ children }: { children: React.ReactNode }) {
           setIsAtVenue(false);
           setAttendanceConfirmed(false);
           stopDanceSession();
-          if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === "ios") {
-            void NativePedometer.stopLiveActivity().catch(() => {});
-          }
+          void stopLiveActivity();
           return;
         }
 
@@ -134,9 +129,7 @@ export function DanceProvider({ children }: { children: React.ReactNode }) {
         setIsAtVenue(false);
         setAttendanceConfirmed(false);
         stopDanceSession();
-        if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === "ios") {
-          void NativePedometer.stopLiveActivity().catch(() => {});
-        }
+        void stopLiveActivity();
       }
     } catch (error) {
       console.error("DANCE_CONTEXT: Error crítico chequeando estado:", error);
