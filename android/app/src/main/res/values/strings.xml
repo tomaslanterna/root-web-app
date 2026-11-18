@@ -4,4 +4,10 @@
     <string name="title_activity_main">root</string>
     <string name="package_name">com.emnetwork.root</string>
     <string name="custom_url_scheme">com.emnetwork.root</string>
+    <string name="root_live_dont_miss">¡NO TE\nLO PIERDAS!</string>
+    <string name="root_live_starts_in">COMIENZA EN</string>
+    <string name="root_live_steps_label">PASOS</string>
+    <string name="root_live_now">EN VIVO</string>
+    <string name="root_live_channel_name">Evento en curso</string>
+    <string name="root_live_channel_description">Cuenta regresiva y pasos del evento al que vas, en la pantalla de bloqueo.</string>
 </resources>
