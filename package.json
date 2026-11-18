@@ -7,7 +7,6 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "cap:local": "CAP_SERVER_URL=http://$(ipconfig getifaddr en0):3000 cap copy",
     "cap:prod": "cap copy",
     "android:sync": "cap sync android",
     "android:open": "cap open android",

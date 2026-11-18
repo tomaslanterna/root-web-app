@@ -9,8 +9,7 @@ const config: CapacitorConfig = {
   // Next uses dynamic routes: the native shell loads server.url, not a static export.
   webDir: "native-shell",
   server: {
-    // Producción por defecto. Para correr todo local: npm run cap:local (usa la IP de la red y el puerto 3000).
-    url: process.env.CAP_SERVER_URL || "https://root-web-app.vercel.app",
+    url: "https://root-web-app.vercel.app",
     cleartext: true, // Permite conexiones HTTP (sin SSL) en el emulador
     allowNavigation: ["*"],
   },
