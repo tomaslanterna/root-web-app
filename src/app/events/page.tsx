@@ -21,7 +21,7 @@
    Tag,
    X,
  } from "lucide-react";
- import { EventCard } from "@/components/ui/EventCard";
+ import { EventCard, FEATURED_FLYER_EXTRA } from "@/components/ui/EventCard";
 import { EventCardSkeleton } from "@/components/events/EventCardSkeleton";
  import { Button } from "@/components/ui/Button";
  import { RootLoader } from "@/components/ui/RootLoader";
@@ -63,8 +63,8 @@ import { EventCardSkeleton } from "@/components/events/EventCardSkeleton";
    { id: "Otros", label: "Otros" },
  ];
 
- // Alto del bloque de texto de una tarjeta de la grilla y lado del cuadrado compacto.
- const FEATURED_TEXT_HEIGHT = 137;
+ // Alto que pierde el flyer destacado en la fase 1 (de 4:5 a cuadrado) y lado del cuadrado compacto.
+ const FEATURED_TEXT_HEIGHT = FEATURED_FLYER_EXTRA;
  const FEATURED_COMPACT_SIZE = 56;
 
  const viewOptions = [
@@ -286,7 +286,7 @@ import { EventCardSkeleton } from "@/components/events/EventCardSkeleton";
    const { featuredEvents, isLoading: isLoadingFeatured, refresh: refreshFeatured } = useFeaturedEvents();
 
    // Destacados que se achican con el scroll en 2 fases:
-   // 1) Se reduce el height del footer hasta 0.
+   // 1) El flyer pasa de 4:5 a cuadrado y se desvanece el texto que tiene encima.
    // 2) Ese cuadrado se achica proporcionalmente hasta 56px.
    useEffect(() => {
      let frame = 0;
