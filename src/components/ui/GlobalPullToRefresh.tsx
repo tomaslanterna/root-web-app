@@ -7,7 +7,7 @@ import { PullToRefresh } from "@/components/ui/PullToRefresh";
 /**
  * Pantallas sin el pull to refresh global:
  * - /events tiene el suyo, que recarga destacados y listado sin remontar la página.
- * - Chats, cámara de KYC y swipe de match usan el arrastre vertical para otra cosa.
+ * - Chats, cámara de KYC y evento en vivo usan el arrastre vertical para otra cosa.
  * - Formularios: refrescar borraría lo que la persona está escribiendo.
  */
 const EXCLUDED: RegExp[] = [
@@ -15,7 +15,6 @@ const EXCLUDED: RegExp[] = [
   /^\/chat\/.+/,
   /^\/events\/[^/]+\/live/,
   /^\/kyc/,
-  /^\/match/,
   /^\/create\//,
   /^\/(login|register|forgot-password|reset-password|complete-profile)/,
 ];
