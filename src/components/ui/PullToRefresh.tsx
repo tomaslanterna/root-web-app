@@ -6,9 +6,21 @@ import { RootMark } from '@/components/ui/RootLogo';
 interface PullToRefreshProps {
   onRefresh: () => Promise<void>;
   children: React.ReactNode;
+  /** Permite arrastrar con el mouse (desktop). Fuera del home se apaga para no pelear con selecciones y sliders. */
+  mouse?: boolean;
 }
 
-export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
+/** true si el toque empezó dentro de algo que ya tiene scroll propio hacia abajo (chat, modal, lista interna). */
+function startsInScrolledArea(target: EventTarget | null) {
+  let node = target instanceof Element ? target : null;
+  while (node && node !== document.body) {
+    if (node.scrollTop > 0) return true;
+    node = node.parentElement;
+  }
+  return false;
+}
+
+export function PullToRefresh({ onRefresh, children, mouse = true }: PullToRefreshProps) {
   const [pullY, setPullY] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [pullActive, setPullActive] = useState(false);
@@ -20,7 +32,8 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
 
   const handleTouchStart = (e: React.TouchEvent | React.MouseEvent) => {
     // Solo permitir pull si el usuario está hasta arriba del todo
-    if (window.scrollY <= 0) {
+    if (!('touches' in e) && !mouse) return;
+    if (window.scrollY <= 0 && !startsInScrolledArea(e.target)) {
       const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
       startY.current = clientY;
       startX.current = 'touches' in e ? e.touches[0].clientX : e.clientX;
@@ -95,7 +108,7 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
       <div 
         role="status"
         aria-live="polite"
-        aria-label={refreshing ? "Actualizando eventos" : "Deslizá para actualizar"}
+        aria-label={refreshing ? "Actualizando" : "Deslizá para actualizar"}
         className="pointer-events-none absolute left-0 top-0 z-50 flex w-full justify-center"
         style={{ 
           transform: `translateY(${pullY > 0 ? pullY - 34 : -34}px)`,
