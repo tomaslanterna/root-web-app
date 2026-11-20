@@ -21,20 +21,14 @@ async function main() {
   const asset = new InputAsset(path.join(projectRoot, 'assets/icon.png'), 'icon', 'android');
   await asset.load();
 
-  // Reuse the existing adaptive vector rather than maintaining another logo path.
-  const vector = await readFile(path.join(resPath, 'drawable/ic_root_foreground.xml'), 'utf8');
-  const attribute = (name) => {
-    const match = vector.match(new RegExp(`android:${name}="([^"]+)"`));
-    if (!match) throw new Error(`Missing ${name} in Root foreground vector`);
-    return match[1];
-  };
-  const svg = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" viewBox="0 0 108 108"><g transform="translate(${attribute('translateX')} ${attribute('translateY')}) scale(${attribute('scaleX')} ${attribute('scaleY')})"><path fill="${attribute('fillColor')}" d="${attribute('pathData')}"/></g></svg>`);
+  // Reuse the adaptive foreground (the lime icon's face) rather than maintaining another logo path.
+  const foreground = await readFile(path.join(resPath, 'drawable-xxxhdpi/ic_root_foreground.png'));
 
   for (const template of Object.values(templates).filter((item) => item.kind === 'icon')) {
     await generator.generateLegacyLauncherIcon(project, asset, template);
     await generator.generateRoundLauncherIcon(project, asset, template);
     const size = Math.round(template.width * 108 / 48);
-    await sharp(svg).resize(size, size).png().toFile(
+    await sharp(foreground).resize(size, size, { kernel: 'lanczos3' }).png().toFile(
       path.join(resPath, `mipmap-${template.density}`, 'ic_launcher_foreground.png')
     );
   }

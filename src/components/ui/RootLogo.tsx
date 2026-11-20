@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 interface RootLogoProps {
-  /** Lado del cuadrado de la "r" en px; el resto del logo escala en proporción. */
+  /** Lado del ícono cuadrado en px; el resto del logo escala en proporción. */
   size?: number;
   className?: string;
 }
@@ -12,29 +12,25 @@ interface RootMarkProps {
   className?: string;
 }
 
-/** Isotipo de root: la "r" negra dentro del cuadrado lima. */
+/** Isotipo de root: el ícono de la app, la cara con anteojos negros con brillo sobre el cuadrado lima. */
 export function RootMark({ size = 30, className }: RootMarkProps) {
   return (
-    <span
+    // eslint-disable-next-line @next/next/no-img-element -- ícono chico y fijo: no vale la pena next/image
+    <img
+      src="/brand/root-icon.png"
+      alt=""
       aria-hidden="true"
-      className={cn(
-        "root-logo-type inline-flex shrink-0 items-center justify-center bg-accent text-on-accent",
-        className,
-      )}
-      style={{
-        width: size,
-        height: size,
-        borderRadius: Math.round(size * 0.26),
-        fontSize: Math.round(size * 0.7),
-      }}
-    >
-      r
-    </span>
+      width={size}
+      height={size}
+      draggable={false}
+      className={cn("shrink-0 select-none", className)}
+      style={{ width: size, height: size, borderRadius: Math.round(size * 0.26) }}
+    />
   );
 }
 
 /**
- * Logo de root: la "r" negra sobre un cuadrado lima, seguida de "oot".
+ * Logo de root: el ícono de la app (la cara con anteojos sobre lima), seguido de "oot".
  */
 export function RootLogo({ size = 30, className }: RootLogoProps) {
   return (
