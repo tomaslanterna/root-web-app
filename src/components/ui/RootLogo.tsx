@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 interface RootLogoProps {
-  /** Lado del ícono cuadrado en px; el resto del logo escala en proporción. */
+  /** Lado del cuadrado de la "r" en px; el resto del logo escala en proporción. */
   size?: number;
   className?: string;
 }
@@ -29,8 +29,26 @@ export function RootMark({ size = 30, className }: RootMarkProps) {
   );
 }
 
+/** Isotipo del logo: la "r" negra dentro del cuadrado lima. */
+function LetterMark({ size }: { size: number }) {
+  return (
+    <span
+      aria-hidden="true"
+      className="root-logo-type inline-flex shrink-0 items-center justify-center bg-accent text-on-accent"
+      style={{
+        width: size,
+        height: size,
+        borderRadius: Math.round(size * 0.26),
+        fontSize: Math.round(size * 0.7),
+      }}
+    >
+      r
+    </span>
+  );
+}
+
 /**
- * Logo de root: el ícono de la app (la cara con anteojos sobre lima), seguido de "oot".
+ * Logo de root: la "r" negra sobre un cuadrado lima, seguida de "oot".
  */
 export function RootLogo({ size = 30, className }: RootLogoProps) {
   return (
@@ -40,7 +58,7 @@ export function RootLogo({ size = 30, className }: RootLogoProps) {
       className={cn("inline-flex items-center", className)}
       style={{ gap: Math.max(2, Math.round(size * 0.1)) }}
     >
-      <RootMark size={size} />
+      <LetterMark size={size} />
       <span
         aria-hidden="true"
         className="root-logo-type text-ink tracking-[0.02em]"

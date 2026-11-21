@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 export interface RootLoaderProps {
   /** Si es true, ocupa toda la pantalla con fondo bg-bg */
   fullScreen?: boolean;
-  /** Tamaño del gif: xs (~128px, destacado para scroll infinito), sm (~160px), md (~280px), lg (~420px, idéntico al splash) */
+  /** Ancho del video: xs (~128px, scroll infinito), sm (~160px), md (~280px), lg (~420px, pantalla completa) */
   size?: "xs" | "sm" | "md" | "lg";
   /** Etiqueta accesible o mensaje opcional debajo del logo */
   label?: string;
@@ -45,15 +45,21 @@ export function RootLoader({
         className
       )}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element -- GIF animado: next/image lo congelaría al optimizarlo */}
-      <img
-        src="/brand/root-loader.gif"
-        alt=""
-        width={960}
-        height={640}
-        fetchPriority="high"
-        className={cn(sizeClasses[size], "h-auto select-none pointer-events-none", imageClassName)}
-        draggable={false}
+      {/* El video es vertical (9:16) con el logo en el medio: se recorta a 3:2 alrededor de "root" y la cara. */}
+      <video
+        src="/brand/root-cara-de-asco.mp4"
+        autoPlay
+        loop
+        muted
+        playsInline
+        preload="auto"
+        aria-hidden="true"
+        disablePictureInPicture
+        className={cn(
+          sizeClasses[size],
+          "aspect-[3/2] h-auto rounded-card bg-[#0a0a0c] object-cover object-[50%_50.8%] select-none pointer-events-none",
+          imageClassName,
+        )}
       />
       {label && (
         <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-ink-3 animate-pulse">
