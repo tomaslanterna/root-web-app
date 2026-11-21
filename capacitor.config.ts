@@ -9,7 +9,7 @@ const config: CapacitorConfig = {
   // Next uses dynamic routes: the native shell loads server.url, not a static export.
   webDir: "native-shell",
   server: {
-    url: "https://root-web-app.vercel.app",
+    url: "http://192.168.1.9:3000",
     cleartext: true, // Permite conexiones HTTP (sin SSL) en el emulador
     allowNavigation: ["*"],
   },

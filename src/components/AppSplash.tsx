@@ -1,40 +1,33 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Capacitor } from "@capacitor/core";
 import { SplashScreen } from "@capacitor/splash-screen";
+import { RootBootAnimation } from "@/components/brand/RootBootAnimation";
 
-/** Una vuelta completa del GIF (48 cuadros, 1,92 s): el logo siempre termina su animación. */
-const MIN_VISIBLE_MS = 1920;
+/** El cuadrado se expande a pantalla completa y "root" aparece (0,84 s) y baila un poco: el logo siempre se ve entero. */
+const MIN_VISIBLE_MS = 2000;
 /** Si la página tarda en cargar, no dejamos al usuario esperando más que esto. */
-const MAX_VISIBLE_MS = 4000;
+const MAX_VISIBLE_MS = 4500;
 const FADE_MS = 300;
 
 /**
- * Pantalla de carga al abrir la app: el logo animado de root a pantalla completa.
- * Se renderiza desde el servidor para que sea lo primero que se pinta, y se va con un
- * fundido cuando la página terminó de cargar y el GIF dio al menos una vuelta.
+ * Pantalla de carga al abrir la app: la animación de root (ver RootBootAnimation). Arranca con el mismo
+ * ícono quieto que el splash nativo, se expande hasta pintar TODA la pantalla de lima y aparece "root".
+ * Se renderiza desde el servidor para que sea lo primero que se pinta, y se va con un fundido cuando la
+ * página terminó de cargar y la animación ya se vio completa.
  */
 export function AppSplash() {
   const [phase, setPhase] = useState<"visible" | "leaving" | "gone">("visible");
-  const gifRef = useRef<HTMLImageElement>(null);
 
-  // En la app nativa la "r" del splash se queda hasta que este loader ya está pintado:
-  // 1) "r" nativa mientras carga la webview, 2) loader web (GIF) mientras la página hace sus requests.
+  // En la app nativa el splash nativo (el ícono quieto) se queda hasta que esta animación ya está pintada:
+  // 1) ícono nativo mientras carga la webview, 2) esta animación, que arranca con el mismo cuadro.
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
     const hideNative = () => void SplashScreen.hide({ fadeOutDuration: 200 }).catch(() => undefined);
-    const gif = gifRef.current;
-    if (!gif || gif.complete) {
-      hideNative();
-      return;
-    }
-    gif.addEventListener("load", hideNative, { once: true });
-    gif.addEventListener("error", hideNative, { once: true });
-    return () => {
-      gif.removeEventListener("load", hideNative);
-      gif.removeEventListener("error", hideNative);
-    };
+    // Dos cuadros: el HTML ya se pintó con la animación en su primer cuadro.
+    const frame = requestAnimationFrame(() => requestAnimationFrame(hideNative));
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   useEffect(() => {
@@ -69,21 +62,11 @@ export function AppSplash() {
     <div
       role="status"
       aria-label="Cargando root"
-      className={`fixed inset-0 z-[100] flex items-center justify-center bg-[#0a0a0c] transition-opacity duration-300 ease-out motion-reduce:transition-none ${
+      className={`fixed inset-0 z-[100] bg-bg transition-opacity duration-300 ease-out motion-reduce:transition-none ${
         phase === "leaving" ? "opacity-0 pointer-events-none" : "opacity-100"
       }`}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element -- GIF animado: next/image lo congelaría al optimizarlo */}
-      <img
-        ref={gifRef}
-        src="/brand/root-loader.gif"
-        alt=""
-        width={960}
-        height={640}
-        fetchPriority="high"
-        className="w-[min(80vw,420px)] h-auto select-none"
-        draggable={false}
-      />
+      <RootBootAnimation />
     </div>
   );
 }
