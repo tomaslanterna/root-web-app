@@ -539,3 +539,143 @@ input[type="date"]::-webkit-date-and-time-value {
 }
 
 
+
+/* ── Arranque de root (RootBootAnimation): recreación vectorial de root-logo-baile.gif ──
+   Línea de tiempo (25 fps del GIF): 0–0,48 s ícono quieto (igual al splash nativo) · 0,48–0,84 s el cuadrado
+   se expande hasta cubrir toda la pantalla y aparece "root" · desde 0,96 s los anteojos bailan (ciclo de 0,96 s). */
+.root-boot {
+  --s: min(30vw, 150px); /* lado del ícono: el mismo tamaño que la "r"/logo del splash nativo */
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #0a0b0d;
+}
+.root-boot__green {
+  position: absolute;
+  inset: 0;
+  background: #d4ff00;
+  animation: root-boot-expand 0.36s cubic-bezier(0.65, 0, 0.25, 1) 0.48s both;
+}
+.root-boot__word {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--s) * 2.93); /* 88vw en un celular: "root" ocupa casi todo el ancho */
+  height: auto;
+  transform: translate(-50%, -50%);
+  overflow: visible;
+  fill: #0a0b0d;
+}
+.root-boot__word g {
+  transform-box: view-box;
+  transform-origin: 0 0;
+}
+.root-boot__glasses {
+  animation: root-boot-glasses 0.36s cubic-bezier(0.65, 0, 0.25, 1) 0.48s both;
+}
+.root-boot__r {
+  animation: root-boot-r 0.3s ease-out 0.66s both;
+}
+.root-boot__t {
+  animation: root-boot-t 0.3s ease-out 0.66s both;
+}
+.root-boot__shines {
+  fill: #d4ff00;
+  animation: root-boot-shine 0.47s linear 0.9s infinite;
+}
+.root-boot__brow--l {
+  animation: root-boot-brow 0.96s ease-out 0.96s infinite;
+}
+.root-boot__brow--r {
+  transform-origin: 673px 80px;
+  animation: root-boot-brow-r 0.96s ease-out 0.96s infinite;
+}
+
+@keyframes root-boot-expand {
+  from {
+    clip-path: inset(calc(50% - var(--s) / 2) calc(50% - var(--s) / 2) round calc(var(--s) * 0.26));
+  }
+  to {
+    clip-path: inset(0 round 0);
+  }
+}
+@keyframes root-boot-glasses {
+  from {
+    transform: translate(234.6px, 80.7px) scale(0.4899);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes root-boot-r {
+  from {
+    opacity: 0;
+    transform: translateX(52px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes root-boot-t {
+  from {
+    opacity: 0;
+    transform: translateX(-52px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes root-boot-shine {
+  0%,
+  70% {
+    opacity: 1;
+  }
+  72%,
+  92% {
+    opacity: 0.4;
+  }
+  94%,
+  100% {
+    opacity: 1;
+  }
+}
+/* Compás de 0,96 s: salta una ceja o las dos, en alternancia (como el GIF: cada 12 cuadros). */
+@keyframes root-boot-brow {
+  0% {
+    transform: translateY(-22px);
+  }
+  37.5%,
+  100% {
+    transform: none;
+  }
+}
+@keyframes root-boot-brow-r {
+  0% {
+    transform: translateY(-22px);
+  }
+  37.5%,
+  49.9% {
+    transform: none;
+  }
+  50% {
+    transform: rotate(9deg);
+  }
+  87.5%,
+  100% {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .root-boot__green,
+  .root-boot__glasses,
+  .root-boot__r,
+  .root-boot__t,
+  .root-boot__shines,
+  .root-boot__brow--l,
+  .root-boot__brow--r {
+    animation: none;
+  }
+}

@@ -143,10 +143,16 @@ struct RootLiveEventLockScreenView: View {
                     // Estado 1: cuenta regresiva bien ordenada
                     VStack(alignment: .trailing, spacing: 2) {
                         if startDate > Date() {
+                            // Un Text con timerInterval se estira a todo el ancho disponible: como este lado
+                            // tiene prioridad de espacio, se llevaba todo y dejaba el título en 0 de ancho.
+                            // Se le pone un ancho máximo (alcanza para 4:59:59 en 18 pt).
                             Text(timerInterval: Date()...startDate, countsDown: true)
                                 .font(.system(size: 18, weight: .black).monospacedDigit())
                                 .foregroundColor(limeAcid)
                                 .multilineTextAlignment(.trailing)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.7)
+                                .frame(maxWidth: 96, alignment: .trailing)
                         } else {
                             Text("HOY")
                                 .font(.system(size: 18, weight: .black))
