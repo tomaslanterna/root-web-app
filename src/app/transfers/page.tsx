@@ -11,9 +11,12 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { useTransfers } from "@/hooks/useTransfers";
 import { RootLoader } from "@/components/ui/RootLoader";
+import { TabIndicator } from "@/components/ui/TabIndicator";
+import { useBackNavigation } from "@/hooks/useBackNavigation";
 
 export default function TransfersPage() {
   const router = useRouter();
+  const goBack = useBackNavigation();
   const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<"explorar" | "mis-ofertas">("explorar");
@@ -151,12 +154,12 @@ export default function TransfersPage() {
         isLoading={isStartingDeal}
       />
 
-      <div className="w-full max-w-2xl mx-auto px-4 pt-[calc(0.75rem+var(--root-safe-top))] md:pt-6">
-        <header className="flex items-center gap-3">
-          <SwipeBack />
+      <div className="w-full max-w-2xl mx-auto px-4">
+        <header className="sticky top-0 z-30 -mx-4 px-4 pt-[calc(0.75rem+var(--root-safe-top))] pb-3 md:pt-6 bg-bg/95 backdrop-blur-md flex items-center gap-3">
+          <SwipeBack onBack={goBack} />
           <button
             type="button"
-            onClick={() => router.back()}
+            onClick={goBack}
             aria-label="Volver"
             className="size-11 shrink-0 rounded-control bg-surface border border-line flex items-center justify-center hover:bg-surface-2 transition-colors focus-visible:outline-2 focus-visible:outline-accent"
           >
@@ -178,7 +181,8 @@ export default function TransfersPage() {
           </div>
         </div>
 
-        <div role="tablist" aria-label="Transfers" className="mt-4 flex p-[2px] rounded-lg bg-surface border border-line">
+        <div role="tablist" aria-label="Transfers" className="relative mt-4 flex p-[2px] rounded-lg bg-surface border border-line">
+          <TabIndicator variant="pill" />
           {([
             { id: "explorar", label: "Explorar" },
             { id: "mis-ofertas", label: "Mis ofertas" },
@@ -190,8 +194,8 @@ export default function TransfersPage() {
               aria-selected={activeTab === tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "flex-1 h-7 rounded-[6px] text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-accent",
-                activeTab === tab.id ? "bg-ink text-bg" : "text-ink-2 hover:text-ink",
+                "relative z-[1] flex-1 h-7 rounded-[6px] text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-accent",
+                activeTab === tab.id ? "text-bg" : "text-ink-2 hover:text-ink",
               )}
             >
               {tab.label}

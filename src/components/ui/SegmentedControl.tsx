@@ -3,6 +3,7 @@
 import * as React from "react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { TabIndicator } from "@/components/ui/TabIndicator";
 
 export interface SegmentOption<T extends string = string> {
   id: T;
@@ -32,10 +33,11 @@ export function SegmentedControl<T extends string = string>({
       role="radiogroup"
       aria-label={label}
       className={cn(
-        "flex items-center p-[2px] rounded-lg bg-surface border border-line overflow-x-auto hide-scrollbar",
+        "relative flex items-center p-[2px] rounded-lg bg-surface border border-line overflow-x-auto hide-scrollbar",
         className
       )}
     >
+      <TabIndicator variant="pill" />
       {options.map((option) => {
         const isActive = value === option.id;
         const Icon = option.icon;
@@ -47,9 +49,9 @@ export function SegmentedControl<T extends string = string>({
             aria-checked={isActive}
             onClick={() => onChange(option.id)}
             className={cn(
-              "h-7 px-2.5 rounded-[6px] text-xs whitespace-nowrap flex items-center gap-1.5 transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-accent",
+              "relative z-[1] h-7 px-2.5 rounded-[6px] text-xs whitespace-nowrap flex items-center gap-1.5 transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-accent",
               isActive
-                ? "bg-ink text-bg font-semibold"
+                ? "text-bg font-semibold"
                 : "text-ink-2 font-medium hover:text-ink"
             )}
           >

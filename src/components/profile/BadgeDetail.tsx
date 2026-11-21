@@ -12,10 +12,12 @@ import { badgeLocation } from "@/lib/badgeLocation";
 import { useEventCheckout } from "@/hooks/useReviewReminder";
 import { parseEventRealDate } from "@/hooks/useDanceSync";
 
-export function BadgeDetail({ badge, isOwner, heroRef, moving, closing, lineup, lineupLoading, lineupError, onRetry, onSaved, onFormState }: {
+export function BadgeDetail({ badge, isOwner, heroRef, moving, closing, lineup, lineupLoading, lineupError, onRetry, onSaved, onFormState, onLater }: {
   badge: EventBadge; isOwner: boolean; heroRef: RefObject<HTMLDivElement | null>; moving: boolean; closing: boolean;
   lineup?: BadgeLineup; lineupLoading: boolean; lineupError: boolean; onRetry: () => void;
   onSaved: (badge: EventBadge) => void; onFormState: (state: ReviewFormState) => void;
+  /** Volver a la colección sin reseñar: la insignia queda pendiente. */
+  onLater?: () => void;
 }) {
   const { user, isLoading: authLoading } = useAuth();
   const checkout = useEventCheckout(badge.eventId);
@@ -75,7 +77,7 @@ export function BadgeDetail({ badge, isOwner, heroRef, moving, closing, lineup, 
 
       <div className="pt-8 flex flex-col gap-5">
         {isOwner
-          ? <EventReviewForm badge={badge} onSaved={onSaved} onStateChange={onFormState} onRatingChange={setDraftRating} lineup={lineup} lineupLoading={lineupLoading} lineupError={lineupError} onRetry={onRetry} />
+          ? <EventReviewForm badge={badge} onSaved={onSaved} onLater={onLater} onStateChange={onFormState} onRatingChange={setDraftRating} lineup={lineup} lineupLoading={lineupLoading} lineupError={lineupError} onRetry={onRetry} />
           : <>
             {lineupCard}
             <p className="m-0 text-center text-[13px] text-ink-3">Las puntuaciones y reseñas son personales y solo puede verlas su dueño.</p>

@@ -157,6 +157,18 @@ main[data-pop-enter] { animation: pop-enter 280ms cubic-bezier(0.22, 0.61, 0.36,
   --root-mobile-nav-clearance: calc(var(--root-mobile-nav-height) + var(--root-mobile-nav-bottom) + 0.5rem);
 }
 
+/* Desktop: el layout reserva 6rem arriba para la barra flotante. Las pantallas de alto completo
+   descuentan ese espacio, así las que entran en la ventana no scrollean. */
+@media (min-width: 768px) {
+  main .min-h-\[100dvh\],
+  main .min-h-screen {
+    min-height: calc(100dvh - 6rem);
+  }
+  main .h-\[100dvh\] {
+    height: calc(100dvh - 6rem);
+  }
+}
+
 @supports (-webkit-touch-callout: none) {
   :root:not(.platform-android) {
     --root-mobile-nav-bottom: max(0.75rem, var(--root-safe-bottom));
@@ -473,7 +485,7 @@ input, textarea, [contenteditable="true"] {
 }
 
 .animate-fade-in {
-  animation: animateIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: animateIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) backwards;
 }
 
 /* Native range keeps touch/keyboard semantics; styling is scoped to ratings. */
@@ -678,4 +690,181 @@ input[type="date"]::-webkit-date-and-time-value {
   .root-boot__brow--r {
     animation: none;
   }
+}
+
+/* ── Movimiento de la interfaz ──────────────────────────────────────────────────────────────────────
+   1. Cambio de pantalla: swipe lateral, como en una app nativa. Solo se mueve la pantalla
+      (PageTransition, clase .page-slide); la barra de navegación tiene su propia capa (root-bottom-nav /
+      root-top-nav) que queda quieta y por encima.
+      Adelante: la nueva entra desde la derecha y la anterior se corre un poco a la izquierda.
+      Atrás (html[data-nav-dir="back"], ver lib/navDirection.ts): al revés.
+   2. Pestañas: el contenido nuevo entra con .tab-panel-in y el indicador (TabIndicator) se desliza.
+   3. Botones, pestañas y opciones cambian de color con transición en vez de saltar. */
+
+:root {
+  --nav-slide-duration: 340ms;
+  --nav-slide-ease: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* La raíz solo tiene el fondo: queda quieta. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+
+/* Sin morph de tamaño: cada capa ocupa su lugar final y solo se desliza. */
+::view-transition-group(.page-slide),
+::view-transition-group(root-bottom-nav),
+::view-transition-group(root-top-nav) {
+  animation: none;
+}
+::view-transition-group(.page-slide) {
+  z-index: 1;
+}
+::view-transition-group(root-bottom-nav),
+::view-transition-group(root-top-nav) {
+  z-index: 2;
+}
+
+::view-transition-old(.page-slide) {
+  animation: var(--nav-slide-duration) var(--nav-slide-ease) both root-slide-out-left;
+}
+::view-transition-new(.page-slide) {
+  animation: var(--nav-slide-duration) var(--nav-slide-ease) both root-slide-in-right;
+}
+
+html[data-nav-dir="back"]::view-transition-old(.page-slide) {
+  z-index: 1;
+  animation-name: root-slide-out-right;
+}
+html[data-nav-dir="back"]::view-transition-new(.page-slide) {
+  animation-name: root-slide-in-left;
+}
+
+/* La barra no se mueve: se muestra la nueva, fija, por encima de la pantalla que se desliza. */
+::view-transition-old(root-bottom-nav),
+::view-transition-old(root-top-nav) {
+  display: none;
+}
+::view-transition-new(root-bottom-nav),
+::view-transition-new(root-top-nav) {
+  animation: none;
+}
+
+/* El gesto de volver (SwipeBack) ya anima la pantalla: no se suma otra transición encima. */
+html.root-swipe-back::view-transition-old(*),
+html.root-swipe-back::view-transition-new(*),
+html.root-swipe-back::view-transition-group(*) {
+  animation: none !important;
+}
+
+@keyframes root-slide-in-right {
+  from {
+    transform: translateX(100%);
+  }
+}
+@keyframes root-slide-out-left {
+  to {
+    transform: translateX(-28%);
+    opacity: 0.6;
+  }
+}
+@keyframes root-slide-in-left {
+  from {
+    transform: translateX(-28%);
+    opacity: 0.6;
+  }
+}
+@keyframes root-slide-out-right {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* Contenido de una pestaña recién elegida. */
+.tab-panel-in {
+  /* backwards (no both): al terminar no deja transform aplicado, que atraparía modales fixed adentro del panel. */
+  animation: root-tab-in 220ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+@keyframes root-tab-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Indicador de la pestaña activa: se mueve y cambia de ancho hasta la opción elegida. */
+.tab-indicator {
+  position: absolute;
+  left: 0;
+  pointer-events: none;
+  transition:
+    transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
+    width 280ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 150ms ease-out;
+}
+.tab-indicator[data-ready="false"] {
+  transition: none;
+}
+
+@layer base {
+  /* Cambio de estado suave para todo lo que se toca: la utilidad transition-* de cada componente lo pisa. */
+  button,
+  a,
+  [role="tab"],
+  [role="radio"],
+  [role="switch"],
+  input[type="checkbox"],
+  select {
+    transition-property: color, background-color, border-color, box-shadow, opacity, transform;
+    transition-duration: 180ms;
+    transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
+  .tab-panel-in {
+    animation: none;
+  }
+  .tab-indicator {
+    transition: none;
+  }
+}
+
+
+
+/* Hojas que suben desde abajo en mobile ("Nueva crew", intereses musicales). */
+@media (max-width: 767px) {
+  .crew-sheet,
+  .bottom-sheet {
+    animation: root-sheet-up 300ms cubic-bezier(0.32, 0.72, 0, 1) backwards;
+  }
+}
+@keyframes root-sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .crew-sheet,
+  .bottom-sheet {
+    animation: none;
+  }
+}
+
+
+/* Títulos largos de header ("Configuración", "Comunidades", "Verificación"): 32 px cuando entran y se achican
+   con el ancho de la pantalla en celulares angostos, en vez de cortarse o pisar los botones. */
+.header-title-fit {
+  font-size: min(32px, 6.8vw);
 }

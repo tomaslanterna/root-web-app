@@ -24,6 +24,7 @@ import { authApi } from '@/services/auth';
 import { usersApi } from '@/services/users';
 import { useMutation } from '@/hooks/useMutation';
 import { useAuth } from '@/context/AuthContext';
+import { FULL_NAME_ERROR, isFullName, normalizeFullName } from "@/lib/fullName";
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -134,6 +135,11 @@ export default function RegisterPage() {
       return;
     }
 
+    if (!isFullName(formData.name)) {
+      setError(FULL_NAME_ERROR);
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       setError('Las contraseñas no coinciden.');
       return;
@@ -171,7 +177,7 @@ export default function RegisterPage() {
     
     // API expects name, username, email, password, dob, documentId
     registerMutate({
-      name: formData.name,
+      name: normalizeFullName(formData.name),
       username: formData.alias,
       email: formData.email,
       password: formData.password,
@@ -249,7 +255,9 @@ export default function RegisterPage() {
             <input
               type="text"
               name="name"
-              placeholder="Nombre completo"
+              placeholder="Nombre y apellido"
+              autoComplete="name"
+              aria-label="Nombre y apellido"
               value={formData.name}
               onChange={handleChange}
               className="w-full bg-[#14171F]/80 backdrop-blur-md border border-white/10 rounded-2xl py-3.5 pl-11 pr-4 text-white placeholder:text-neutral-500 focus:outline-none focus:border-acid-lime/50 focus:ring-1 focus:ring-acid-lime/50 transition-all font-medium text-sm"

@@ -10,6 +10,7 @@ export function useMatcherCatalog() {
   const { mutate: loadMyCrews, data: myCrewsData, isLoading: myCrewsLoading, error: myCrewsError } = useMutation(matchApi.getPermanentCrews);
   const { mutate: loadAllCrews, data: allCrewsData, isLoading: allCrewsLoading, error: allCrewsError } = useMutation(matchApi.getAllPermanentCrews);
   const { mutate: mutateCreateCrew, isLoading: isCreatingCrew } = useMutation(matchApi.createPermanentCrew);
+  const { mutate: mutateJoinPublic, isLoading: isJoiningCrew } = useMutation(matchApi.joinPublicCrew);
 
   const [localCreatedCrews, setLocalCreatedCrews] = useState<PermanentCrew[]>([]);
 
@@ -47,6 +48,7 @@ export function useMatcherCatalog() {
     name?: string;
     memberIds?: string[];
     eventIds?: string[];
+    isPublic?: boolean;
     friends?: Array<{ id: string; name: string; username: string; avatarUrl?: string }>;
   }) => {
     const crewName = payload?.name?.trim() || "Nueva Crew";
@@ -54,6 +56,7 @@ export function useMatcherCatalog() {
       name: crewName,
       memberIds: payload?.memberIds,
       eventIds: payload?.eventIds,
+      isPublic: payload?.isPublic,
     });
 
     if (createdCrew?.id) {
@@ -66,6 +69,13 @@ export function useMatcherCatalog() {
     }
 
     return "";
+  };
+
+  /** Unirse a una crew pública del listado; devuelve su id. */
+  const joinPublicCrew = async (crewId: string) => {
+    const crew = await mutateJoinPublic(crewId);
+    void fetchCrews();
+    return crew?.id ?? crewId;
   };
 
   const isCatalogLoading =
@@ -82,6 +92,8 @@ export function useMatcherCatalog() {
     crewsLoading: isCatalogLoading,
     isCreatingCrew,
     createCrew,
+    joinPublicCrew,
+    isJoiningCrew,
     refreshCrews: fetchCrews,
   };
 }

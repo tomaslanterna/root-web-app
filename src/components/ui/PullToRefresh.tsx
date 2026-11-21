@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { RootMark } from '@/components/ui/RootLogo';
 
 interface PullToRefreshProps {
@@ -22,16 +22,25 @@ function startsInScrolledArea(target: EventTarget | null) {
 
 /**
  * Header de la pantalla: el primer <header> fijo o sticky pegado arriba. El ícono sale por debajo de él
- * y, si está dentro del contenido que baja, se lo compensa para que no se mueva.
+ * y, si está dentro del contenido que baja, se lo compensa para que no se mueva. Si el pull to refresh
+ * vive dentro de una capa (la bandeja de mensajes abierta sobre el home), se busca el header de esa capa.
  */
-function findTopHeader() {
-  for (const header of Array.from(document.querySelectorAll("header"))) {
-    const { position } = getComputedStyle(header);
-    if (position !== "sticky" && position !== "fixed") continue;
+function findTopHeader(scope: ParentNode) {
+  for (const header of Array.from(scope.querySelectorAll("header"))) {
+    const style = getComputedStyle(header);
+    if (style.position !== "sticky" && style.position !== "fixed") continue;
     const rect = header.getBoundingClientRect();
-    if (rect.height > 0 && rect.top <= 1) return header;
+    // Se mide sin los desplazamientos del gesto (el del contenido y el que le pone este componente al header).
+    const top = rect.top - translateY(header) - translateY(header.closest("[data-ptr-content]"));
+    if (rect.height > 0 && top <= 1) return header;
   }
   return null;
+}
+
+function translateY(el: Element | null) {
+  if (!el) return 0;
+  const { transform } = getComputedStyle(el);
+  return transform && transform !== "none" ? new DOMMatrixReadOnly(transform).m42 : 0;
 }
 
 export function PullToRefresh({ onRefresh, children, mouse = true }: PullToRefreshProps) {
@@ -43,22 +52,28 @@ export function PullToRefresh({ onRefresh, children, mouse = true }: PullToRefre
   const startX = useRef(0);
   const currentY = useRef(0);
   const isPulling = useRef(false);
+  const rootRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLElement | null>(null);
   const [headerBottom, setHeaderBottom] = useState(0);
 
+  // La capa (dialog) donde vive este pull to refresh, si hay una: tiene su propio scroll, no el de la ventana.
+  const layer = () => rootRef.current?.closest<HTMLElement>('[role="dialog"]') ?? null;
+  const isAtTop = () => (layer() ? true : window.scrollY <= 0);
+
   const handleTouchStart = (e: React.TouchEvent | React.MouseEvent) => {
     // Solo permitir pull si el usuario está hasta arriba del todo
     if (!('touches' in e) && !mouse) return;
-    if (window.scrollY <= 0 && !startsInScrolledArea(e.target)) {
+    // Un toque dentro de una capa (dialog) le toca al pull to refresh de esa capa, no al de la pantalla de abajo.
+    const dialog = e.target instanceof Element ? e.target.closest('[role="dialog"]') : null;
+    if (dialog && !dialog.contains(rootRef.current)) return;
+    if (isAtTop() && !startsInScrolledArea(e.target)) {
       const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
       startY.current = clientY;
       startX.current = 'touches' in e ? e.touches[0].clientX : e.clientX;
       isPulling.current = true;
       setPullActive(true);
-      const header = findTopHeader();
-      // Solo se compensa el header que está dentro del contenido que baja con el gesto.
-      headerRef.current = header && contentRef.current?.contains(header) ? header : null;
+      const header = findTopHeader(layer() ?? document);
       setHeaderBottom(header ? header.getBoundingClientRect().bottom : 0);
     }
   };
@@ -74,7 +89,7 @@ export function PullToRefresh({ onRefresh, children, mouse = true }: PullToRefre
     const diff = currentY.current - startY.current;
 
     // Solo activamos si el movimiento es hacia abajo
-    if (diff > 0 && window.scrollY <= 0) {
+    if (diff > 0 && isAtTop()) {
       // Aplicar fricción (0.4) para que se sienta natural y topar en 80px
       setPullY(Math.min(diff * 0.4, 80));
     }
@@ -114,12 +129,42 @@ export function PullToRefresh({ onRefresh, children, mouse = true }: PullToRefre
     };
   }, [pullY]);
 
-  // El header que baja con el contenido se corre hacia arriba lo mismo, así queda quieto.
-  useEffect(() => {
-    const header = headerRef.current;
-    if (!header) return;
-    header.style.transition = pullActive ? "none" : "transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)";
-    header.style.transform = pullY > 0 ? `translateY(${-pullY}px)` : "";
+  // El header que baja con el contenido se corre hacia arriba lo mismo, así queda quieto. Al soltar, la página se
+  // vuelve a montar mientras el contenido sigue corrido: el header nuevo se compensa apenas aparece, sin animar,
+  // para que no se lo vea un momento más abajo.
+  useLayoutEffect(() => {
+    const content = contentRef.current;
+    if (!content) return;
+    const transition = pullActive ? "none" : "transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)";
+
+    const sync = () => {
+      const previous = headerRef.current;
+      const header = pullY > 0 ? findTopHeader(content) : previous?.isConnected ? previous : null;
+      if (previous && previous !== header) {
+        previous.style.transition = "";
+        previous.style.transform = "";
+      }
+      headerRef.current = header;
+      if (!header) return;
+      if (header !== previous) {
+        // Recién aparecido: arranca compensando lo que el contenido está corrido ahora mismo (puede estar
+        // animándose de 80 a 60 px) y sigue con la misma transición que él.
+        header.style.transition = "none";
+        header.style.transform = `translateY(${-translateY(content)}px)`;
+        void header.offsetHeight;
+      }
+      header.style.transition = transition;
+      header.style.transform = pullY > 0 ? `translateY(${-pullY}px)` : "";
+    };
+    sync();
+
+    if (pullY <= 0) return;
+    const observer = new MutationObserver(() => {
+      if (!headerRef.current?.isConnected) sync();
+      else if (headerRef.current && findTopHeader(content) !== headerRef.current) sync();
+    });
+    observer.observe(content, { childList: true, subtree: true });
+    return () => observer.disconnect();
   }, [pullY, pullActive]);
 
   // El ícono asoma desde abajo del header y queda centrado en el hueco que abre el gesto.
@@ -127,6 +172,7 @@ export function PullToRefresh({ onRefresh, children, mouse = true }: PullToRefre
 
   return (
     <div 
+      ref={rootRef}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -159,6 +205,7 @@ export function PullToRefresh({ onRefresh, children, mouse = true }: PullToRefre
       {/* Contenido principal animado hacia abajo */}
       <div
         ref={contentRef}
+        data-ptr-content
         style={{
           // Sin transform en reposo: un transform rompería los position: fixed de la página (headers, modales).
           transform: pullY > 0 ? `translateY(${pullY}px)` : undefined,

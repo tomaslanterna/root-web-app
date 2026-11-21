@@ -216,7 +216,9 @@ export function CommentSection({
               <div key={comment.id} className="flex gap-3 group">
                 <Avatar 
                   src={comment.authorAvatar} 
-                  fallback={comment.authorName?.charAt(0) || "U"} 
+                  fallback={comment.authorName?.charAt(0) || "U"}
+                  username={comment.authorUsername}
+                  name={comment.authorName}
                   size="sm" 
                   className="ring-1 ring-white/5 shrink-0" 
                 />

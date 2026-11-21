@@ -3,7 +3,7 @@ import type {} from "@capacitor/push-notifications";
 
 const config: CapacitorConfig = {
   appId: "com.emnetwork.root",
-  appName: "root",
+  appName: "Root",
   // Mismo fondo que el splash nativo y el loader web: sin destello blanco mientras carga la webview.
   backgroundColor: "#0A0B0D",
   // Next uses dynamic routes: the native shell loads server.url, not a static export.

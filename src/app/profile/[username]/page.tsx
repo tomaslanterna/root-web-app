@@ -6,7 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button";
-import { Award, Check, ChevronLeft, ChevronRight, Grid3X3, Loader2, Plus, Settings, Share2, ShieldCheck } from "lucide-react";
+import { Award, Check, ChevronLeft, ChevronRight, Grid3X3, Loader2, Lock, Plus, Settings, Share2, ShieldCheck } from "lucide-react";
 import { SwipeBack } from "@/components/ui/SwipeBack";
 import { MOCK_POSTS } from "@/lib/mocks";
 import { CreatePhotoModal } from "@/components/profile/CreatePhotoModal";
@@ -17,13 +17,16 @@ import { usersApi } from "@/services/users";
 import { useMutation } from "@/hooks/useMutation";
 import { BadgeCollection } from "@/components/profile/BadgeCollection";
 import { ProfilePostsGrid } from "@/components/profile/ProfilePostsGrid";
-import type { AuthUser } from "@/types/auth";
+import type { AuthUser, FollowStatus } from "@/types/auth";
 import type { Post } from "@/types/posts";
+import { TabIndicator } from "@/components/ui/TabIndicator";
+import { useBackNavigation } from "@/hooks/useBackNavigation";
 
 interface ProfileUser extends AuthUser { followers?: string[]; following?: string[] }
 
 export default function UserProfilePage() {
   const router = useRouter();
+  const goBack = useBackNavigation();
   const params = useParams();
   const searchParams = useSearchParams();
   const fromSearch = searchParams.get("from") === "search";
@@ -37,7 +40,9 @@ export default function UserProfilePage() {
   const { user: currentUser, isLoading: authLoading } = useAuth();
 
   const [profileUser, setProfileUser] = useState<ProfileUser | null>(null);
-  const [isFollowing, setIsFollowing] = useState(false);
+  const [followStatus, setFollowStatus] = useState<FollowStatus>("none");
+  // Perfil privado que no seguís: se ve el encabezado, no el contenido.
+  const [canViewContent, setCanViewContent] = useState(true);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const badgeToOpen = searchParams.get("badge");
@@ -91,20 +96,34 @@ export default function UserProfilePage() {
         setIsLoadingProfile(true);
         const data = await usersApi.getUserProfile(username);
         setProfileUser(data.user);
-        setIsFollowing(data.isFollowing);
+        setFollowStatus(data.followStatus ?? (data.isFollowing ? "following" : "none"));
+        const canView = data.canViewContent ?? true;
+        setCanViewContent(canView);
 
-        // 1. Obtener posts del backend (con UUID real y URL firmada de S3)
+        // 1. Posts del perfil. Si es privado y no lo seguís no se piden.
         let backendUserPosts: Post[] = [];
-        try {
-          const { data: feedData } = await api.get("/v1/posts?include_feeds=global");
-          const globalPosts: Post[] = feedData?.global?.data || [];
-          backendUserPosts = globalPosts.filter(
-            (p) =>
-              p.authorId === data.user.id ||
-              p.authorName?.toLowerCase() === username.toLowerCase(),
-          );
-        } catch (feedErr) {
-          console.warn("No se pudieron cargar posts del backend:", feedErr);
+        if (canView) {
+          try {
+            backendUserPosts = await usersApi.getUserPosts(username);
+          } catch (postsErr) {
+            const status = (postsErr as { response?: { status?: number } })?.response?.status;
+            // Backend anterior sin /users/{username}/posts: se filtran del feed global como antes.
+            if (status === 404) {
+              try {
+                const { data: feedData } = await api.get("/v1/posts?include_feeds=global");
+                const globalPosts: Post[] = feedData?.global?.data || [];
+                backendUserPosts = globalPosts.filter(
+                  (p) =>
+                    p.authorId === data.user.id ||
+                    p.authorName?.toLowerCase() === username.toLowerCase(),
+                );
+              } catch (feedErr) {
+                console.warn("No se pudieron cargar posts del backend:", feedErr);
+              }
+            } else if (status === 403) {
+              setCanViewContent(false);
+            }
+          }
         }
 
         // 2. Cargar posts locales descartando posts con key cruda ya sincronizados
@@ -156,12 +175,13 @@ export default function UserProfilePage() {
   }, [username]);
 
   const { mutate: followMutate, isLoading: isFollowingLoading } = useMutation(
-    async () => {
-      await usersApi.followUser(username);
-    },
+    () => usersApi.followUser(username),
     {
-      onSuccess: () => {
-        setIsFollowing(true);
+      onSuccess: (status) => {
+        setFollowStatus(status);
+        // Perfil privado: queda "Solicitado" hasta que acepte; no suma seguidor todavía.
+        if (status !== "following") return;
+        setCanViewContent(true);
         setProfileUser((prev) => prev ? ({
           ...prev,
           followers: [...(prev.followers || []), ...(currentUser ? [currentUser.id] : [])],
@@ -177,7 +197,8 @@ export default function UserProfilePage() {
       },
       {
         onSuccess: () => {
-          setIsFollowing(false);
+          setFollowStatus("none");
+          if (profileUser?.isPrivate) setCanViewContent(false);
           setProfileUser((prev) => prev ? ({
             ...prev,
             followers: (prev.followers || []).filter(
@@ -193,10 +214,11 @@ export default function UserProfilePage() {
       router.push("/login");
       return;
     }
-    if (isFollowing) {
+    // Siguiendo o Solicitado: el mismo botón deja de seguir o cancela la solicitud.
+    if (followStatus !== "none") {
       unfollowMutate({});
     } else {
-      followMutate({});
+      followMutate(undefined);
     }
   };
 
@@ -205,18 +227,20 @@ export default function UserProfilePage() {
       router.replace(communityReturnTo);
       return;
     }
-    router.back();
+    goBack();
   };
 
   if (authLoading || isLoadingProfile) {
-    return <ProfileSkeleton />;
+    // Mientras carga todavía no está profileUser: se compara por username para armar el mismo header.
+    const looksMine = !!currentUser?.username && currentUser.username.toLowerCase() === username.toLowerCase();
+    return <ProfileSkeleton isMine={looksMine} showBack={!looksMine || fromSearch || fromCommunities} />;
   }
 
   if (error || !profileUser) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 min-h-[100dvh] bg-bg text-ink p-6 text-center">
         <h2 className="m-0 text-lg font-semibold">{error || "Perfil no encontrado"}</h2>
-        <Button variant="secondary" onClick={() => router.back()}>Volver</Button>
+        <Button variant="secondary" onClick={goBack}>Volver</Button>
       </div>
     );
   }
@@ -226,6 +250,8 @@ export default function UserProfilePage() {
     { id: "Insignias", label: "Insignias", icon: Award },
   ];
 
+  const showBack = !isMyProfile || fromSearch || fromCommunities;
+  const showContent = isMyProfile || canViewContent;
   const roleLabel = profileUser.role === "USER" ? "Raver" : profileUser.role;
   const squareButton =
     "size-11 shrink-0 rounded-control bg-surface border border-line flex items-center justify-center hover:bg-surface-2 transition-colors focus-visible:outline-2 focus-visible:outline-accent";
@@ -252,8 +278,10 @@ export default function UserProfilePage() {
     <div className="flex min-h-[100dvh] flex-col bg-bg pb-[calc(var(--root-mobile-nav-clearance)+1rem)] text-ink md:pb-16">
       <header className="sticky top-0 z-30 w-full bg-bg/95 backdrop-blur-md border-b border-line">
         <div className="w-full max-w-3xl mx-auto px-4 pt-[calc(0.75rem+var(--root-safe-top))] pb-3 md:pt-6 flex items-center gap-3">
-        {(fromSearch || fromCommunities) && <SwipeBack onBack={handleProfileBack} />}
-        {(fromSearch || fromCommunities) && (
+        {/* Volver: en el perfil de otra persona siempre; en el propio solo si se llegó desde búsqueda o una comunidad
+            (desde la barra de abajo es una pestaña raíz). */}
+        {showBack && <SwipeBack onBack={handleProfileBack} />}
+        {showBack && (
           <button
             type="button"
             onClick={handleProfileBack}
@@ -316,7 +344,10 @@ export default function UserProfilePage() {
         <div className="min-w-0 flex flex-col gap-2">
           <div className="flex flex-col gap-1">
             <h2 className="m-0 text-[22px] font-bold truncate">{profileUser.name}</h2>
-            <span className="text-sm text-ink-2 truncate">@{profileUser.username}</span>
+            <span className="text-sm text-ink-2 truncate flex items-center gap-1">
+              @{profileUser.username}
+              {profileUser.isPrivate && <Lock className="size-3.5 shrink-0 text-ink-3" aria-label="Perfil privado" />}
+            </span>
             <span className="mt-1 flex flex-wrap gap-1.5">
               <span className="label-mono px-2 py-1 rounded-full bg-surface-2 text-ink-2">{roleLabel}</span>
               {profileUser.isKycVerified ? (
@@ -327,12 +358,28 @@ export default function UserProfilePage() {
             </span>
           </div>
           <div className="flex gap-[18px] text-sm text-ink-2">
-            <span>
-              <span className="num-mono text-base font-semibold text-ink">{profileUser.followers?.length || 0}</span> seguidores
-            </span>
-            <span>
-              <span className="num-mono text-base font-semibold text-ink">{profileUser.following?.length || 0}</span> seguidos
-            </span>
+            {showContent ? (
+              <>
+                <Link
+                  href={`/profile/${encodeURIComponent(profileUser.username)}/follows?tab=followers`}
+                  className="rounded-md hover:text-ink transition-colors focus-visible:outline-2 focus-visible:outline-accent"
+                >
+                  <span className="num-mono text-base font-semibold text-ink">{profileUser.followers?.length || 0}</span> seguidores
+                </Link>
+                <Link
+                  href={`/profile/${encodeURIComponent(profileUser.username)}/follows?tab=following`}
+                  className="rounded-md hover:text-ink transition-colors focus-visible:outline-2 focus-visible:outline-accent"
+                >
+                  <span className="num-mono text-base font-semibold text-ink">{profileUser.following?.length || 0}</span> seguidos
+                </Link>
+              </>
+            ) : (
+              <>
+                {/* Privado y sin seguir: se ven las cantidades, no las listas. */}
+                <span><span className="num-mono text-base font-semibold text-ink">{profileUser.followers?.length || 0}</span> seguidores</span>
+                <span><span className="num-mono text-base font-semibold text-ink">{profileUser.following?.length || 0}</span> seguidos</span>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -342,11 +389,11 @@ export default function UserProfilePage() {
           <Button
             onClick={toggleFollow}
             disabled={isFollowingLoading || isUnfollowingLoading}
-            variant={isFollowing ? "secondary" : "primary"}
-            aria-pressed={isFollowing}
+            variant={followStatus === "none" ? "primary" : "secondary"}
+            aria-pressed={followStatus !== "none"}
             className="h-11 rounded-xl text-sm"
           >
-            {isFollowing ? "Siguiendo" : "Seguir"}
+            {followStatus === "following" ? "Siguiendo" : followStatus === "requested" ? "Solicitado" : "Seguir"}
           </Button>
           <button
             type="button"
@@ -383,8 +430,26 @@ export default function UserProfilePage() {
         </div>
       )}
 
+      {!showContent && (
+        <section className="mt-6 w-full max-w-3xl mx-auto px-4">
+          <div className="rounded-card border border-line bg-surface px-5 py-8 flex flex-col items-center gap-3 text-center">
+            <span className="size-12 rounded-full bg-surface-2 flex items-center justify-center">
+              <Lock className="size-5 text-ink-2" aria-hidden="true" />
+            </span>
+            <h3 className="m-0 text-[17px] font-semibold">Esta cuenta es privada</h3>
+            <p className="m-0 max-w-xs text-sm text-ink-2">
+              {followStatus === "requested"
+                ? "Le mandaste una solicitud. Cuando la acepte vas a ver sus posts e insignias."
+                : "Seguila para ver sus posts e insignias."}
+            </p>
+          </div>
+        </section>
+      )}
+
+      {showContent && <>
       <div className="mt-6 w-full max-w-3xl mx-auto">
-        <div role="tablist" aria-label="Contenido del perfil" className="flex border-b border-line">
+        <div role="tablist" aria-label="Contenido del perfil" className="relative flex border-b border-line">
+          <TabIndicator variant="underline" />
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
             const Icon = tab.icon;
@@ -399,7 +464,7 @@ export default function UserProfilePage() {
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
                   "flex-1 h-12 flex items-center justify-center transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent",
-                  isActive ? "text-accent shadow-[inset_0_-2px_0_var(--color-accent)]" : "text-ink-3 hover:text-ink-2",
+                  isActive ? "text-accent" : "text-ink-3 hover:text-ink-2",
                 )}
               >
                 <Icon className="size-5" aria-hidden="true" />
@@ -409,7 +474,7 @@ export default function UserProfilePage() {
         </div>
       </div>
 
-      <div id={`profile-tab-${activeTab}`} role="tabpanel" aria-label={activeTab} className={cn("w-full max-w-3xl mx-auto", activeTab === "Posts" ? "pt-0.5" : "px-4 pt-4")}>
+      <div key={activeTab} id={`profile-tab-${activeTab}`} role="tabpanel" aria-label={activeTab} className={cn("tab-panel-in w-full max-w-3xl mx-auto", activeTab === "Posts" ? "pt-0.5" : "px-4 pt-4")}>
         {activeTab === "Insignias" && (
           <BadgeCollection key={`${username}:${currentUser?.id || "guest"}`} username={username} isOwner={isMyProfile} initialBadgeId={isMyProfile ? badgeToOpen : null} />
         )}
@@ -421,17 +486,21 @@ export default function UserProfilePage() {
           />
         )}
       </div>
+      </>}
 
       {isMyProfile && (
         <>
-          <button
-            type="button"
-            onClick={handleStartUpload}
-            aria-label="Subir foto"
-            className="fixed right-5 bottom-[calc(var(--root-mobile-nav-clearance)+0.75rem)] md:bottom-8 md:right-8 z-40 size-14 rounded-full bg-accent text-on-accent shadow-[0_8px_30px_rgba(212,255,0,0.35)] flex items-center justify-center hover:scale-105 active:scale-95 transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent cursor-pointer"
-          >
-            <Plus className="size-7" strokeWidth={2.4} aria-hidden="true" />
-          </button>
+          {/* Subir foto es de la pestaña Posts: en Insignias no se muestra. */}
+          {activeTab === "Posts" && (
+            <button
+              type="button"
+              onClick={handleStartUpload}
+              aria-label="Subir foto"
+              className="fixed right-5 bottom-[calc(var(--root-mobile-nav-clearance)+0.75rem)] md:bottom-8 md:right-8 z-40 size-14 rounded-full bg-accent text-on-accent shadow-[0_8px_30px_rgba(212,255,0,0.35)] flex items-center justify-center hover:scale-105 active:scale-95 transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent cursor-pointer"
+            >
+              <Plus className="size-7" strokeWidth={2.4} aria-hidden="true" />
+            </button>
+          )}
 
           <input
             ref={fileInputRef}

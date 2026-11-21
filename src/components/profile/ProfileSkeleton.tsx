@@ -3,26 +3,33 @@ import { cn } from "@/lib/utils";
 
 interface ProfileSkeletonProps {
   className?: string;
+  /** Mismos botones que tendrá el header ya cargado, así nada se corre al terminar de cargar. */
+  showBack?: boolean;
+  isMine?: boolean;
 }
 
-export function ProfileSkeleton({ className }: ProfileSkeletonProps) {
+export function ProfileSkeleton({ className, showBack = false, isMine = true }: ProfileSkeletonProps) {
   return (
     <div
       aria-label="Cargando perfil..."
       role="status"
       className={cn(
-        "flex min-h-[100dvh] flex-col bg-bg pb-[calc(var(--root-mobile-nav-clearance)+1rem)] text-ink md:pb-16 select-none animate-pulse",
+        "flex min-h-[100dvh] flex-col bg-bg pb-[calc(var(--root-mobile-nav-clearance)+1rem)] text-ink md:pb-16 select-none",
         className,
       )}
     >
-      {/* Header fijo idéntico al del perfil */}
+      {/* Header fijo idéntico al del perfil (sin latir) */}
       <header className="sticky top-0 z-30 w-full bg-bg/95 backdrop-blur-md border-b border-line">
         <div className="w-full max-w-3xl mx-auto px-4 pt-[calc(0.75rem+var(--root-safe-top))] pb-3 md:pt-6 flex items-center gap-3">
+          {showBack && <div className="size-11 shrink-0 rounded-control bg-surface border border-line" />}
           <h1 className="font-display text-[32px] m-0 flex-1 min-w-0">Perfil</h1>
           <div className="size-11 shrink-0 rounded-control bg-surface border border-line" />
-          <div className="size-11 shrink-0 rounded-control bg-surface border border-line" />
+          {isMine && <div className="size-11 shrink-0 rounded-control bg-surface border border-line" />}
         </div>
       </header>
+
+      {/* Solo late lo que carga: el header queda fijo, igual que en el perfil ya cargado. */}
+      <div className="flex flex-1 flex-col animate-pulse">
 
       {/* Info de usuario: Avatar circular (88px) + Detalles */}
       <div className="w-full max-w-3xl mx-auto px-4 pt-5 flex items-center gap-[18px]">
@@ -68,6 +75,7 @@ export function ProfileSkeleton({ className }: ProfileSkeletonProps) {
             />
           ))}
         </div>
+      </div>
       </div>
 
       {/* Botón flotante (+) en la esquina inferior derecha */}

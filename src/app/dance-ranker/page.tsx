@@ -13,6 +13,7 @@ import { DanceRankerSkeleton } from "@/components/dance/DanceRankerSkeleton";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import type { DanceSession } from "@/services/dance";
+import { TabIndicator } from "@/components/ui/TabIndicator";
 
 const timeZone = "America/Montevideo";
 const DAY = 86_400_000;
@@ -247,7 +248,8 @@ export default function DanceRankerPage() {
             <section aria-labelledby="dance-activity" className={cn(card, "mx-4 mt-6 p-4 flex flex-col gap-[18px]")}>
               <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-3">
                 <h2 id="dance-activity" className="font-display not-italic m-0 text-xl">Actividad</h2>
-                <div role="radiogroup" aria-label="Período" className="flex p-[2px] rounded-lg bg-bg border border-line">
+                <div role="radiogroup" aria-label="Período" className="relative flex p-[2px] rounded-lg bg-bg border border-line">
+                  <TabIndicator variant="pill" />
                   {([["fiestas", "Fiestas"], ["week", "Semana"], ["month", "Mes"]] as const).map(([id, label]) => (
                     <button
                       key={id}
@@ -256,8 +258,8 @@ export default function DanceRankerPage() {
                       aria-checked={period === id}
                       onClick={() => setPeriod(id)}
                       className={cn(
-                        "h-7 px-2.5 rounded-[6px] text-xs not-italic font-semibold tracking-normal transition-colors focus-visible:outline-2 focus-visible:outline-accent",
-                        period === id ? "bg-ink text-bg" : "text-ink-2 hover:text-ink",
+                        "relative z-[1] h-7 px-2.5 rounded-[6px] text-xs not-italic font-semibold tracking-normal transition-colors focus-visible:outline-2 focus-visible:outline-accent",
+                        period === id ? "text-bg" : "text-ink-2 hover:text-ink",
                       )}
                     >
                       {label}

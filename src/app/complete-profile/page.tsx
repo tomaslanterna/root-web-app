@@ -8,12 +8,14 @@ import { useMutation } from '@/hooks/useMutation';
 import { usersApi } from '@/services/users';
 import { Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { TopNav } from '@/components/ui/TopNav';
+import { FULL_NAME_ERROR, isFullName, normalizeFullName } from "@/lib/fullName";
 
 export default function CompleteProfilePage() {
   const { user, login, token } = useAuth();
   const router = useRouter();
 
   const [formData, setFormData] = useState({
+    name: '',
     username: '',
     documentId: '',
     dob: '',
@@ -27,6 +29,8 @@ export default function CompleteProfilePage() {
   useEffect(() => {
     if (user) {
       setFormData({
+        // Si el nombre que vino (por ejemplo de Google) no tiene apellido, se pide de nuevo.
+        name: user.name || '',
         username: user.username || '',
         documentId: user.documentId || '',
         dob: user.dob || '',
@@ -80,7 +84,7 @@ export default function CompleteProfilePage() {
           setError('Ese alias ya está en uso. Por favor elige otro.');
           setAliasStatus('invalid');
         } else {
-          setError('Ocurrió un error al guardar los datos. Intenta nuevamente.');
+          setError(err.response?.status === 400 ? FULL_NAME_ERROR : 'Ocurrió un error al guardar los datos. Intenta nuevamente.');
         }
       }
     }
@@ -92,6 +96,11 @@ export default function CompleteProfilePage() {
 
     if (!formData.username || !formData.documentId || !formData.dob) {
       setError('Todos los campos son obligatorios.');
+      return;
+    }
+
+    if (!isFullName(formData.name)) {
+      setError(FULL_NAME_ERROR);
       return;
     }
 
@@ -123,7 +132,7 @@ export default function CompleteProfilePage() {
       return;
     }
 
-    updateProfile(formData);
+    updateProfile({ ...formData, name: normalizeFullName(formData.name) });
   };
 
   return (
@@ -135,7 +144,7 @@ export default function CompleteProfilePage() {
           <div className="text-center space-y-2">
             <h1 className="text-2xl font-black uppercase tracking-tight text-white">Casi listos</h1>
             <p className="text-sm text-neutral-400 font-medium">
-              Te faltan algunos datos para completar tu registro mediante Google.
+              Te faltan algunos datos para completar tu perfil.
             </p>
           </div>
 
@@ -146,6 +155,20 @@ export default function CompleteProfilePage() {
                 <p className="text-xs font-semibold">{error}</p>
               </div>
             )}
+
+            <div className="space-y-1">
+              <label htmlFor="complete-name" className="text-[10px] font-extrabold uppercase tracking-widest text-neutral-400 ml-1">Nombre y apellido</label>
+              <input
+                id="complete-name"
+                type="text"
+                name="name"
+                autoComplete="name"
+                placeholder="Nombre y apellido"
+                value={formData.name}
+                onChange={handleChange}
+                className="w-full bg-[#14171F]/80 backdrop-blur-md rounded-2xl py-3.5 px-4 text-white placeholder:text-neutral-500 focus:outline-none transition-colors border border-white/10 focus:border-[#D4FF00]/50 focus:ring-1 focus:ring-[#D4FF00]/50"
+              />
+            </div>
 
             <div className="space-y-1">
               <label className="text-[10px] font-extrabold uppercase tracking-widest text-neutral-400 ml-1">Alias (Username)</label>

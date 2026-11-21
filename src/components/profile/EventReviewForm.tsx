@@ -25,7 +25,7 @@ const SPACE_OPTIONS = [
 ];
 const chip = (selected: boolean) =>
   `h-8 px-3 rounded-full border text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-accent ${selected ? "bg-accent text-on-accent border-accent" : "bg-surface text-ink-2 border-line-strong hover:text-ink"} disabled:opacity-60`;
-export function EventReviewForm({ badge, onSaved, onStateChange, onRatingChange, children, lineup, lineupLoading, lineupError, onRetry }: { badge: EventBadge; onSaved?: (badge: EventBadge) => void; onStateChange?: (state: ReviewFormState) => void; onRatingChange?: (rating: number | null | undefined) => void; children?: ReactNode; lineup?: BadgeLineup; lineupLoading?: boolean; lineupError?: boolean; onRetry?: () => void }) {
+export function EventReviewForm({ badge, onSaved, onStateChange, onRatingChange, children, lineup, lineupLoading, lineupError, onRetry, onLater }: { badge: EventBadge; onSaved?: (badge: EventBadge) => void; /** Volver sin reseñar: la insignia queda pendiente. */ onLater?: () => void; onStateChange?: (state: ReviewFormState) => void; onRatingChange?: (rating: number | null | undefined) => void; children?: ReactNode; lineup?: BadgeLineup; lineupLoading?: boolean; lineupError?: boolean; onRetry?: () => void }) {
   const [rating, setRating] = useState<number | null>(badge.review?.generalRating ?? 1);
   const [comment, setComment] = useState(badge.review?.comment ?? "");
   const [confirmedBadge, setConfirmedBadge] = useState<EventBadge | null>(null);
@@ -129,6 +129,7 @@ export function EventReviewForm({ badge, onSaved, onStateChange, onRatingChange,
       {locked ? <p role="status" className="m-0 flex items-start gap-2 text-sm text-ink-2"><CheckCircle2 size={18} className="shrink-0 text-accent" aria-hidden="true" /> Reseña confirmada. Las puntuaciones y el texto no se pueden cambiar.</p> : <div className="flex flex-col gap-2.5">
         <p className="m-0 flex gap-2 text-[13px] leading-snug text-ink-2"><Info size={16} className="mt-0.5 shrink-0" aria-hidden="true" />Al confirmar, la nota y la reseña quedan fijas. Solo vos podés verlas.</p>
         <Button type="submit" size="full" disabled={rating === null || lineupLoading || lineupError || review.isSaving || confirmOpen} className="h-[52px] text-base">{review.isSaving ? <><Loader2 className="size-4 animate-spin" aria-hidden="true" /> Guardando...</> : "Guardar valoración"}</Button>
+        {onLater && <Button type="button" variant="ghost" size="full" disabled={review.isSaving || confirmOpen} onClick={onLater} className="h-12 text-[15px] text-ink-2">Dejar pendiente</Button>}
       </div>}
     </form>
     <ConfirmModal isOpen={confirmOpen} title="¿Confirmar tu reseña?" message="Se guardarán tu puntuación del evento, las notas de los DJs y tu reseña. Una vez confirmados, no podrás cambiarlos. ¿Deseás continuar?" confirmText="Confirmar y guardar" cancelText="Cancelar" isLoading={review.isSaving} onClose={() => { if (!submitting.current) setConfirmOpen(false); }} onConfirm={confirm} />

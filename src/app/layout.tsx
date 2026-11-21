@@ -12,8 +12,12 @@ import { DanceProvider } from "@/context/DanceContext";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { CapacitorSetup } from "@/components/CapacitorSetup";
 import { ReviewReminder } from "@/components/profile/ReviewReminder";
+import { InterestsPrompt } from "@/components/InterestsPrompt";
 import { AppSplash } from "@/components/AppSplash";
 import { GlobalPullToRefresh } from "@/components/ui/GlobalPullToRefresh";
+import { PageTransition } from "@/components/PageTransition";
+import { NavigationTracker } from "@/components/NavigationTracker";
+import { TabSwipe } from "@/components/TabSwipe";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,7 +37,7 @@ const archivo = Archivo({
 });
 
 export const metadata: Metadata = {
-  title: "root | Electronic Music Network",
+  title: "Root | Electronic Music Network",
   description: "Social network and event management for electronic music.",
 };
 
@@ -63,19 +67,26 @@ export default function RootLayout({
             <AuthProvider>
               <DanceProvider>
                 <ReviewReminder />
+                <InterestsPrompt />
                 <PushNotificationsProvider>
                   <ChatRealtimeProvider>
                     <MatchProvider>
                       <div className="flex flex-col min-h-[100dvh] w-full bg-bg">
                         <React.Suspense fallback={null}>
                           <BottomNav />
+                          <NavigationTracker />
+                          <TabSwipe />
                         </React.Suspense>
 
-                        {/* Contenedor principal con max-w-[1360px] calibrado para desktop */}
-                        <div className="flex-1 flex flex-col min-h-[100dvh] w-full pt-0 md:pt-24 pb-24 md:pb-16 bg-bg">
+                        {/* Contenedor principal con max-w-[1360px] calibrado para desktop.
+                            Sin padding abajo: cada pantalla deja su propio espacio para la barra, así las que
+                            entran en el viewport no scrollean. En desktop solo se reserva el lugar de la barra flotante. */}
+                        <div className="flex-1 flex flex-col min-h-[100dvh] w-full pt-0 md:pt-24 bg-bg">
                           {/* Contenido principal - Ancho óptimo y simétrico en desktop */}
                           <main className="flex-1 w-full min-w-0 max-w-md md:max-w-[1360px] mx-auto px-0 sm:px-4 md:px-8 lg:px-12 shadow-2xl md:shadow-none transition-colors duration-300">
-                            <GlobalPullToRefresh>{children}</GlobalPullToRefresh>
+                            <PageTransition>
+                              <GlobalPullToRefresh>{children}</GlobalPullToRefresh>
+                            </PageTransition>
                           </main>
                         </div>
                       </div>

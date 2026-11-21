@@ -83,6 +83,7 @@ export function SquadMatchModal() {
                 <Avatar
                   src={user.avatarUrl || undefined}
                   fallback={user.name || "Integrante"}
+                  username={user.username}
                   size="md"
                   className="ring-3 ring-[#14171F] shadow-lg"
                 />

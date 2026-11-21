@@ -187,6 +187,7 @@ function RankingRow({
         <Avatar
           src={person.avatarUrl || undefined}
           fallback={person.name}
+          username={person.username || undefined}
           className={cn("rounded-full", compact ? "size-8" : "size-9")}
         />
         {person.isActive && (
