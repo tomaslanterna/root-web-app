@@ -34,6 +34,15 @@ export const DEFAULT_ARGENTINA_CREWS: PermanentCrew[] = [];
 export type SwipeDirection = "like" | "pass" | "superlike";
 export type SwipeResponse = { status: "queued" } | { status: "matched"; crew: EventSquad };
 
+export interface CrewInvitePreview {
+  crewId: string;
+  name: string;
+  memberCount: number;
+  members: { name: string; username: string; avatarUrl?: string | null }[];
+  /** true si quien abre el link ya es miembro de la crew. */
+  alreadyMember: boolean;
+}
+
 export const matchApi = {
   getEvents: async (): Promise<Event[]> => {
     const { data } = await api.get<EventListResponse>("/v1/events");
@@ -64,11 +73,23 @@ export const matchApi = {
     });
     return data.crew;
   },
-  joinPermanentCrew: async (codeOrId: string): Promise<PermanentCrew> => {
+  joinPermanentCrew: async (inviteCode: string): Promise<PermanentCrew> => {
     const { data } = await api.post<{ crew: PermanentCrew }>(
-      `/v1/crews/join/${encodeURIComponent(codeOrId.trim())}`,
+      `/v1/crews/join/${encodeURIComponent(inviteCode.trim())}`,
     );
     return data.crew;
+  },
+  /** Datos básicos de la crew dueña de un código de invitación (público: sirve antes de iniciar sesión). */
+  getCrewInvite: async (code: string): Promise<CrewInvitePreview> => {
+    const { data } = await api.get<CrewInvitePreview>(`/v1/crews/invite/${encodeURIComponent(code.trim())}`, {
+      skipAuthRedirect: true,
+    });
+    return data;
+  },
+  /** Crea un link de invitación nuevo para la crew; el anterior deja de funcionar. */
+  regenerateCrewInviteCode: async (crewId: string): Promise<string> => {
+    const { data } = await api.post<{ inviteCode: string }>(`/v1/crews/${crewId}/invite-code/regenerate`);
+    return data.inviteCode;
   },
   addCrewMembers: async (crewId: string, memberIds: string[]): Promise<PermanentCrew> => {
     const { data } = await api.post<{ crew: PermanentCrew }>(`/v1/crews/${crewId}/members`, {

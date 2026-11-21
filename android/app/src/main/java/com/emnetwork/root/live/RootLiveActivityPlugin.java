@@ -94,6 +94,9 @@ public class RootLiveActivityPlugin extends Plugin {
         final String mode = call.getString("mode", RootLiveEventState.MODE_BEFORE_START);
         final Double startMsBoxed = call.getDouble("eventStartEpochMs");
         final long startMs = startMsBoxed == null ? System.currentTimeMillis() : startMsBoxed.longValue();
+        final Double endMsBoxed = call.getDouble("eventEndEpochMs");
+        // Sin hora de fin conocida, el servicio usa su tope por defecto (12 h después del inicio).
+        final long endMs = endMsBoxed == null ? 0L : endMsBoxed.longValue();
         final Integer stepsBoxed = call.getInt("stepsCount");
         int requestedSteps = stepsBoxed == null ? 0 : stepsBoxed;
 
@@ -124,7 +127,7 @@ public class RootLiveActivityPlugin extends Plugin {
         // Cualquier otro estado: notificación normal, y se apaga el servicio si estaba activo.
         if (RootLiveEventState.MODE_DANCING.equals(mode) && canCountStepsInBackground()) {
             try {
-                RootLiveStepsService.start(context, state, bannerUrl);
+                RootLiveStepsService.start(context, state, bannerUrl, endMs);
                 JSObject res = new JSObject();
                 res.put("supported", true);
                 res.put("updated", true);

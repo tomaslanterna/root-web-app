@@ -77,10 +77,10 @@ import { EventCardSkeleton } from "@/components/events/EventCardSkeleton";
 
  // Solo lugares de Uruguay, escritos tal cual se guardan en events.department
  // (el filtro busca por ese valor). Si aparece un departamento nuevo en la base,
- // se agrega acá. "Maldonado" no va: esa costa se guarda como "Punta del Este".
+ // se agrega acá. Punta del Este se guarda como departamento "Maldonado".
  const citySuggestions = [
    "Montevideo",
-   "Punta del Este",
+   "Maldonado",
    "Canelones",
    "Rocha",
    "Colonia",
@@ -1731,7 +1731,7 @@ import { EventCardSkeleton } from "@/components/events/EventCardSkeleton";
                  type="text"
                  value={cityQuery}
                  onChange={(e) => setCityQuery(e.target.value)}
-                 placeholder="Buscar ciudad (ej. Montevideo, Punta del Este)..."
+                 placeholder="Buscar ciudad (ej. Montevideo, Maldonado)..."
                  className="w-full bg-transparent text-sm font-medium text-ink placeholder-ink-3 focus:outline-none"
                />
                {cityQuery && (

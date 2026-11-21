@@ -89,6 +89,10 @@ export function LiveEventBanner({
     eventStartForEffect && !Number.isNaN(eventStartForEffect.getTime())
       ? eventStartForEffect.getTime()
       : 0;
+  // Hora de fin del evento (solo la usa Android para apagar el servicio de pasos).
+  const eventEndRaw = (liveEvent as { endDate?: string | null } | null)?.endDate;
+  const eventEndParsed = eventEndRaw ? parseEventRealDate(eventEndRaw).getTime() : NaN;
+  const eventEndMsForEffect = Number.isNaN(eventEndParsed) ? undefined : eventEndParsed;
   const isBeforeStartForEffect = forcedMode
     ? forcedMode === "before_start"
     : eventStartMsForEffect > nowMs;
@@ -152,7 +156,7 @@ export function LiveEventBanner({
       subtitle: subtitleSync,
       footerLabel: footerSync,
       eventStartEpochMs: eventStartMsForEffect,
-    })
+    }, { eventEndEpochMs: eventEndMsForEffect })
       .then((res) => {
         console.log("🔒 [LOCK SCREEN LIVE ACTIVITY]:", res);
       })
@@ -165,6 +169,7 @@ export function LiveEventBanner({
     isWithinFiveHours,
     totalSessionSteps,
     eventStartMsForEffect,
+    eventEndMsForEffect,
     forcedMode,
   ]);
 
