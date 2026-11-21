@@ -21,6 +21,14 @@ export const usersApi = {
     return data;
   },
 
+  /** Sube la foto de perfil (multipart, campo "image") y devuelve el usuario con la nueva `avatarUrl`. */
+  updateAvatar: async (image: File): Promise<AuthUser> => {
+    const formData = new FormData();
+    formData.append("image", image);
+    const { data } = await api.post<AuthUser>("/v1/users/me/avatar", formData, { timeout: 30000 });
+    return data;
+  },
+
   getUserCommunities: async (username: string) => {
     const { data } = await api.get(`/v1/users/${username}/communities`);
     return data;

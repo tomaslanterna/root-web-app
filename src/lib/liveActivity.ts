@@ -9,9 +9,15 @@ export function supportsLiveActivity(): boolean {
   return platform === "ios" || platform === "android";
 }
 
-export function syncLiveActivity(options: SyncLiveActivityOptions) {
+/** Datos que solo usa Android; iOS no los recibe. */
+export interface AndroidLiveActivityExtras {
+  /** Hora de fin del evento (ms epoch): el servicio de pasos en segundo plano se apaga ahí. */
+  eventEndEpochMs?: number;
+}
+
+export function syncLiveActivity(options: SyncLiveActivityOptions, androidExtras?: AndroidLiveActivityExtras) {
   return Capacitor.getPlatform() === "android"
-    ? AndroidLiveActivity.syncLiveActivity(options)
+    ? AndroidLiveActivity.syncLiveActivity({ ...options, ...androidExtras })
     : NativePedometer.syncLiveActivity(options);
 }
 

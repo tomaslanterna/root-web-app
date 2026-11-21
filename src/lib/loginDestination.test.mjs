@@ -10,7 +10,11 @@ vm.runInNewContext(ts.transpileModule(fs.readFileSync(new URL("./loginDestinatio
 test("login returns only to a valid internal badge review and rejects redirects", () => {
   const review = "/events/6b11d7e0-6461-477f-abc6-4eb3dd7f3088/survey";
   assert.equal(api.loginDestination(`?next=${encodeURIComponent(review)}`), review);
-  for (const next of ["", "https://evil.example", "//evil.example", "/events/not-an-id/survey", `${review}?next=https://evil.example`, `${review}/../..`]) {
+  for (const next of ["", "https://evil.example", "/crews/join/ABC/../..", "/crews/join/ABC123?next=https://evil.example", "//evil.example", "/events/not-an-id/survey", `${review}?next=https://evil.example`, `${review}/../..`]) {
     assert.equal(api.loginDestination(`?next=${encodeURIComponent(next)}`), "/feed");
   }
+});
+
+test("login returns to a crew invitation link", () => {
+  assert.equal(api.loginDestination(`?next=${encodeURIComponent("/crews/join/86464CE0")}`), "/crews/join/86464CE0");
 });

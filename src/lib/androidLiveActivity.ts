@@ -6,7 +6,7 @@ import type { SyncLiveActivityOptions } from "@/hooks/usePedometer";
  * Live Activity de iOS: mismas opciones, implementada en `RootLiveActivityPlugin.java`.
  */
 interface RootLiveActivityPlugin {
-  syncLiveActivity(options: SyncLiveActivityOptions): Promise<{
+  syncLiveActivity(options: SyncLiveActivityOptions & { eventEndEpochMs?: number }): Promise<{
     supported: boolean;
     started?: boolean;
     updated?: boolean;

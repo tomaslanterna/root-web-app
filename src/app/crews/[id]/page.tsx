@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { parseEventRealDate } from "@/hooks/useDanceSync";
 import { AddCrewMembersModal, type FriendToInvite } from "@/components/match/AddCrewMembersModal";
 import { CrewDetailSkeleton } from "@/components/match/CrewDetailSkeleton";
+import { CrewInviteLink } from "@/components/match/CrewInviteLink";
 
 interface LeaderboardEntry {
   userId: string;
@@ -276,6 +277,15 @@ export default function CrewDetailPage() {
             </span>
             <ChevronRight className="size-5 text-ink-2 shrink-0" aria-hidden="true" />
           </button>
+        )}
+
+        {isMember && crew.inviteCode && (
+          <CrewInviteLink
+            crewId={String(id)}
+            crewName={crew.name}
+            inviteCode={crew.inviteCode}
+            onCodeChange={(inviteCode) => setCrew((prev) => (prev ? { ...prev, inviteCode } : prev))}
+          />
         )}
 
         <div role="tablist" aria-label="Crew" className="mt-5 flex p-[2px] rounded-lg bg-surface border border-line">

@@ -34,6 +34,8 @@ export default function SettingsPage() {
 
   // Edit Avatar states
   const [avatarUrl, setAvatarUrl] = useState('');
+  // Archivo ya comprimido listo para subir; `avatarUrl` es solo la vista previa.
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [savingProfile, setSavingProfile] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
@@ -64,6 +66,7 @@ export default function SettingsPage() {
       setEditError('No pudimos procesar esa imagen. Probá con otra foto.');
       return;
     }
+    setAvatarFile(compressed);
     const reader = new FileReader();
     reader.onload = (event) => {
       if (typeof event.target?.result === 'string') {
@@ -75,7 +78,7 @@ export default function SettingsPage() {
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!avatarUrl || avatarUrl === user?.avatarUrl) {
+    if (!avatarFile) {
       setShowEditModal(false);
       return;
     }
@@ -83,25 +86,21 @@ export default function SettingsPage() {
     setEditError(null);
 
     try {
-      const payload = {
-        name: user?.name,
-        username: user?.username,
-        avatarUrl,
-      };
-
-      const res = await usersApi.updateMe(payload);
-      const updatedUser = { ...user, ...payload, ...res };
+      // El backend sube la imagen y devuelve el usuario con la URL definitiva de la foto.
+      const res = await usersApi.updateAvatar(avatarFile);
+      const updatedUser = { ...user, ...res };
 
       if (user) {
         login(token || '', updatedUser);
       }
+      setAvatarFile(null);
       setSaveSuccess(true);
       setTimeout(() => {
         setSaveSuccess(false);
         setShowEditModal(false);
       }, 700);
     } catch (err: any) {
-      setEditError(err.message || 'Error al guardar la foto.');
+      setEditError(err.response?.data?.error || err.response?.data?.message || err.message || 'Error al guardar la foto.');
     } finally {
       setSavingProfile(false);
     }
@@ -209,6 +208,7 @@ export default function SettingsPage() {
             type="button"
             onClick={() => {
               setAvatarUrl(user?.avatarUrl || '');
+              setAvatarFile(null);
               setEditError(null);
               setShowEditModal(true);
             }}
@@ -353,7 +353,7 @@ export default function SettingsPage() {
             <Button
               type="submit"
               variant="primary"
-              disabled={savingProfile || saveSuccess || !avatarUrl || avatarUrl === user?.avatarUrl}
+              disabled={savingProfile || saveSuccess || !avatarFile}
               className="w-full h-12 text-sm font-bold uppercase tracking-wider flex items-center justify-center gap-2"
             >
               {savingProfile ? (

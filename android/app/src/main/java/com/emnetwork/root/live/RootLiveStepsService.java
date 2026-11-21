@@ -11,7 +11,9 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Build;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
 import java.util.concurrent.ExecutorService;
@@ -33,10 +35,11 @@ public class RootLiveStepsService extends Service implements SensorEventListener
     private static final String EXTRA_STEPS = "steps";
     private static final String EXTRA_START = "start";
     private static final String EXTRA_BANNER = "banner";
+    private static final String EXTRA_END = "end";
 
     /** Igual que el timer de 4 s de iOS: no se refresca la notificación más seguido que esto. */
     private static final long REFRESH_INTERVAL_MS = 4000L;
-    /** Tope de seguridad: si nadie lo detuvo, se apaga 12 horas después del inicio del evento. */
+    /** Si no se conoce la hora de fin: se apaga 12 horas después del inicio del evento. */
     private static final long MAX_AFTER_START_MS = 12L * 60L * 60L * 1000L;
 
     /** La app (plugin) se suscribe para recibir los pasos en vivo mientras está abierta. */
@@ -57,6 +60,10 @@ public class RootLiveStepsService extends Service implements SensorEventListener
     private String bannerUrl;
     private Bitmap thumbnail;
     private boolean thumbnailRequested;
+    /** Hora (ms epoch) en la que el servicio se apaga solo: el fin del evento. */
+    private long stopAtMs;
+    private final Handler stopHandler = new Handler(Looper.getMainLooper());
+    private final Runnable stopRunnable = this::stopSelf;
     /** Pasos y lectura del contador en el momento de la última sincronización con la web. */
     private int baseSteps;
     private long baseCounter = -1;
@@ -75,14 +82,15 @@ public class RootLiveStepsService extends Service implements SensorEventListener
     }
 
     /** Puede lanzar si el sistema no deja iniciar un servicio en primer plano desde segundo plano. */
-    static void start(Context context, RootLiveEventState state, String bannerUrl) {
+    static void start(Context context, RootLiveEventState state, String bannerUrl, long eventEndEpochMs) {
         Intent intent = new Intent(context, RootLiveStepsService.class)
             .putExtra(EXTRA_EVENT_ID, state.eventId)
             .putExtra(EXTRA_TITLE, state.title)
             .putExtra(EXTRA_HOUR, state.startHourLabel)
             .putExtra(EXTRA_STEPS, state.steps)
             .putExtra(EXTRA_START, state.eventStartEpochMs)
-            .putExtra(EXTRA_BANNER, bannerUrl);
+            .putExtra(EXTRA_BANNER, bannerUrl)
+            .putExtra(EXTRA_END, eventEndEpochMs);
         ContextCompat.startForegroundService(context, intent);
     }
 
@@ -123,6 +131,12 @@ public class RootLiveStepsService extends Service implements SensorEventListener
                 intent.getLongExtra(EXTRA_START, System.currentTimeMillis())
             );
         }
+        long endExtra = intent.getLongExtra(EXTRA_END, 0L);
+        stopAtMs = endExtra > 0 ? endExtra : state.eventStartEpochMs + MAX_AFTER_START_MS;
+        // Se apaga justo a la hora de fin del evento, aunque la app esté cerrada y no haya más pasos.
+        stopHandler.removeCallbacks(stopRunnable);
+        stopHandler.postDelayed(stopRunnable, Math.max(0L, stopAtMs - System.currentTimeMillis()));
+
         String newBanner = intent.getStringExtra(EXTRA_BANNER);
         boolean bannerChanged = newBanner != null && !newBanner.equals(bannerUrl);
         bannerUrl = newBanner;
@@ -193,7 +207,7 @@ public class RootLiveStepsService extends Service implements SensorEventListener
         }
         StepsListener listener = stepsListener;
         if (changed && listener != null) listener.onSteps(latest);
-        if (now > state.eventStartEpochMs + MAX_AFTER_START_MS) {
+        if (now > stopAtMs) {
             stopSelf();
             return;
         }
@@ -226,6 +240,11 @@ public class RootLiveStepsService extends Service implements SensorEventListener
     public void onDestroy() {
         if (sensorManager != null && listening) sensorManager.unregisterListener(this);
         listening = false;
+        stopHandler.removeCallbacks(stopRunnable);
+        synchronized (LOCK) {
+            activeEventId = null;
+            currentSteps = 0;
+        }
         worker.shutdownNow();
         super.onDestroy();
     }
