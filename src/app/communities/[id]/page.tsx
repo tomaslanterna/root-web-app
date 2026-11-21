@@ -19,6 +19,7 @@ import {
 import { useCommunityContact } from "@/hooks/useCommunityModeration";
 import type { CommunityTab } from "@/types/communities";
 import { cn } from "@/lib/utils";
+import { TabIndicator } from "@/components/ui/TabIndicator";
 
 interface CommunityDetailPageProps {
   params: Promise<{ id: string }>;
@@ -113,7 +114,7 @@ export default function CommunityDetailPage({ params }: CommunityDetailPageProps
       className={cn(
         "min-h-[100dvh] w-full overflow-x-hidden bg-bg text-ink",
         activeTab === "channel" && !isGuest
-          ? "-mb-24 md:-mb-16"
+          ? ""
           : "pb-6 sm:pb-10",
       )}
     >
@@ -126,9 +127,10 @@ export default function CommunityDetailPage({ params }: CommunityDetailPageProps
         isJoining={isChangingMembership}
       />
 
-      <div className="sticky top-[var(--root-safe-top)] md:top-20 z-20 bg-bg/95 backdrop-blur-md">
+      <div className="sticky top-[calc(var(--root-safe-top)+4.25rem)] md:top-20 z-20 bg-bg/95 backdrop-blur-md">
         <nav aria-label="Navegación de la comunidad" className="mx-auto w-full max-w-4xl px-4 py-3 sm:px-6">
-          <div role="tablist" className="flex p-[2px] rounded-lg bg-surface border border-line">
+          <div role="tablist" className="relative flex p-[2px] rounded-lg bg-surface border border-line">
+            <TabIndicator variant="pill" />
             {TABS.map((tab) => {
               const isActive = activeTab === tab.id;
               return (
@@ -140,8 +142,8 @@ export default function CommunityDetailPage({ params }: CommunityDetailPageProps
                   aria-controls={`community-tab-${tab.id}`}
                   onClick={() => setActiveTab(tab.id)}
                   className={cn(
-                    "h-7 flex-1 rounded-[6px] text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-accent",
-                    isActive ? "bg-ink text-bg" : "text-ink-2 hover:text-ink",
+                    "relative z-[1] h-7 flex-1 rounded-[6px] text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-accent",
+                    isActive ? "text-bg" : "text-ink-2 hover:text-ink",
                   )}
                 >
                   {tab.label}

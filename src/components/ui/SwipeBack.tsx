@@ -52,6 +52,9 @@ export function SwipeBack({ onBack, href, enabled = true }: SwipeBackProps) {
     () => {
       const main = mainRef.current;
       const go = () => {
+        // El gesto ya animó la salida: la transición de pantalla (PageTransition) no se suma encima.
+        document.documentElement.classList.add("root-swipe-back");
+        setTimeout(() => document.documentElement.classList.remove("root-swipe-back"), 1000);
         if (onBack) onBack();
         else if (href) router.push(href);
         else router.back();

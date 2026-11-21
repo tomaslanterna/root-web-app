@@ -14,7 +14,14 @@ import {
   Camera,
   Check,
   Loader2,
+  Music,
+  Lock,
+  UserCheck,
 } from 'lucide-react';
+import Link from 'next/link';
+import { useMutation } from '@/hooks/useMutation';
+import { useInterests } from '@/hooks/useInterests';
+import { InterestsSheet } from '@/components/InterestsSheet';
 import { SwipeBack } from "@/components/ui/SwipeBack";
 import { Button } from '@/components/ui/Button';
 import { usePushNotifications } from '@/context/PushNotificationsContext';
@@ -28,6 +35,21 @@ export default function SettingsPage() {
   const { user, login, token, logout } = useAuth();
   const push = usePushNotifications();
   const [logoutError, setLogoutError] = useState<string>();
+  const interests = useInterests();
+  const [showInterests, setShowInterests] = useState(false);
+  // Perfil privado: se cambia al instante y vuelve atrás si falla.
+  const [isPrivate, setIsPrivate] = useState(!!user?.isPrivate);
+  const { mutate: savePrivacy, isLoading: savingPrivacy, error: privacyError } = useMutation(usersApi.setPrivacy, {
+    onSuccess: (value) => {
+      if (user && token) login(token, { ...user, isPrivate: value });
+    },
+    onError: (_err, value) => setIsPrivate(!value),
+  });
+  const togglePrivacy = () => {
+    const next = !isPrivate;
+    setIsPrivate(next);
+    void savePrivacy(next).catch(() => undefined);
+  };
   const [loggingOut, setLoggingOut] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -144,7 +166,7 @@ export default function SettingsPage() {
           >
             <ChevronLeft className="size-[22px]" aria-hidden="true" />
           </button>
-          <h1 className="font-display text-[32px] m-0 flex-1 min-w-0">
+          <h1 className="font-display header-title-fit m-0 flex-1 min-w-0">
             Configuración
           </h1>
         </div>
@@ -203,6 +225,80 @@ export default function SettingsPage() {
 
         {/* Opciones de configuración */}
         <div className="bg-surface border border-line rounded-card overflow-hidden divide-y divide-line">
+          {/* Perfil privado: seguir requiere que aceptes la solicitud. */}
+          <div className="w-full flex items-center justify-between gap-3 p-4.5">
+            <div className="flex items-center gap-3.5 min-w-0">
+              <div className="p-2.5 bg-accent/10 rounded-control text-accent shrink-0">
+                <Lock className="size-5" />
+              </div>
+              <div className="min-w-0">
+                <span id="privacy-label" className="font-bold text-ink block text-[15px]">Perfil privado</span>
+                <span className="text-xs text-ink-2 block">
+                  {isPrivate ? 'Solo tus seguidores ven tus posts, insignias y listas.' : 'Cualquiera puede ver tu perfil y seguirte.'}
+                </span>
+                {privacyError && <span role="alert" className="text-xs text-danger block">No se pudo guardar el cambio.</span>}
+              </div>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={isPrivate}
+              aria-labelledby="privacy-label"
+              disabled={savingPrivacy}
+              onClick={togglePrivacy}
+              className={cn(
+                'relative h-7 w-12 shrink-0 rounded-full transition-colors disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
+                isPrivate ? 'bg-accent' : 'bg-surface-2 border border-line-strong',
+              )}
+            >
+              <span
+                aria-hidden="true"
+                className={cn(
+                  'absolute top-1/2 size-5 -translate-y-1/2 rounded-full transition-[left,background-color] duration-200',
+                  isPrivate ? 'left-[26px] bg-on-accent' : 'left-1 bg-ink-2',
+                )}
+              />
+            </button>
+          </div>
+
+          {isPrivate && (
+            <Link
+              href="/settings/follow-requests"
+              className="w-full flex items-center justify-between p-4.5 hover:bg-surface-2 transition-colors text-left"
+            >
+              <div className="flex items-center gap-3.5">
+                <div className="p-2.5 bg-accent/10 rounded-control text-accent shrink-0">
+                  <UserCheck className="size-5" />
+                </div>
+                <div>
+                  <span className="font-bold text-ink block text-[15px]">Solicitudes de seguimiento</span>
+                  <span className="text-xs text-ink-2">Aceptá o rechazá quién te quiere seguir</span>
+                </div>
+              </div>
+              <ChevronRight className="size-5 text-ink-3" />
+            </Link>
+          )}
+
+          {/* Intereses musicales: ordenan los eventos destacados. */}
+          <button
+            type="button"
+            onClick={() => setShowInterests(true)}
+            className="w-full flex items-center justify-between p-4.5 hover:bg-surface-2 transition-colors cursor-pointer text-left"
+          >
+            <div className="flex items-center gap-3.5 min-w-0">
+              <div className="p-2.5 bg-accent/10 rounded-control text-accent shrink-0">
+                <Music className="size-5" />
+              </div>
+              <div className="min-w-0">
+                <span className="font-bold text-ink block text-[15px]">Tus géneros</span>
+                <span className="text-xs text-ink-2 block truncate">
+                  {interests.genres.length > 0 ? interests.genres.join(' · ') : 'Elegí qué música te gusta'}
+                </span>
+              </div>
+            </div>
+            <ChevronRight className="size-5 text-ink-3 shrink-0" />
+          </button>
+
           {/* Foto de Perfil */}
           <button
             type="button"
@@ -468,6 +564,18 @@ export default function SettingsPage() {
           </form>
         )}
       </BottomSheet>
+
+      {showInterests && (
+        <InterestsSheet
+          isOpen
+          mode="edit"
+          options={interests.options}
+          initialGenres={interests.genres}
+          isSaving={interests.isSaving}
+          onSave={interests.saveInterests}
+          onClose={() => setShowInterests(false)}
+        />
+      )}
     </main>
   );
 }

@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Transiciones entre pantallas con el View Transitions API (ver <ViewTransition> en app/layout.tsx).
+  experimental: {
+    viewTransition: true,
+  },
   env: {
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
     BACKEND_PUBLIC_API_URL: process.env.BACKEND_PUBLIC_API_URL,

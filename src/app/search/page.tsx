@@ -9,6 +9,7 @@ import { api } from "@/lib/api";
 import { EventCard } from "@/components/ui/EventCard";
 import { CommunityCard } from "@/components/communities/CommunityCard";
 import { RootLoader } from "@/components/ui/RootLoader";
+import { TabIndicator } from "@/components/ui/TabIndicator";
 
 type TabType = "usuarios" | "eventos" | "comunidades";
 
@@ -124,7 +125,8 @@ export default function SearchPage() {
 
         {/* Fila 2: Tabs estilo clásico con indicador inferior centrado */}
         <nav aria-label="Filtro de búsqueda" className="w-full">
-          <div className="flex w-full max-w-4xl mx-auto items-stretch" role="tablist">
+          <div className="relative flex w-full max-w-4xl mx-auto items-stretch" role="tablist">
+            <TabIndicator variant="underline" className="h-[2.5px] rounded-none shadow-[0_-1px_6px_rgba(212,255,0,0.3)]" />
             {tabs.map((tab) => {
               const isActive = activeTab === tab.id;
               return (
@@ -141,9 +143,6 @@ export default function SearchPage() {
                   )}
                 >
                   <span>{tab.label}</span>
-                  {isActive && (
-                    <span className="absolute bottom-0 inset-x-0 h-[2.5px] bg-accent shadow-[0_-1px_6px_rgba(212,255,0,0.3)]" />
-                  )}
                 </button>
               );
             })}

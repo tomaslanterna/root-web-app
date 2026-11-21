@@ -34,7 +34,8 @@ export function CommunityHeader({
     <header>
       <div className="relative h-[200px] bg-surface-2">
         <CommunityCover coverImageUrl={community.coverImageUrl} category={community.category} sizes="100vw" />
-        <div className="absolute top-[calc(1rem+var(--root-safe-top))] md:top-4 inset-x-4 flex justify-between">
+        {/* Fijos en mobile: volver e info siguen a mano al scrollear. En desktop quedan sobre la portada. */}
+        <div className="fixed md:absolute z-40 top-[calc(1rem+var(--root-safe-top))] md:top-4 inset-x-4 flex justify-between pointer-events-none [&>*]:pointer-events-auto">
           <SwipeBack onBack={onBack} />
           <button type="button" onClick={onBack} aria-label="Volver" className={roundButton}>
             <ChevronLeft className="size-[22px]" aria-hidden="true" />

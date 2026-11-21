@@ -108,6 +108,7 @@ export default function CrewInvitePage() {
                     <Avatar
                       src={member.avatarUrl ?? undefined}
                       fallback={member.name || member.username}
+                      username={member.username}
                       size="md"
                       className="border-2 border-bg"
                     />

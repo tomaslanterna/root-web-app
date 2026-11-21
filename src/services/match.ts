@@ -13,6 +13,8 @@ export interface PermanentCrewMember {
 }
 
 export interface PermanentCrew {
+  /** Pública: aparece en el listado de Crews y cualquiera se une. Privada: solo con el link de invitación. */
+  isPublic?: boolean;
   id: string;
   name: string;
   inviteCode: string | null;
@@ -64,9 +66,11 @@ export const matchApi = {
     name?: string;
     memberIds?: string[];
     eventIds?: string[];
+    isPublic?: boolean;
   }): Promise<PermanentCrew> => {
     const { data } = await api.post<{ crew: PermanentCrew }>("/v1/crews", {
       name: payload?.name || "Nueva Crew",
+      isPublic: payload?.isPublic ?? false,
       type: "permanent",
       member_ids: payload?.memberIds || [],
       event_ids: payload?.eventIds || [],
@@ -78,6 +82,16 @@ export const matchApi = {
       `/v1/crews/join/${encodeURIComponent(inviteCode.trim())}`,
     );
     return data.crew;
+  },
+  /** Unirse a una crew pública, sin código de invitación. */
+  joinPublicCrew: async (crewId: string): Promise<PermanentCrew> => {
+    const { data } = await api.post<{ crew: PermanentCrew }>(`/v1/crews/${encodeURIComponent(crewId)}/join`);
+    return data.crew;
+  },
+  /** Cambia la crew entre pública y privada (solo quien la creó). */
+  setCrewVisibility: async (crewId: string, isPublic: boolean): Promise<boolean> => {
+    const { data } = await api.patch<{ isPublic: boolean }>(`/v1/crews/${encodeURIComponent(crewId)}`, { isPublic });
+    return data.isPublic;
   },
   /** Datos básicos de la crew dueña de un código de invitación (público: sirve antes de iniciar sesión). */
   getCrewInvite: async (code: string): Promise<CrewInvitePreview> => {

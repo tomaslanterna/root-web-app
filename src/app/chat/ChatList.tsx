@@ -14,6 +14,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { RootLoader } from "@/components/ui/RootLoader";
+import { PullToRefresh } from "@/components/ui/PullToRefresh";
 import { useNativeBackHandler } from "@/hooks/useNativeBack";
 
 export function ChatList({ className, onBack, backButtonRef }: { className?: string; embedded?: boolean; onBack?: () => void; backButtonRef?: React.Ref<HTMLButtonElement> }) {
@@ -112,6 +113,8 @@ export function ChatList({ className, onBack, backButtonRef }: { className?: str
         </button>
       </header>
 
+      {/* Tirar hacia abajo recarga las conversaciones; el logo sale debajo de este header. */}
+      <PullToRefresh onRefresh={refresh} mouse={false}>
       <div className="mx-4 mt-4 h-9 md:h-10 shrink-0 px-3 flex items-center gap-2 rounded-xl bg-surface border border-line focus-within:border-accent text-ink-3 transition-colors">
         <Search className="size-4 shrink-0" aria-hidden="true" />
         <input
@@ -166,6 +169,7 @@ export function ChatList({ className, onBack, backButtonRef }: { className?: str
                 <Avatar
                   src={otherUser?.avatarUrl}
                   fallback={otherUser?.name || "U"}
+                  username={chat.type !== "CREWS" ? otherUser?.username : undefined}
                   className="size-[52px] rounded-full shrink-0"
                 />
                 <span className="flex-1 min-w-0 flex flex-col gap-[3px]">
@@ -199,6 +203,7 @@ export function ChatList({ className, onBack, backButtonRef }: { className?: str
           })
         )}
       </section>
+      </PullToRefresh>
 
       {isSearchModalOpen && (
         <div role="dialog" aria-modal="true" aria-labelledby="new-chat-title" className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center sm:p-4 bg-black/75">

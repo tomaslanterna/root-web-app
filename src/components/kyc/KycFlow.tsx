@@ -326,7 +326,7 @@ export default function KycFlow() {
           >
             <ChevronLeft className="size-[22px]" aria-hidden="true" />
           </button>
-          <h1 className="font-display text-[32px] m-0 flex-1 min-w-0 truncate">Verificación</h1>
+          <h1 className="font-display header-title-fit m-0 flex-1 min-w-0 truncate">Verificación</h1>
         </div>
       </header>
 

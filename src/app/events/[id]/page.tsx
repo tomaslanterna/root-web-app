@@ -27,6 +27,7 @@ import type { Event, RSVPResponse } from "@/types/events";
 import { cn, copyTextToClipboard } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { badgeReviewHref } from "@/lib/badgeReviewLink";
+import { TabIndicator } from "@/components/ui/TabIndicator";
 
 const fallbackBanner =
   "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=80&w=1200&auto=format&fit=crop";
@@ -377,8 +378,9 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             ref={tabsListRef}
             role="tablist"
             aria-label="Información del evento"
-            className="flex p-[2px] rounded-lg bg-surface border border-line"
+            className="relative flex p-[2px] rounded-lg bg-surface border border-line"
           >
+            <TabIndicator variant="pill" />
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -389,8 +391,8 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 aria-controls={`event-panel-${tab.id}`}
                 onClick={(e) => handleTabChange(tab.id, e)}
                 className={cn(
-                  "flex-1 h-7 rounded-[6px] text-xs font-semibold whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-accent",
-                  activeTab === tab.id ? "bg-ink text-bg" : "text-ink-2 hover:text-ink",
+                  "relative z-[1] flex-1 h-7 rounded-[6px] text-xs font-semibold whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-accent",
+                  activeTab === tab.id ? "text-bg" : "text-ink-2 hover:text-ink",
                 )}
               >
                 {tab.label}
@@ -399,7 +401,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           </div>
 
           {activeTab === "info" && (
-            <div role="tabpanel" id="event-panel-info" aria-labelledby="event-tab-info" className="pt-[18px] flex flex-col gap-6">
+            <div role="tabpanel" id="event-panel-info" aria-labelledby="event-tab-info" className="tab-panel-in pt-[18px] flex flex-col gap-6">
               {hasLineup && (
                 <div className="flex flex-col gap-3">
                   <h3 className="m-0 text-[17px] font-semibold">Lineup</h3>
@@ -456,7 +458,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           )}
 
           {activeTab === "venue" && (
-            <div role="tabpanel" id="event-panel-venue" aria-labelledby="event-tab-venue" className="pt-[18px] flex flex-col gap-3">
+            <div role="tabpanel" id="event-panel-venue" aria-labelledby="event-tab-venue" className="tab-panel-in pt-[18px] flex flex-col gap-3">
               <a
                 href={googleMapsUrl}
                 target="_blank"
@@ -478,7 +480,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           )}
 
           {activeTab === "rules" && (
-            <div role="tabpanel" id="event-panel-rules" aria-labelledby="event-tab-rules" className="pt-[18px] flex flex-col gap-2.5 text-base leading-normal text-ink-2">
+            <div role="tabpanel" id="event-panel-rules" aria-labelledby="event-tab-rules" className="tab-panel-in pt-[18px] flex flex-col gap-2.5 text-base leading-normal text-ink-2">
               <p className="m-0"><strong className="text-ink">Tolerancia cero:</strong> no se tolera acoso, discriminación ni violencia. El consentimiento es indiscutible.</p>
               <p className="m-0"><strong className="text-ink">Cuidado en pista:</strong> si alguien necesita asistencia o agua, avisá al personal del club.</p>
               <p className="m-0"><strong className="text-ink">Teléfonos:</strong> flashes apagados y respeto por la privacidad de las personas.</p>

@@ -16,6 +16,9 @@ import { parseEventRealDate } from "@/hooks/useDanceSync";
 import { AddCrewMembersModal, type FriendToInvite } from "@/components/match/AddCrewMembersModal";
 import { CrewDetailSkeleton } from "@/components/match/CrewDetailSkeleton";
 import { CrewInviteLink } from "@/components/match/CrewInviteLink";
+import { TabIndicator } from "@/components/ui/TabIndicator";
+import { useBackNavigation } from "@/hooks/useBackNavigation";
+import { useMutation } from "@/hooks/useMutation";
 
 interface LeaderboardEntry {
   userId: string;
@@ -30,6 +33,8 @@ interface CrewData {
   id: string;
   name: string;
   inviteCode?: string;
+  /** Pública: aparece en Crews y cualquiera se une. Privada: solo con el link de invitación. */
+  isPublic?: boolean;
   memberCount: number;
   topSteps?: number;
   totalSteps?: number;
@@ -44,6 +49,7 @@ const FALLBACK_EVENT_IMAGE =
 export default function CrewDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const goBack = useBackNavigation("/match");
   const { user } = useAuth();
   const [view, setView] = useState<"ranking" | "members">("ranking");
   // Referencia fija para separar eventos próximos de finalizados.
@@ -204,6 +210,25 @@ export default function CrewDetailPage() {
 
   const isMember =
     !!user?.id && allTimeMembers.some((m) => m.userId === user.id);
+  const isHost =
+    !!user?.id && allTimeMembers.some((m) => m.userId === user.id && m.role === "host");
+
+  const { mutate: joinCrew, isLoading: isJoining, error: joinError } = useMutation(matchApi.joinPublicCrew, {
+    onSuccess: () => void loadCrewData(),
+  });
+  const { mutate: saveVisibility, isLoading: isSavingVisibility, error: visibilityError } = useMutation(
+    ({ crewId, isPublic }: { crewId: string; isPublic: boolean }) => matchApi.setCrewVisibility(crewId, isPublic),
+    {
+      // Si falla, el switch vuelve a como estaba.
+      onError: (_err, { isPublic }) => setCrew((prev) => (prev ? { ...prev, isPublic: !isPublic } : prev)),
+    },
+  );
+  const toggleVisibility = () => {
+    if (!crew) return;
+    const next = !crew.isPublic;
+    setCrew((prev) => (prev ? { ...prev, isPublic: next } : prev));
+    void saveVisibility({ crewId: String(id), isPublic: next }).catch(() => undefined);
+  };
 
   if (isLoading) {
     return <CrewDetailSkeleton />;
@@ -231,12 +256,13 @@ export default function CrewDetailPage() {
 
   return (
     <div className="min-h-[100dvh] bg-bg text-ink pb-[calc(var(--root-mobile-nav-clearance)+1rem)] md:pb-16">
-      <div className="w-full max-w-2xl mx-auto px-4 pt-[calc(0.75rem+var(--root-safe-top))] md:pt-6">
-        <header className="flex items-center justify-between">
-          <SwipeBack />
+      <div className="w-full max-w-2xl mx-auto px-4">
+        {/* Header fijo: volver y chat quedan a mano mientras se scrollea el ranking. */}
+        <header className="sticky top-0 z-30 -mx-4 px-4 pt-[calc(0.75rem+var(--root-safe-top))] pb-3 md:pt-6 bg-bg/95 backdrop-blur-md flex items-center justify-between">
+          <SwipeBack onBack={goBack} />
           <button
             type="button"
-            onClick={() => router.back()}
+            onClick={goBack}
             aria-label="Volver a crews"
             className="size-11 rounded-control bg-surface border border-line flex items-center justify-center hover:bg-surface-2 transition-colors focus-visible:outline-2 focus-visible:outline-accent"
           >
@@ -251,7 +277,7 @@ export default function CrewDetailPage() {
           </Link>
         </header>
 
-        <div className="pt-5 flex items-center gap-4">
+        <div className="pt-2 flex items-center gap-4">
           <CrewMonogram name={crew.name} className="size-[72px] rounded-[18px] text-2xl" />
           <div className="min-w-0 flex flex-col gap-1.5">
             <h1 className="font-display text-[26px] m-0">{crew.name}</h1>
@@ -259,8 +285,62 @@ export default function CrewDetailPage() {
               {crew.memberCount || allTimeMembers.length} integrantes ·{" "}
               <span className="num-mono">{totalCrewSteps.toLocaleString("es-AR")}</span> pasos
             </span>
+            <span
+              className={cn(
+                "self-start label-mono px-2 py-1 rounded-full",
+                crew.isPublic ? "bg-accent/12 text-accent" : "bg-surface-2 text-ink-2",
+              )}
+            >
+              {crew.isPublic ? "Pública" : "Privada"}
+            </span>
           </div>
         </div>
+
+        {/* Quien no es miembro: a una pública se suma con un toque; a una privada solo con invitación. */}
+        {!isMember && user && crew.isPublic && (
+          <div className="mt-4 flex flex-col gap-2">
+            <Button onClick={() => void joinCrew(String(id)).catch(() => undefined)} disabled={isJoining} className="h-11 w-full">
+              {isJoining ? "Uniendo…" : "Unirme a la crew"}
+            </Button>
+            {joinError && <p role="alert" className="m-0 text-sm text-rose-400">No pudimos sumarte. Probá de nuevo.</p>}
+          </div>
+        )}
+        {!isMember && !crew.isPublic && (
+          <p className="mt-4 mb-0 text-sm text-ink-2">Es una crew privada: para sumarte te tienen que pasar su link de invitación.</p>
+        )}
+
+        {/* Solo quien la creó decide si es pública o privada. */}
+        {isHost && (
+          <div className="mt-4 p-3.5 flex items-center gap-3 rounded-card bg-surface border border-line">
+            <span className="flex-1 min-w-0 flex flex-col gap-0.5">
+              <span id="crew-visibility-label" className="text-[15px] font-semibold">Crew pública</span>
+              <span className="text-[13px] text-ink-2">
+                {crew.isPublic ? "Aparece en Crews y cualquiera se puede sumar." : "Solo se suman con tu link de invitación."}
+              </span>
+              {visibilityError && <span role="alert" className="text-[13px] text-rose-400">No se pudo guardar el cambio.</span>}
+            </span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={!!crew.isPublic}
+              aria-labelledby="crew-visibility-label"
+              disabled={isSavingVisibility}
+              onClick={toggleVisibility}
+              className={cn(
+                "relative h-7 w-12 shrink-0 rounded-full transition-colors disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+                crew.isPublic ? "bg-accent" : "bg-surface-2 border border-line-strong",
+              )}
+            >
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "absolute top-1/2 size-5 -translate-y-1/2 rounded-full transition-[left,background-color] duration-200",
+                  crew.isPublic ? "left-[26px] bg-on-accent" : "left-1 bg-ink-2",
+                )}
+              />
+            </button>
+          </div>
+        )}
 
         {isMember && (
           <button
@@ -288,7 +368,8 @@ export default function CrewDetailPage() {
           />
         )}
 
-        <div role="tablist" aria-label="Crew" className="mt-5 flex p-[2px] rounded-lg bg-surface border border-line">
+        <div role="tablist" aria-label="Crew" className="relative mt-5 flex p-[2px] rounded-lg bg-surface border border-line">
+          <TabIndicator variant="pill" />
           {(["ranking", "members"] as const).map((tab) => (
             <button
               key={tab}
@@ -297,8 +378,8 @@ export default function CrewDetailPage() {
               aria-selected={view === tab}
               onClick={() => setView(tab)}
               className={cn(
-                "flex-1 h-7 rounded-[6px] text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-accent",
-                view === tab ? "bg-ink text-bg" : "text-ink-2 hover:text-ink",
+                "relative z-[1] flex-1 h-7 rounded-[6px] text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-accent",
+                view === tab ? "text-bg" : "text-ink-2 hover:text-ink",
               )}
             >
               {tab === "ranking" ? "Ranking" : "Integrantes"}
@@ -307,7 +388,7 @@ export default function CrewDetailPage() {
         </div>
 
         {view === "ranking" ? (
-          <>
+          <div key="ranking" className="tab-panel-in">
             <div className="pt-4 flex items-center justify-between gap-2">
               <div role="radiogroup" aria-label="Tipo de ranking" className="flex gap-1.5">
                 {(["allTime", "event"] as const).map((type) => (
@@ -358,7 +439,7 @@ export default function CrewDetailPage() {
                   const style = podiumStyle[i];
                   return (
                     <div key={member.userId} className="flex flex-col items-center gap-2 min-w-0">
-                      <Avatar src={member.avatarUrl} fallback={member.name} className={cn("rounded-full", style.avatar)} />
+                      <Avatar src={member.avatarUrl} fallback={member.name} username={member.username} className={cn("rounded-full", style.avatar)} />
                       <span className="text-sm font-semibold truncate max-w-full">
                         {firstName(member)}
                         {isMe(member) && <span className="font-normal text-ink-3"> (vos)</span>}
@@ -383,7 +464,7 @@ export default function CrewDetailPage() {
                 {rest.map((member, idx) => (
                   <li key={member.userId} className="flex items-center gap-3 p-3.5">
                     <span className="num-mono w-6 text-sm text-ink-3">{podium.length + idx + 1}</span>
-                    <Avatar src={member.avatarUrl} fallback={member.name} className="size-9 rounded-full" />
+                    <Avatar src={member.avatarUrl} fallback={member.name} username={member.username} className="size-9 rounded-full" />
                     <span className="flex-1 min-w-0 text-[15px] font-semibold truncate">
                       {firstName(member)}
                       {isMe(member) && <span className="font-normal text-ink-3"> (vos)</span>}
@@ -481,9 +562,9 @@ export default function CrewDetailPage() {
                 </div>
               )}
             </section>
-          </>
+          </div>
         ) : (
-          <ul className="mt-4 p-0 list-none rounded-card overflow-hidden bg-surface border border-line divide-y divide-white/[0.06]">
+          <ul key="members" className="tab-panel-in mt-4 p-0 list-none rounded-card overflow-hidden bg-surface border border-line divide-y divide-white/[0.06]">
             {allTimeMembers.map((member) => (
               <li key={member.userId}>
                 <Link

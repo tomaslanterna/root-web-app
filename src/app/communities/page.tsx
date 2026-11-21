@@ -10,6 +10,7 @@ import { SearchButton } from "@/components/ui/SearchButton";
 import { useAuth } from "@/context/AuthContext";
 import { useCommunityDirectory, useCreateCommunity } from "@/hooks/useCommunities";
 import type { CommunityFilters, CreateCommunityInput } from "@/types/communities";
+import { TabIndicator } from "@/components/ui/TabIndicator";
 
 const PAGE_SIZE = 12;
 const emptyCommunity: CreateCommunityInput = {
@@ -63,7 +64,7 @@ export default function CommunitiesPage() {
       <header className="sticky top-0 z-30 border-b border-line bg-bg/92 backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 pb-4 pt-[calc(0.75rem+var(--root-safe-top))] md:px-8 md:pt-6">
           <div className="min-w-0">
-            <h1 className="m-0 font-display text-[32px]">Comunidades</h1>
+            <h1 className="m-0 font-display header-title-fit">Comunidades</h1>
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <SearchButton />
@@ -88,11 +89,11 @@ export default function CommunitiesPage() {
         </div>
 
         <div className="flex items-end justify-between gap-4 border-b border-line">
-          <div role="tablist" aria-label="Comunidades" className="flex min-w-0 gap-5">
+          <div role="tablist" aria-label="Comunidades" className="relative flex min-w-0 gap-5">
+            <TabIndicator variant="underline" />
             {(["explore", "mine"] as const).map((tab) => (
               <button key={tab} type="button" role="tab" aria-selected={scope === tab} disabled={isLoading} onClick={() => setScope(tab)} className={`relative h-11 whitespace-nowrap text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-accent ${scope === tab ? "text-ink" : "text-ink-3 hover:text-ink-2"}`}>
                 {tab === "mine" ? "Las tuyas" : "Descubrir"}
-                {scope === tab && <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-accent" />}
               </button>
             ))}
           </div>
@@ -111,7 +112,7 @@ export default function CommunitiesPage() {
             <Button variant="secondary" size="sm" className="mt-4" onClick={() => void load(directoryFilters).catch(() => undefined)}>Reintentar</Button>
           </section>
         ) : (
-          <CommunityList communities={communities} isLoading={isLoading && communities.length === 0} emptyMessage={scope === "mine" ? "Todavía no te sumaste a ninguna comunidad." : "Todavía no hay comunidades para descubrir."} />
+          <CommunityList key={scope} communities={communities} isLoading={isLoading && communities.length === 0} emptyMessage={scope === "mine" ? "Todavía no te sumaste a ninguna comunidad." : "Todavía no hay comunidades para descubrir."} />
         )}
 
         {meta.hasMore && (

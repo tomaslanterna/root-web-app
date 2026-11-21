@@ -151,7 +151,7 @@ export function BadgeCollection({ username, isOwner, initialBadgeId = null }: { 
           </button>
         </div>
       }>
-        {selected && <BadgeDetail key={selected.eventId} badge={selected} isOwner={isOwner} heroRef={heroRef} moving={moving} closing={phase === "closing"} lineup={lineup.data} lineupLoading={lineup.isLoading} lineupError={!!lineup.error} onRetry={() => void lineup.load().catch(() => undefined)} onSaved={badge => { collection.update(badge); setFormState({ dirty: false, saving: false }); close(); }} onFormState={reportFormState} />}
+        {selected && <BadgeDetail key={selected.eventId} badge={selected} isOwner={isOwner} heroRef={heroRef} moving={moving} closing={phase === "closing"} lineup={lineup.data} lineupLoading={lineup.isLoading} lineupError={!!lineup.error} onRetry={() => void lineup.load().catch(() => undefined)} onSaved={badge => { collection.update(badge); setFormState({ dirty: false, saving: false }); close(); }} onFormState={reportFormState} onLater={() => { setFormState({ dirty: false, saving: false }); close(); }} />}
       </Modal>
       <BadgeShareDialog share={share} />
       {selected && moving && <div ref={movingRef} aria-hidden="true" className="pointer-events-none fixed z-[90]" style={{ visibility: "hidden" }}><BadgeMedal badge={selected} size="hero" isOwner={isOwner} /></div>}

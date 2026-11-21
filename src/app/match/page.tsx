@@ -15,6 +15,7 @@ import { useAuth } from "@/context/AuthContext";
 import { LoginRequired } from "@/components/ui/LoginRequired";
 import { MatchSkeleton } from "@/components/match/MatchSkeleton";
 import { useRouter } from "next/navigation";
+import { TabIndicator } from "@/components/ui/TabIndicator";
 
 export default function MatchPage() {
   const { user, isLoading: authLoading } = useAuth();
@@ -31,7 +32,23 @@ export default function MatchPage() {
     allCrews,
     crewsLoading,
     createCrew,
+    joinPublicCrew,
   } = useMatcherCatalog();
+  const [joiningCrewId, setJoiningCrewId] = useState<string | null>(null);
+  const [joinError, setJoinError] = useState<string | null>(null);
+
+  const handleJoinCrew = async (crewId: string) => {
+    setJoiningCrewId(crewId);
+    setJoinError(null);
+    try {
+      const id = await joinPublicCrew(crewId);
+      router.push(`/crews/${id}`);
+    } catch {
+      setJoinError("No pudimos sumarte a la crew. Probá de nuevo.");
+    } finally {
+      setJoiningCrewId(null);
+    }
+  };
 
   // User event-based squads from matcher
   const userSquads = squads.filter((s) =>
@@ -62,10 +79,12 @@ export default function MatchPage() {
     name: string;
     memberIds: string[];
     eventIds: string[];
+    isPublic: boolean;
     friends: Array<{ id: string; name: string; username: string; avatarUrl?: string }>;
   }) => {
     const createdId = await createCrew({
       name: data.name,
+      isPublic: data.isPublic,
       memberIds: data.memberIds,
       eventIds: data.eventIds,
       friends: data.friends,
@@ -103,7 +122,8 @@ export default function MatchPage() {
           <DanceStatsWidget />
         </div>
 
-        <div role="tablist" aria-label="Crews" className="flex p-[2px] rounded-lg bg-surface border border-line">
+        <div role="tablist" aria-label="Crews" className="relative flex p-[2px] rounded-lg bg-surface border border-line">
+          <TabIndicator variant="pill" />
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -112,8 +132,8 @@ export default function MatchPage() {
               aria-selected={activeTab === tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "flex-1 h-7 rounded-[6px] text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-accent",
-                activeTab === tab.id ? "bg-ink text-bg" : "text-ink-2 hover:text-ink",
+                "relative z-[1] flex-1 h-7 rounded-[6px] text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-accent",
+                activeTab === tab.id ? "text-bg" : "text-ink-2 hover:text-ink",
               )}
             >
               {tab.label}
@@ -225,6 +245,7 @@ export default function MatchPage() {
                                       key={member.userId}
                                       src={member.avatarUrl || undefined}
                                       fallback={member.name || "Integrante"}
+                                      username={member.username}
                                       size="sm"
                                       className="size-7 ring-2 ring-surface"
                                     />
@@ -264,13 +285,14 @@ export default function MatchPage() {
                 className="flex-1 min-w-0 bg-transparent border-0 outline-none text-ink text-xs md:text-sm placeholder:text-ink-3"
               />
             </div>
-            <span className="label-mono text-ink-3">Crews registradas · {allCrews.length}</span>
+            <span className="label-mono text-ink-3">Crews públicas · {allCrews.length}</span>
+            {joinError && <p role="alert" className="m-0 text-sm text-rose-400">{joinError}</p>}
 
             {filteredCountryCrews.length === 0 ? (
               <p className="py-8 text-center text-[15px] text-ink-2">
                 {searchCrewsQuery
                   ? `No hay crews que coincidan con "${searchCrewsQuery}".`
-                  : "Todavía no hay crews registradas."}
+                  : "Todavía no hay crews públicas. Las privadas se suman solo con invitación."}
               </p>
             ) : (
               filteredCountryCrews.map((crew) => {
@@ -288,7 +310,23 @@ export default function MatchPage() {
                         {crew.memberCount} integrantes{crew.location ? ` · ${crew.location}` : ""}
                       </span>
                     </span>
-                    {isMyCrew && <span className="label-mono text-accent shrink-0">Miembro</span>}
+                    {isMyCrew ? (
+                      <span className="label-mono text-accent shrink-0">Miembro</span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          void handleJoinCrew(crew.id);
+                        }}
+                        disabled={joiningCrewId === crew.id}
+                        aria-label={`Unirme a ${crew.name}`}
+                        className="h-9 shrink-0 px-3.5 rounded-xl bg-accent text-on-accent text-[13px] font-semibold active:scale-[0.97] disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                      >
+                        {joiningCrewId === crew.id ? "Uniendo…" : "Unirme"}
+                      </button>
+                    )}
                     <ChevronRight className="size-5 text-ink-3 shrink-0" aria-hidden="true" />
                   </Link>
                 );

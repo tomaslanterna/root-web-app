@@ -23,6 +23,7 @@
  } from "lucide-react";
  import { EventCard, FEATURED_FLYER_EXTRA } from "@/components/ui/EventCard";
 import { EventCardSkeleton } from "@/components/events/EventCardSkeleton";
+import { TabIndicator } from "@/components/ui/TabIndicator";
  import { Button } from "@/components/ui/Button";
  import { RootLoader } from "@/components/ui/RootLoader";
  import { SegmentedControl } from "@/components/ui/SegmentedControl";
@@ -40,7 +41,6 @@ import { EventCardSkeleton } from "@/components/events/EventCardSkeleton";
  import { eventsApi } from "@/services/events";
  import { cn } from "@/lib/utils";
  import { useEventsInbox } from "@/context/FeedInboxContext";
- import { useHorizontalSwipe } from "@/hooks/useHorizontalSwipe";
  import { useMatchedFontSize } from "@/hooks/useMatchedFontSize";
  import type { Event, EventFilters, EventListResponse } from "@/types/events";
 
@@ -351,12 +351,7 @@ import { EventCardSkeleton } from "@/components/events/EventCardSkeleton";
    }, []);
 
    const openInbox = inbox?.open ?? (() => router.push("/chat?from=events"));
-   const { ref: swipeRef } = useHorizontalSwipe(
-     -1,
-     !!user && !isMenuOpen && !showFilters && !isWhenOpen && !isGenreOpen && !isDatesOpen,
-     openInbox,
-     inbox ? { onProgress: inbox.move, onCancel: inbox.cancel } : undefined,
-   );
+   // Los mensajes se abren solo con el botón: deslizar hacia el costado cambia de pestaña (TabSwipe).
 
    useEffect(() => {
      const handleClickOutside = (event: MouseEvent) => {
@@ -684,7 +679,6 @@ import { EventCardSkeleton } from "@/components/events/EventCardSkeleton";
 
    return (
      <div
-       ref={swipeRef}
        className="feed-swipe events-swipe hide-scrollbar flex min-h-screen flex-col bg-bg text-ink"
      >
        {/* Header: marca, búsqueda y mensajes */}
@@ -1373,8 +1367,9 @@ import { EventCardSkeleton } from "@/components/events/EventCardSkeleton";
                  <div
                    role="radiogroup"
                    aria-label="Vista"
-                   className="md:hidden shrink-0 flex p-[2px] rounded-lg bg-surface border border-line"
+                   className="relative md:hidden shrink-0 flex p-[2px] rounded-lg bg-surface border border-line"
                  >
+                   <TabIndicator variant="pill" />
                    {viewOptions.map(({ id, label, icon: Icon }) => (
                      <button
                        key={id}
@@ -1384,8 +1379,8 @@ import { EventCardSkeleton } from "@/components/events/EventCardSkeleton";
                        aria-label={label}
                        onClick={() => setViewMode(id)}
                        className={cn(
-                         "size-7 flex items-center justify-center rounded-[6px] transition-colors focus-visible:outline-2 focus-visible:outline-accent",
-                         viewMode === id ? "bg-ink text-bg" : "text-ink-2 hover:text-ink",
+                         "relative z-[1] size-7 flex items-center justify-center rounded-[6px] transition-colors focus-visible:outline-2 focus-visible:outline-accent",
+                         viewMode === id ? "text-bg" : "text-ink-2 hover:text-ink",
                        )}
                      >
                        <Icon className="size-3.5" aria-hidden={true} />
@@ -1514,9 +1509,11 @@ import { EventCardSkeleton } from "@/components/events/EventCardSkeleton";
              </div>
            ) : displayEvents.length > 0 ? (
              viewMode === "calendar" ? (
-               <EventCalendarView events={displayEvents} />
+               <div key="calendar" className="tab-panel-in">
+                 <EventCalendarView events={displayEvents} />
+               </div>
              ) : viewMode === "list" ? (
-               <div className="flex flex-col gap-6 animate-in fade-in duration-300">
+               <div key="list" className="tab-panel-in flex flex-col gap-6">
                  {chronologicalGroups.map((group, groupIndex) => (
                    <div key={group.id} className="space-y-3">
                      <div className="flex items-baseline justify-between gap-3 border-b border-line pb-2">
@@ -1546,7 +1543,7 @@ import { EventCardSkeleton } from "@/components/events/EventCardSkeleton";
                  ))}
                </div>
              ) : (
-               <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-5 animate-in fade-in duration-300">
+               <div key="grid" className="tab-panel-in grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-5">
                  {displayEvents.map((event, index) => (
                    <EventCard
                      key={event.id}

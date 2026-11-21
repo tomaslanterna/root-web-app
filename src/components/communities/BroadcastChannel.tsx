@@ -212,6 +212,7 @@ export function BroadcastChannel({
                   <Avatar
                     src={message.senderAvatar}
                     fallback={message.senderName || "U"}
+                    username={message.senderUsername}
                     size="sm"
                     className="mt-0.5 shrink-0 h-7 w-7 sm:h-8 sm:w-8 ring-1 ring-white/10"
                   />

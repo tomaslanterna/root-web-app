@@ -130,6 +130,7 @@ export function FollowedAttendeesModal({
                   <Avatar
                     src={attendee.avatarUrl}
                     fallback={attendee.name}
+                    username={attendee.username}
                     size="md"
                     className="border-white/10 bg-neutral-800"
                   />

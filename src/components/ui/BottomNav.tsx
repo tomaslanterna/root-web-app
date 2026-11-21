@@ -15,6 +15,7 @@ import { useAuth } from "@/context/AuthContext";
 import { QuickActionMenu } from "@/components/ui/QuickActionMenu";
 import { Avatar } from "@/components/ui/Avatar";
 import { Capacitor } from "@capacitor/core";
+import { setNavDirection } from "@/lib/navDirection";
 
 const subscribeMounted = () => () => {};
 
@@ -150,10 +151,17 @@ export function BottomNav() {
     return item;
   });
 
+  // Pestaña actual: tocar una que está a su izquierda hace el swipe hacia la derecha (como volver).
+  const activeMobileIndex = visibleMobileItems.findIndex(
+    (item) =>
+      isItemActive(item.href) || (item.href.startsWith("/profile") && isProfileActive),
+  );
+
   return (
     <>
       {/* 1. Desktop Top Floating Capsule (Estilo Glassmorphism Apple / Linear con Auto-Hide) */}
       <header
+        style={{ viewTransitionName: "root-top-nav" }}
         className={cn(
           "hidden md:flex fixed top-4 inset-x-0 z-[60] justify-center pointer-events-none px-4 sm:px-6 transition-all duration-300 ease-out",
           isVisible || pathname === "/events"
@@ -291,6 +299,8 @@ export function BottomNav() {
         aria-label="Navegación principal móvil"
         inert={hideOnMobile}
         aria-hidden={hideOnMobile || undefined}
+        // Capa propia en la transición de pantalla: la barra queda quieta mientras la pantalla se desliza.
+        style={{ viewTransitionName: "root-bottom-nav" }}
         className={cn(
           "fixed left-1/2 -translate-x-1/2 z-[60] w-full max-w-md px-4 flex justify-center transition-[transform,opacity] duration-200 ease-out motion-reduce:transition-opacity md:hidden",
           isIOS
@@ -310,7 +320,7 @@ export function BottomNav() {
               : "h-16 w-full shadow-[0_12px_32px_rgba(0,0,0,0.5)]",
           )}
         >
-          {visibleMobileItems.map((item) => {
+          {visibleMobileItems.map((item, index) => {
             const isActive =
               pathname === item.href ||
               (item.href !== "/" && pathname.startsWith(`${item.href}/`)) ||
@@ -325,6 +335,7 @@ export function BottomNav() {
                 href={item.href}
                 aria-label={item.label}
                 aria-current={isActive ? "page" : undefined}
+                onClick={() => setNavDirection(index < activeMobileIndex ? "back" : "forward")}
                 className={cn(
                   "flex-1 min-w-0 rounded-card flex items-center justify-center transition-[height,color,background-color] duration-300 motion-reduce:transition-none active:scale-[0.95] focus-visible:outline-2 focus-visible:outline-accent",
                   isCompact ? "h-9" : "h-12",

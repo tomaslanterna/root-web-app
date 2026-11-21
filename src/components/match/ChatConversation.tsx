@@ -95,7 +95,7 @@ export function ChatConversation({ chatId }: { chatId: string }) {
         <Link href="/chat" className="p-1 rounded-full hover:bg-white/10 text-white transition-colors md:hidden">
           <ChevronLeft className="w-5 h-5" />
         </Link>
-        <Avatar src={otherUser?.avatarUrl} fallback={otherUser?.name || "U"} size="sm" className="ring-2 ring-[#D4FF00]/40" />
+        <Avatar src={otherUser?.avatarUrl} fallback={otherUser?.name || "U"} username={otherUser?.username} size="sm" className="ring-2 ring-[#D4FF00]/40" />
         <div className="min-w-0 flex-1">
           <p className="text-xs font-black uppercase tracking-wider text-white truncate">
             {chatInfo.type === "CREWS" ? (
