@@ -2,12 +2,11 @@
 
 import { use } from "react";
 import Link from "next/link";
-import { Loader2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { LoginRequired } from "@/components/ui/LoginRequired";
 import { ChatConversation } from "@/components/match/ChatConversation";
 import { useSquadChat } from "@/hooks/useSquadChat";
-import { RootLoader } from "@/components/ui/RootLoader";
+import { ChatConversationSkeleton } from "@/components/chat/ChatSkeletons";
 
 export default function SquadChatPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -28,5 +27,5 @@ export default function SquadChatPage({ params }: { params: Promise<{ id: string
       </div>
     );
   }
-  return <RootLoader fullScreen size="lg" label="Cargando squad" />;
+  return <ChatConversationSkeleton />;
 }

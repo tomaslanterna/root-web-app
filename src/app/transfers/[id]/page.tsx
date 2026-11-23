@@ -4,7 +4,8 @@ import { useState, useEffect, useRef, use } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ShieldCheck, Ticket, Send, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
 import { SwipeBack } from "@/components/ui/SwipeBack";
-import { RootLoader } from "@/components/ui/RootLoader";
+import { TransferDealSkeleton } from "@/components/transfers/TransferSkeletons";
+import { ChatMessagesSkeleton } from "@/components/chat/ChatSkeletons";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { transfersApi } from "@/services/transfers";
@@ -116,7 +117,7 @@ export default function TransferDealRoomPage({ params }: { params: Promise<{ id:
   };
 
   if (isLoadingDeal) {
-    return <RootLoader fullScreen size="lg" label="Cargando transfer" />;
+    return <TransferDealSkeleton />;
   }
 
   if (!transfer) {
@@ -201,9 +202,7 @@ export default function TransferDealRoomPage({ params }: { params: Promise<{ id:
              </p>
           </div>
         ) : isLoadingChat && messages.length === 0 ? (
-           <div className="flex justify-center py-4">
-             <Loader2 className="w-5 h-5 text-neutral-500 animate-spin" />
-           </div>
+           <ChatMessagesSkeleton />
         ) : (
           messages.map((msg) => {
             if (msg.type === "system") {

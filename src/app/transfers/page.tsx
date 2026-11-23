@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { useTransfers } from "@/hooks/useTransfers";
-import { RootLoader } from "@/components/ui/RootLoader";
+import { TransferListSkeleton } from "@/components/transfers/TransferSkeletons";
 import { TabIndicator } from "@/components/ui/TabIndicator";
 import { useBackNavigation } from "@/hooks/useBackNavigation";
 
@@ -217,9 +217,7 @@ export default function TransfersPage() {
 
         <div className="mt-4 flex flex-col gap-3">
           {isLoading ? (
-            <div className="flex justify-center py-16">
-              <RootLoader size="md" label="Cargando transfers disponibles" />
-            </div>
+            <TransferListSkeleton />
           ) : filteredTransfers.length > 0 ? (
             filteredTransfers.map((transfer) => {
               const isNegotiating = transfer.status === "NEGOTIATING";

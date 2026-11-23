@@ -13,7 +13,7 @@ import {
 } from "@/hooks/useChatDirectory";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { RootLoader } from "@/components/ui/RootLoader";
+import { ChatListSkeleton } from "@/components/chat/ChatSkeletons";
 import { PullToRefresh } from "@/components/ui/PullToRefresh";
 import { useNativeBackHandler } from "@/hooks/useNativeBack";
 
@@ -38,10 +38,12 @@ export function ChatList({ className, onBack, backButtonRef }: { className?: str
   const [searchResults, setSearchResults] = useState<ChatSearchUser[]>([]);
   const [inboxFilter, setInboxFilter] = useState("");
 
+  // Una crew se lista aparte solo si su chat todavía no está en la lista de conversaciones. Mientras esa lista
+  // carga está vacía: sin esta guarda aparecían todas las crews un instante y desaparecían al llegar los chats.
   const userSquads = squads.filter(
     (s) =>
       s.members?.some((m) => m.userId === currentUser?.id) &&
-      !chats.some((chat) => chat.id === s.chatRoomId),
+      (isLoading ? !s.chatRoomId : !chats.some((chat) => chat.id === s.chatRoomId)),
   );
 
   const handleSearchUsers = async (e: React.FormEvent) => {
@@ -156,7 +158,7 @@ export function ChatList({ className, onBack, backButtonRef }: { className?: str
       <section aria-labelledby="inbox-direct" className="mt-6">
         <h2 id="inbox-direct" className="label-mono text-ink-2 mx-4 mb-1.5">Conversaciones</h2>
         {isLoading ? (
-          <RootLoader size="sm" label="Cargando conversaciones" className="py-6" />
+          <ChatListSkeleton />
         ) : visibleChats.length === 0 ? (
           <p className="mx-4 py-6 text-center text-[15px] text-ink-2">
             {query ? "No hay conversaciones con ese nombre." : "Todavía no tenés conversaciones."}

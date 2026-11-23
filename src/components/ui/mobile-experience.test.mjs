@@ -17,9 +17,9 @@ test("active attendance can be cleared and voy! is a standalone selectable filte
   assert.doesNotMatch(events, /id: "going", label: "Voy"/);
 });
 
-test("pull to refresh uses the pulsing root mark without a circular loader", () => {
-  assert.match(refresh, /motion-safe:animate-pulse/);
+test("pull to refresh uses the animated root mark (square with the dancing face) without a circular loader", () => {
   assert.match(refresh, /<RootMark/);
+  assert.match(rootLogo, /<RootBootAnimation variant="mark"/);
   assert.match(rootLogo, />\s*r\s*</);
   assert.doesNotMatch(refresh, /rounded-full bg-\[#14171F\]/);
   assert.doesNotMatch(refresh, /Loader2|ArrowDown/);

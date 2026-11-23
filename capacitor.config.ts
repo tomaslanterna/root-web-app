@@ -1,5 +1,58 @@
+import { readFileSync, writeFileSync } from "node:fs";
 import type { CapacitorConfig } from "@capacitor/cli";
 import type {} from "@capacitor/push-notifications";
+
+// El CLI de Capacitor no lee .env por sí solo: lo cargamos (no pisa variables ya definidas en el shell).
+try {
+  process.loadEnvFile(".env");
+} catch {
+  // sin .env: se usan las variables del entorno
+}
+
+// Local: CAP_SERVER_URL=http://<ip-de-tu-mac>:3000 en .env (o scripts cap:local / cap:prod).
+// Sin la variable apunta a producción.
+const PROD_URL = "https://root-web-app.vercel.app";
+const serverUrl = process.env.CAP_SERVER_URL || PROD_URL;
+const isLocal = serverUrl !== PROD_URL;
+
+// La pantalla local de "Sin conexión" necesita saber a qué servidor volver (local o producción).
+try {
+  writeFileSync(
+    "native-shell/server-url.js",
+    `window.ROOT_SERVER_URL = ${JSON.stringify(serverUrl)};\n`,
+  );
+} catch {
+  // error.html cae a producción
+}
+
+// iOS: con WKAppBoundDomains declarado, WKWebView NO inyecta el puente de Capacitor en dominios que no estén en la
+// lista (se rompe el splash nativo, push, geolocalización...). Solo se declara en producción, donde hace falta
+// para los service workers; con una URL local se quita.
+try {
+  const plistPath = "ios/App/App/Info.plist";
+  const block = `\t<key>WKAppBoundDomains</key>\n\t<array>\n\t\t<string>root-web-app.vercel.app</string>\n\t</array>\n`;
+  const plist = readFileSync(plistPath, "utf8");
+  const has = plist.includes("<key>WKAppBoundDomains</key>");
+  if (isLocal && has) {
+    writeFileSync(
+      plistPath,
+      plist.replace(
+        /\t<key>WKAppBoundDomains<\/key>\n\t<array>[\s\S]*?<\/array>\n/,
+        "",
+      ),
+    );
+  } else if (!isLocal && !has) {
+    writeFileSync(
+      plistPath,
+      plist.replace(
+        "\t<key>CAPACITOR_DEBUG</key>",
+        `${block}\t<key>CAPACITOR_DEBUG</key>`,
+      ),
+    );
+  }
+} catch {
+  // sin proyecto iOS
+}
 
 const config: CapacitorConfig = {
   appId: "com.emnetwork.root",
@@ -8,10 +61,17 @@ const config: CapacitorConfig = {
   backgroundColor: "#0A0B0D",
   // Next uses dynamic routes: the native shell loads server.url, not a static export.
   webDir: "native-shell",
+  ios: {
+    // WKWebView solo permite service workers en dominios "app-bound" (ver WKAppBoundDomains en Info.plist).
+    // Con una URL local (http) esto rompería el puente de Capacitor: solo en producción.
+    limitsNavigationsToAppBoundDomains: !isLocal,
+  },
   server: {
-    url: "https://root-web-app.vercel.app",
+    url: serverUrl,
     cleartext: true, // Permite conexiones HTTP (sin SSL) en el emulador
     allowNavigation: ["*"],
+    // Si el servidor no responde (sin red / mala conexión y sin copia guardada), se muestra esta pantalla local.
+    errorPath: "error.html",
   },
   plugins: {
     SystemBars: {

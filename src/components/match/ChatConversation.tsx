@@ -2,7 +2,7 @@
 
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
-import { Check, CheckCheck, ChevronLeft, Send, Loader2, Clock3 } from "lucide-react";
+import { Check, CheckCheck, ChevronLeft, Send, Clock3 } from "lucide-react";
 import Link from "next/link";
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
@@ -10,7 +10,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useChat, useVisibleMessageReceipts, type ChatMessage } from "@/hooks/useChat";
 import { useChatInfo } from "@/hooks/useChatDirectory";
 import { resolveDeepLinkPath } from "@/lib/deepLinks";
-import { RootLoader } from "@/components/ui/RootLoader";
+import { ChatConversationSkeleton, ChatMessagesSkeleton } from "@/components/chat/ChatSkeletons";
 import { SwipeBack } from "@/components/ui/SwipeBack";
 
 export function ChatConversation({ chatId }: { chatId: string }) {
@@ -25,7 +25,7 @@ export function ChatConversation({ chatId }: { chatId: string }) {
   const nearBottomRef = useRef(true);
   const previousLastIdRef = useRef<string | undefined>(undefined);
 
-  const { messages, isLoading: isLoadingChat, sendMessage, retryMessage, connectionState, hasMore, loadMore, isLoadingMore, error, refreshMessages } = useChat(chatId, currentUser?.id);
+  const { messages, isLoading: isLoadingChat, sendMessage, retryMessage, hasMore, loadMore, isLoadingMore, error, refreshMessages } = useChat(chatId, currentUser?.id);
   useVisibleMessageReceipts(chatId, messages, currentUser?.id, chatAreaRef, !isLoadingInfo);
 
   useEffect(() => {
@@ -62,7 +62,7 @@ export function ChatConversation({ chatId }: { chatId: string }) {
   };
 
   if (isLoadingInfo) {
-    return <RootLoader fullScreen size="lg" label="Cargando chat" />;
+    return <ChatConversationSkeleton />;
   }
 
   if (!chatInfo) {
@@ -106,7 +106,6 @@ export function ChatConversation({ chatId }: { chatId: string }) {
               otherUser?.name
             )}
           </p>
-          <span className="tech-label text-[9px] text-[#D4FF00]">{connectionState === "connected" ? "Conectado" : "Reconectando…"}</span>
         </div>
         {chatInfo.event_id && <Link href={`/events/${chatInfo.event_id}`} className="shrink-0 tech-label text-[10px] text-[#D4FF00]">Ver evento</Link>}
       </header>
@@ -119,7 +118,7 @@ export function ChatConversation({ chatId }: { chatId: string }) {
         {hasMore && <button onClick={() => void loadOlderMessages().catch(() => undefined)} disabled={isLoadingMore} className="mb-4 w-full text-xs text-neutral-400">{isLoadingMore ? "Cargando…" : "Cargar mensajes anteriores"}</button>}
         {error && <button onClick={() => void refreshMessages().catch(() => undefined)} className="mb-3 text-xs text-red-300">{error}</button>}
         {isLoadingChat && messages.length === 0 ? (
-           <div className="flex justify-center py-4"><Loader2 className="w-5 h-5 text-[#D4FF00] animate-spin" /></div>
+           <ChatMessagesSkeleton />
         ) : messages.length === 0 ? (
            <p className="text-center text-xs text-neutral-500 py-10 font-bold uppercase tracking-wider">No hay mensajes aún.</p>
         ) : (

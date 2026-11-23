@@ -6,6 +6,7 @@ import { EventsInboxContext } from "@/context/FeedInboxContext";
 import { ChatInbox } from "@/components/chat/ChatInbox";
 import { useAuth } from "@/context/AuthContext";
 import { useNativeBackHandler } from "@/hooks/useNativeBack";
+import { skipPageTransition } from "@/lib/navDirection";
 
 const CLOSED = { distance: 0, visible: false, dragging: false, opening: false, returning: false };
 
@@ -59,6 +60,8 @@ export default function EventsLayout({
     }
     const commit = () => {
       setMotion({ ...CLOSED, visible: true, opening: true });
+      // La bandeja ya se desliza sola: sin esto la transición global de pantalla se suma y se ve un salto.
+      skipPageTransition();
       router.push("/chat?from=events", { scroll: false });
     };
     if (motion.visible) {

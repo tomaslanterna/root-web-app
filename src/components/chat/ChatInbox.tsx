@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { LoginRequired } from "@/components/ui/LoginRequired";
 import { useHorizontalSwipe } from "@/hooks/useHorizontalSwipe";
 import { useNativeBackHandler } from "@/hooks/useNativeBack";
+import { skipPageTransition } from "@/lib/navDirection";
 
 interface InboxPresentation {
   interactive: boolean;
@@ -27,7 +28,7 @@ export function ChatInbox({ overlay = false, presentation }: { overlay?: boolean
     if (closing) return;
     if (!overlay) { router.push("/events"); return; }
     presentation?.onClose();
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { router.back(); return; }
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { skipPageTransition(); router.back(); return; }
     setClosing(true);
   };
   const { ref, distance, dragging } = useHorizontalSwipe(1, !!user && !closing && interactive, close,
@@ -44,7 +45,7 @@ export function ChatInbox({ overlay = false, presentation }: { overlay?: boolean
   }, [overlay, interactive]);
   useEffect(() => {
     if (!closing) return;
-    const timer = setTimeout(() => router.back(), 220);
+    const timer = setTimeout(() => { skipPageTransition(); router.back(); }, 220);
     return () => clearTimeout(timer);
   }, [closing, router]);
   return (

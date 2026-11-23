@@ -32,6 +32,9 @@ import { TabIndicator } from "@/components/ui/TabIndicator";
 const fallbackBanner =
   "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=80&w=1200&auto=format&fit=crop";
 
+/** Eventos ya abiertos: al volver a entrar a uno se ve al instante y se actualiza por detrás, sin pasar por el skeleton. */
+const openedEvents = new Map<string, Event>();
+
 export default function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const { user } = useAuth();
@@ -39,8 +42,8 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const origin = searchParams.get("origin");
   const goBack = () => router.push(origin || "/events");
   const { id: eventId } = use(params);
-  const [event, setEvent] = useState<Event | null>(null);
-  const [hasLoaded, setHasLoaded] = useState(false);
+  const [event, setEvent] = useState<Event | null>(() => openedEvents.get(eventId) ?? null);
+  const [hasLoaded, setHasLoaded] = useState(() => openedEvents.has(eventId));
   const [isAttendeesOpen, setIsAttendeesOpen] = useState(false);
   const [copiedShare, setCopiedShare] = useState(false);
   const [isTicketsExpanded, setIsTicketsExpanded] = useState(false);
@@ -80,16 +83,14 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     }
   };
 
-  const {
-    mutate: fetchEvent,
-    isLoading: isLoadingEvent,
-  } = useMutation<Event, string>(
+  const { mutate: fetchEvent } = useMutation<Event, string>(
     async (id) => {
       const response = await eventsApi.getEventById(id);
       return response;
     },
     {
       onSuccess: (response) => {
+        openedEvents.set(eventId, response);
         setEvent(response);
         setHasLoaded(true);
       },
@@ -157,7 +158,10 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     return (event.artists && event.artists.length > 0) || (event.lineup && event.lineup.length > 0);
   }, [event]);
 
-  if (!hasLoaded && isLoadingEvent) {
+  // Hasta que llega la primera respuesta (acierte o falle) se ve el skeleton. No alcanza con `isLoading` del
+  // hook: arranca en false y el efecto que dispara la carga corre después del primer render, que mostraba
+  // un instante "No encontramos este evento" antes de volver al skeleton.
+  if (!hasLoaded) {
     return <EventDetailSkeleton />;
   }
 
