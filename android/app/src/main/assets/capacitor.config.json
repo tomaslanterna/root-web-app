@@ -3,12 +3,16 @@
 	"appName": "Root",
 	"backgroundColor": "#0A0B0D",
 	"webDir": "native-shell",
+	"ios": {
+		"limitsNavigationsToAppBoundDomains": false
+	},
 	"server": {
-		"url": "https://root-web-app.vercel.app",
+		"url": "http://192.168.1.9:3000",
 		"cleartext": true,
 		"allowNavigation": [
 			"*"
-		]
+		],
+		"errorPath": "error.html"
 	},
 	"plugins": {
 		"SystemBars": {
@@ -35,6 +39,8 @@
 				"profile",
 				"email"
 			],
+			"serverClientId": "964994558509-vbrduu76ftkdq80ms9f464ol3cujbgp3.apps.googleusercontent.com",
+			"iosClientId": "964994558509-uve6a7u3l3cbon7s5inio497ajdm06j8.apps.googleusercontent.com",
 			"forceCodeForRefreshToken": true
 		}
 	}

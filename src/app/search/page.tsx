@@ -8,7 +8,7 @@ import { cn, isValidImageUrl } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { EventCard } from "@/components/ui/EventCard";
 import { CommunityCard } from "@/components/communities/CommunityCard";
-import { RootLoader } from "@/components/ui/RootLoader";
+import { SearchResultsSkeleton } from "@/components/search/SearchResultsSkeleton";
 import { TabIndicator } from "@/components/ui/TabIndicator";
 
 type TabType = "usuarios" | "eventos" | "comunidades";
@@ -152,11 +152,7 @@ export default function SearchPage() {
 
       {/* Resultados de búsqueda */}
       <main className="w-full max-w-4xl mx-auto flex-1 px-4 pt-5 pb-20">
-        {isLoading && (
-          <div className="flex justify-center py-16">
-            <RootLoader size="md" label="Buscando..." />
-          </div>
-        )}
+        {isLoading && <SearchResultsSkeleton tab={activeTab} />}
 
         {!isLoading && debouncedQuery && results.length === 0 && (
           <div className="py-20 text-center flex flex-col items-center justify-center gap-2">

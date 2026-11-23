@@ -14,6 +14,7 @@ import { CapacitorSetup } from "@/components/CapacitorSetup";
 import { ReviewReminder } from "@/components/profile/ReviewReminder";
 import { InterestsPrompt } from "@/components/InterestsPrompt";
 import { AppSplash } from "@/components/AppSplash";
+import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { GlobalPullToRefresh } from "@/components/ui/GlobalPullToRefresh";
 import { PageTransition } from "@/components/PageTransition";
 import { NavigationTracker } from "@/components/NavigationTracker";
@@ -61,6 +62,7 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <AppSplash />
+        <ServiceWorkerRegister />
         <CapacitorSetup />
         <GoogleOAuthProvider clientId={process.env.GOOGLE_CLIENT_ID || ""}>
           <ThemeProvider>

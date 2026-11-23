@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>root</title>
+    <style>
+      html,body{margin:0;height:100%;background:#0A0B0D;color:#fff;font:16px/1.5 system-ui,-apple-system,sans-serif}
+      main{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:2rem;text-align:center;box-sizing:border-box}
+      h1{margin:0;font-size:1.4rem;color:#D4FF00}
+      p{margin:0;max-width:20rem;color:#a3a3a3}
+      button{margin-top:10px;border:0;border-radius:999px;background:#D4FF00;color:#0A0B0D;font:inherit;font-weight:800;padding:.85rem 2rem}
+      button:disabled{opacity:.6}
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Sin conexión</h1>
+      <p id="msg">No pudimos conectar con root. Revisá tu internet; vamos a reintentar solos.</p>
+      <button id="retry" type="button">Reintentar</button>
+    </main>
+    <script src="server-url.js"></script>
+    <script>
+      var SERVER = (window.ROOT_SERVER_URL || "https://root-web-app.vercel.app").replace(/\/?$/, "/");
+      var btn = document.getElementById("retry");
+      var busy = false;
+      function go() { window.location.replace(SERVER); }
+      function check(manual) {
+        if (busy) return;
+        busy = true;
+        btn.disabled = true;
+        var c = new AbortController();
+        var t = setTimeout(function () { c.abort(); }, 6000);
+        fetch(SERVER + "manifest.webmanifest?ts=" + Date.now(), { mode: "no-cors", cache: "no-store", signal: c.signal })
+          .then(go)
+          .catch(function () { if (manual) document.getElementById("msg").textContent = "Todavía sin conexión. Probá de nuevo en unos segundos."; })
+          .finally(function () { clearTimeout(t); busy = false; btn.disabled = false; });
+      }
+      btn.addEventListener("click", function () { check(true); });
+      window.addEventListener("online", function () { check(false); });
+      setInterval(function () { check(false); }, 5000);
+    </script>
+  </body>
+</html>

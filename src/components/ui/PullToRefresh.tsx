@@ -198,7 +198,7 @@ export function PullToRefresh({ onRefresh, children, mouse = true }: PullToRefre
             transition: pullActive ? "none" : "transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s",
           }}
         >
-          <RootMark size={30} className="shadow-[0_0_14px_rgba(212,255,0,0.28)] motion-safe:animate-pulse" />
+          <RootMark size={34} className="shadow-[0_0_14px_rgba(212,255,0,0.28)]" />
         </div>
       </div>
 

@@ -46,3 +46,4 @@ secrets/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+native-shell/server-url.js

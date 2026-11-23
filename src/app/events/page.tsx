@@ -86,6 +86,14 @@ import { TabIndicator } from "@/components/ui/TabIndicator";
    "Colonia",
  ];
 
+ /**
+  * Primera página del listado sin filtros, por usuario. Al volver del detalle de un evento la pantalla se monta de
+  * nuevo: con esto se ve al instante lo que ya se tenía y se actualiza por detrás, en vez de repetir los skeletons.
+  */
+ let eventsSnapshot: { userId: string; events: Event[]; hasMore: boolean } | null = null;
+ const snapshotFor = (userId?: string) =>
+   eventsSnapshot && eventsSnapshot.userId === (userId ?? "") ? eventsSnapshot : null;
+
  interface LoadVariables {
    filters: EventFilters;
    offset: number;
@@ -255,14 +263,14 @@ import { TabIndicator } from "@/components/ui/TabIndicator";
    const { user } = useAuth();
    const inbox = useEventsInbox();
    const [isMenuOpen, setIsMenuOpen] = useState(false);
-   const [events, setEvents] = useState<Event[]>([]);
+   const [events, setEvents] = useState<Event[]>(() => snapshotFor(user?.id)?.events ?? []);
    const [draftFilters, setDraftFilters] = useState<EventFilters>({ ...emptyFilters });
    const [appliedFilters, setAppliedFilters] = useState<EventFilters>({ ...emptyFilters });
    const [temporalPreset, setTemporalPreset] = useState<TemporalPreset>("all");
    const [searchQuery, setSearchQuery] = useState("");
    const [debouncedQuery, setDebouncedQuery] = useState("");
-   const [hasMore, setHasMore] = useState(false);
-   const [hasLoaded, setHasLoaded] = useState(false);
+   const [hasMore, setHasMore] = useState(() => snapshotFor(user?.id)?.hasMore ?? false);
+   const [hasLoaded, setHasLoaded] = useState(() => !!snapshotFor(user?.id));
    const [showFilters, setShowFilters] = useState(false);
    const [viewMode, setViewMode] = useState<EventView>("grid");
    const [showGoingOnly, setShowGoingOnly] = useState(false);
@@ -402,8 +410,12 @@ import { TabIndicator } from "@/components/ui/TabIndicator";
            const uniqueNew = response.data.filter((ev) => !existingIds.has(ev.id));
            return [...current, ...uniqueNew];
          });
-         setHasMore(response.data.length > 0 && response.meta.hasMore);
+         const more = response.data.length > 0 && response.meta.hasMore;
+         setHasMore(more);
          setHasLoaded(true);
+         if (!variables.append && variables.offset === 0 && !variables.query && JSON.stringify(variables.filters) === JSON.stringify(emptyFilters)) {
+           eventsSnapshot = { userId: user?.id ?? "", events: response.data, hasMore: more };
+         }
        },
        onError: () => setHasLoaded(true),
      },

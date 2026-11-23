@@ -9,6 +9,18 @@ const nextConfig: NextConfig = {
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
     BACKEND_PUBLIC_API_URL: process.env.BACKEND_PUBLIC_API_URL,
   },
+  async headers() {
+    return [
+      {
+        // El service worker nunca se cachea: así las versiones nuevas llegan al instante.
+        source: "/sw.js",
+        headers: [
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+          { key: "Service-Worker-Allowed", value: "/" },
+        ],
+      },
+    ];
+  },
   allowedDevOrigins: ["192.168.1.9", "http://192.168.1.9:3000"],
   images: {
     formats: ["image/webp", "image/avif"],

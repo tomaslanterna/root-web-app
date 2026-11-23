@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { RootBootAnimation } from "@/components/brand/RootBootAnimation";
 
 interface RootLogoProps {
   /** Lado del cuadrado de la "r" en px; el resto del logo escala en proporción. */
@@ -12,20 +13,19 @@ interface RootMarkProps {
   className?: string;
 }
 
-/** Isotipo de root: el ícono de la app, la cara con anteojos negros con brillo sobre el cuadrado lima. */
+/**
+ * Isotipo de root: el ícono de la app (cuadrado lima con la cara de anteojos), el mismo con el que arranca la
+ * animación de carga. La cara baila sola; con `prefers-reduced-motion` queda quieta.
+ */
 export function RootMark({ size = 30, className }: RootMarkProps) {
   return (
-    // eslint-disable-next-line @next/next/no-img-element -- ícono chico y fijo: no vale la pena next/image
-    <img
-      src="/brand/root-icon.png"
-      alt=""
+    <span
       aria-hidden="true"
-      width={size}
-      height={size}
-      draggable={false}
-      className={cn("shrink-0 select-none", className)}
-      style={{ width: size, height: size, borderRadius: Math.round(size * 0.26) }}
-    />
+      className={cn("inline-block shrink-0 select-none", className)}
+      style={{ width: size, height: size, borderRadius: Math.round(size * 0.2685) }}
+    >
+      <RootBootAnimation variant="mark" className="size-full" />
+    </span>
   );
 }
 
