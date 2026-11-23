@@ -12,7 +12,7 @@ try {
 // Local: CAP_SERVER_URL=http://<ip-de-tu-mac>:3000 en .env (o scripts cap:local / cap:prod).
 // Sin la variable apunta a producción.
 const PROD_URL = "https://root-web-app.vercel.app";
-const serverUrl = process.env.CAP_SERVER_URL || PROD_URL;
+const serverUrl = PROD_URL;
 const isLocal = serverUrl !== PROD_URL;
 
 // La pantalla local de "Sin conexión" necesita saber a qué servidor volver (local o producción).
