@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useId, useState, type ReactNode } from "react";
-import { Check, Lock, Minus, Plus, Send } from "lucide-react";
+import { Check, Lock, Minus, Plus, Send, Users } from "lucide-react";
+import Link from "next/link";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
@@ -65,9 +66,20 @@ function ResponsiveSheet({
 const fieldClass =
   "w-full rounded-control border border-line-strong bg-bg px-3.5 text-[15px] text-ink placeholder:text-ink-3 focus:outline-none focus:border-accent";
 
-const errorText = (error: { response?: { status?: number } } | null, fallback: string) => {
+const CONFLICT_MESSAGES: Record<string, string> = {
+  already_in_event_crew: "Ya estás en otra crew para este evento. Solo podés estar en una.",
+  already_member: "Ya estás en esta crew.",
+  not_admitting: "Esta crew ya no está admitiendo gente.",
+  crew_full: "La crew se llenó.",
+  event_ended: "El evento ya terminó.",
+};
+
+const errorText = (error: { response?: { status?: number; data?: unknown } } | null, fallback: string) => {
   const status = error?.response?.status;
+  const code = (error?.response?.data as { code?: string } | undefined)?.code;
+  if (code && CONFLICT_MESSAGES[code]) return CONFLICT_MESSAGES[code];
   if (status === 409) return "No se pudo: puede que ya estés en una crew de este evento o que se haya llenado.";
+  if (status === 429) return "Mandaste muchas solicitudes. Probá más tarde.";
   if (status === 401) return "Tenés que iniciar sesión.";
   return fallback;
 };
@@ -250,5 +262,47 @@ export function JoinTempCrewSheet({
         </div>
       )}
     </ResponsiveSheet>
+  );
+}
+
+/** Aviso cuando quien mira ya está en otra crew temporal del mismo evento (solo puede estar en una). */
+export function AlreadyInEventCrewModal({
+  viewerCrewId,
+  isOpen,
+  onClose,
+}: {
+  viewerCrewId: string | null;
+  isOpen: boolean;
+  onClose: () => void;
+}) {
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Ya tenés crew para este evento"
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>Entendido</Button>
+          {viewerCrewId && (
+            <Link
+              href={`/crews/${viewerCrewId}`}
+              onClick={onClose}
+              className="h-12 px-[18px] rounded-control bg-accent text-on-accent text-[15px] font-semibold flex items-center justify-center hover:bg-accent-hover transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
+              Ver mi crew
+            </Link>
+          )}
+        </>
+      }
+    >
+      <div className="flex gap-3 items-start">
+        <span className="size-10 shrink-0 rounded-xl bg-accent/12 text-accent flex items-center justify-center">
+          <Users className="size-5" aria-hidden="true" />
+        </span>
+        <p className="m-0 text-[15px] leading-relaxed text-ink-2">
+          Ya estás en otra crew temporal para este evento. Solo podés estar en una por evento.
+        </p>
+      </div>
+    </Modal>
   );
 }

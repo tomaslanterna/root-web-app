@@ -435,6 +435,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             crews={tempCrews.crews}
             total={tempCrews.total}
             viewerCrewId={tempCrews.viewerCrewId}
+            onChanged={() => void tempCrews.reload()}
             className="mx-4 md:mx-0 mt-4 lg:col-start-2 lg:mt-6"
           />
         ) : (

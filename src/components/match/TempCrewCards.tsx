@@ -70,14 +70,26 @@ export function EventMiniCard({ event, href, className }: { event: TempCrewEvent
   return href ? <Link href={href} className={classes}>{body}</Link> : <div className={classes}>{body}</div>;
 }
 
-/** Tarjeta chica del carrusel del evento: abre el detalle de la crew. */
-export function TempCrewLaneCard({ crew }: { crew: TempCrewSummary }) {
+/** Si quien mira puede pedir unirse: no está en la crew, no la creó y no tiene una solicitud pendiente. */
+export const canRequestToJoin = (crew: TempCrewSummary) =>
+  !crew.viewerRole && crew.viewerRequestStatus !== "pending" && crew.isAdmitting && freeSpots(crew) > 0;
+
+/**
+ * Tarjeta chica del carrusel del evento. Si quien mira puede pedir unirse, tocarla abre la hoja para
+ * pedirlo (`onRequestJoin`); si ya está, la creó o ya pidió, abre el detalle de la crew.
+ */
+export function TempCrewLaneCard({ crew, onRequestJoin }: { crew: TempCrewSummary; onRequestJoin?: (crew: TempCrewSummary) => void }) {
   const spots = freeSpots(crew);
-  return (
-    <Link
-      href={`/crews/${crew.id}`}
-      className="w-[236px] shrink-0 snap-start p-3.5 rounded-card bg-surface border border-line flex flex-col gap-2.5 hover:bg-surface-2 transition-colors lg:w-auto lg:min-w-0"
-    >
+  const status =
+    crew.viewerRole === "host"
+      ? "Tu crew"
+      : crew.viewerRole === "member"
+        ? "Estás en esta crew"
+        : crew.viewerRequestStatus === "pending"
+          ? "Solicitud enviada"
+          : freeSpotsLabel(spots);
+  const content = (
+    <>
       <span className="flex items-center justify-between gap-2">
         <FacePile people={crew.membersPreview} />
         <span className="num-mono text-[13px] text-ink-2"><span className="text-ink">{crew.memberCount}/{crew.capacity}</span></span>
@@ -87,10 +99,29 @@ export function TempCrewLaneCard({ crew }: { crew: TempCrewSummary }) {
         <span className="text-xs text-ink-2 truncate">por @{crew.host.username}</span>
       </span>
       <span className="text-[13px] leading-snug text-ink-2 line-clamp-2 min-h-[2.6em]">{crew.plan}</span>
-      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-accent">
-        <span aria-hidden="true" className="size-1.5 rounded-full bg-accent" />
-        {freeSpotsLabel(spots)}
+      <span className={cn("inline-flex items-center gap-1.5 text-xs font-semibold", crew.viewerRequestStatus === "pending" && !crew.viewerRole ? "text-ink-2" : "text-accent")}>
+        {crew.viewerRequestStatus === "pending" && !crew.viewerRole ? (
+          <Clock3 className="size-3.5" aria-hidden="true" />
+        ) : (
+          <span aria-hidden="true" className="size-1.5 rounded-full bg-accent" />
+        )}
+        {status}
       </span>
+    </>
+  );
+  const classes =
+    "w-[236px] shrink-0 snap-start p-3.5 rounded-card bg-surface border border-line flex flex-col gap-2.5 text-left hover:bg-surface-2 transition-colors focus-visible:outline-2 focus-visible:outline-accent lg:w-auto lg:min-w-0";
+
+  if (onRequestJoin && canRequestToJoin(crew)) {
+    return (
+      <button type="button" onClick={() => onRequestJoin(crew)} aria-label={`Pedir unirme a ${crew.name}`} className={classes}>
+        {content}
+      </button>
+    );
+  }
+  return (
+    <Link href={`/crews/${crew.id}`} className={classes}>
+      {content}
     </Link>
   );
 }
