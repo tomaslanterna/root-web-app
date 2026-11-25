@@ -120,9 +120,10 @@ export function CommentSection({
         <h2 className="tech-label text-sm flex items-center gap-2 text-white">
           <MessageCircle className="w-4 h-4 text-[#D4FF00]" /> {title}
         </h2>
-        <span className="flex items-center gap-1 bg-[#D4FF00]/10 px-2.5 py-1 rounded-full border border-[#D4FF00]/20">
-          <span className="num-display text-xs text-white">{total}</span>
-          <span className="tech-label text-[9px] text-[#D4FF00]">Respuestas</span>
+        {/* Número y texto separados por un espacio, igual que el contador de "Me gusta". */}
+        <span className="shrink-0 inline-flex items-baseline gap-1.5 whitespace-nowrap bg-[#D4FF00]/10 px-2.5 py-1 rounded-full border border-[#D4FF00]/20">
+          <span className="num-display text-xs text-white">{total}</span>{" "}
+          <span className="tech-label text-[9px] text-[#D4FF00]">{total === 1 ? "Respuesta" : "Respuestas"}</span>
         </span>
       </div>
 

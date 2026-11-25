@@ -17,6 +17,7 @@ import { SwipeBack } from "@/components/ui/SwipeBack";
 import { FollowedAttendeesModal } from "@/components/events/FollowedAttendeesModal";
 import { EventDetailSkeleton } from "@/components/events/EventDetailSkeleton";
 import { EventLiveRankingCard } from "@/components/events/EventLiveRankingModal";
+import { EventRRPPsSection } from "@/components/events/EventRRPPsSection";
 import { CommentSection } from "@/components/ui/CommentSection";
 import { EventAttendanceVote } from "@/components/ui/EventAttendanceVote";
 import { Button } from "@/components/ui/Button";
@@ -52,7 +53,6 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const [copiedShare, setCopiedShare] = useState(false);
   const [isTicketsExpanded, setIsTicketsExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState<"info" | "venue" | "rules">("info");
-  const [selectedTierId, setSelectedTierId] = useState<string | null>(null);
   const tabsRef = useRef<HTMLDivElement>(null);
   const tabsListRef = useRef<HTMLDivElement>(null);
 
@@ -230,9 +230,8 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const banner = event.cinematicBannerUrl?.trim() || fallbackBanner;
   // Sin ticket_url no hay dónde comprar: no se muestra la sección de entradas ni el botón.
   const hasTicketUrl = Boolean(event.ticketUrl?.trim());
-  const selectedTier =
-    ticketTiers?.find((tier) => tier.id === selectedTierId) ??
-    ticketTiers?.find((tier) => tier.status !== "sold_out");
+  // El encabezado de Entradas muestra el precio del primer lote disponible.
+  const firstAvailableTier = ticketTiers?.find((tier) => tier.status !== "sold_out");
 
   const updateAttendance = (response: RSVPResponse) => {
     setEvent((current) =>
@@ -522,6 +521,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                   <p className="m-0 text-[13px] text-ink-3">Horarios sujetos a confirmación de la organización.</p>
                 </div>
               )}
+              {event.rrpps && event.rrpps.length > 0 && <EventRRPPsSection rrpps={event.rrpps} />}
               <div className="flex flex-col gap-2">
                 <h3 className="m-0 text-[17px] font-semibold">Concepto</h3>
                 <p className="m-0 whitespace-pre-line text-base leading-relaxed text-ink-2">
@@ -578,7 +578,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 <div className="flex flex-col gap-1 min-w-0">
                   <h2 id="event-tickets" className="font-display text-[22px] m-0">Entradas</h2>
                   <span className="num-mono text-sm text-ink-2 font-medium">
-                    {selectedTier ? selectedTier.priceLabel : priceLabel}
+                    {firstAvailableTier ? firstAvailableTier.priceLabel : priceLabel}
                     {ticketTiers && ticketTiers.length > 0 && (
                       <span className="text-xs text-ink-3 ml-2 font-normal">
                         ({ticketTiers.length} {ticketTiers.length === 1 ? "lote" : "lotes"})
@@ -610,54 +610,36 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                       Estamos buscando las entradas oficiales de este evento.
                     </p>
                   ) : (
-                    <fieldset className="m-0 p-0 border-0 flex flex-col gap-2.5">
-                      <legend className="sr-only">Elegí un lote</legend>
-                      {ticketTiers?.map((tier) => {
-                        const isSoldOut = tier.status === "sold_out";
-                        const isSelected = !isSoldOut && selectedTier?.id === tier.id;
-                        if (isSoldOut) {
-                          return (
-                            <div
-                              key={tier.id}
-                              aria-disabled="true"
-                              className="p-3.5 rounded-control border border-dashed border-line-strong text-ink-3 flex items-center justify-between gap-3"
-                            >
-                              <span className="flex flex-col gap-[2px]">
-                                <span className="text-[14px] font-semibold line-through">{tier.name}</span>
-                                <span className="label-mono">Agotado</span>
-                              </span>
-                              <span className="num-mono text-sm line-through">{tier.priceLabel}</span>
-                            </div>
-                          );
-                        }
-                        return (
-                          <label
+                    // Solo informativo: la compra se hace en la ticketera, así que los lotes no se seleccionan.
+                    <ul aria-label="Lotes de entradas" className="m-0 p-0 list-none flex flex-col gap-2.5">
+                      {ticketTiers?.map((tier) =>
+                        tier.status === "sold_out" ? (
+                          <li
                             key={tier.id}
-                            className={cn(
-                              "p-3.5 rounded-control flex items-center gap-3 cursor-pointer transition-colors",
-                              isSelected
-                                ? "border-[1.5px] border-accent bg-accent/[0.06]"
-                                : "border border-white/10 bg-surface-2 hover:bg-[#23272D]",
-                            )}
+                            className="p-3.5 rounded-control border border-dashed border-line-strong text-ink-3 flex items-center justify-between gap-3"
                           >
-                            <input
-                              type="radio"
-                              name="ticket-tier"
-                              checked={isSelected}
-                              onChange={() => setSelectedTierId(tier.id)}
-                              className="size-4 m-0 accent-accent"
-                            />
-                            <span className="flex-1 min-w-0 flex flex-col gap-[2px]">
+                            <span className="flex flex-col gap-[2px]">
+                              <span className="text-[14px] font-semibold line-through">{tier.name}</span>
+                              <span className="label-mono">Agotado</span>
+                            </span>
+                            <span className="num-mono text-sm line-through">{tier.priceLabel}</span>
+                          </li>
+                        ) : (
+                          <li
+                            key={tier.id}
+                            className="p-3.5 rounded-control border border-white/10 bg-surface-2 flex items-center justify-between gap-3"
+                          >
+                            <span className="min-w-0 flex flex-col gap-[2px]">
                               <span className="text-[14px] font-semibold">{tier.name}</span>
                               <span className={cn("label-mono", tier.status === "limited" ? "text-accent" : "text-ink-3")}>
                                 {tier.status === "limited" ? "Disponible · quedan pocas" : "Disponible"}
                               </span>
                             </span>
                             <span className="num-mono text-base font-semibold">{tier.priceLabel}</span>
-                          </label>
-                        );
-                      })}
-                    </fieldset>
+                          </li>
+                        ),
+                      )}
+                    </ul>
                   )}
                 </div>
               )}

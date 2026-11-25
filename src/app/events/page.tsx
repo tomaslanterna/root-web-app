@@ -94,6 +94,12 @@ import { TabIndicator } from "@/components/ui/TabIndicator";
  const snapshotFor = (userId?: string) =>
    eventsSnapshot && eventsSnapshot.userId === (userId ?? "") ? eventsSnapshot : null;
 
+ /**
+  * Scroll del listado al abrir el detalle de un evento. El detalle vuelve con router.push, así que ni el navegador ni
+  * Next lo restauran: se aplica una sola vez cuando el listado se vuelve a montar con el snapshot.
+  */
+ let pendingScrollY: number | null = null;
+
  interface LoadVariables {
    filters: EventFilters;
    offset: number;
@@ -422,8 +428,46 @@ import { TabIndicator } from "@/components/ui/TabIndicator";
    );
 
    useEffect(() => {
-     void fetchEvents({ filters: emptyFilters, offset: 0, append: false }).catch(() => undefined);
+     // Con snapshot se refresca la misma cantidad que ya se tenía: si no, la lista se acortaría y perdería el scroll.
+     const cached = snapshotFor(user?.id)?.events.length ?? 0;
+     const limit = cached > pageSize ? Math.min(cached, 100) : undefined;
+     void fetchEvents({ filters: emptyFilters, offset: 0, append: false, limit }).catch(() => undefined);
+     // Solo al montar.
+     // eslint-disable-next-line react-hooks/exhaustive-deps
    }, [fetchEvents]);
+
+   // El snapshot guarda todas las páginas cargadas del listado sin filtros, no solo la primera.
+   useEffect(() => {
+     if (!hasLoaded || debouncedQuery || JSON.stringify(appliedFilters) !== JSON.stringify(emptyFilters)) return;
+     eventsSnapshot = { userId: user?.id ?? "", events, hasMore };
+   }, [events, hasMore, hasLoaded, appliedFilters, debouncedQuery, user?.id]);
+
+   // Al volver del detalle: espera a que la lista tenga altura suficiente (Next sube al tope después de navegar).
+   useEffect(() => {
+     const target = pendingScrollY;
+     if (target === null) return;
+     if (!snapshotFor(user?.id)) {
+       pendingScrollY = null;
+       return;
+     }
+     // pendingScrollY se borra recién al aplicarlo: en desarrollo (Strict Mode) el efecto corre dos veces y la
+     // limpieza de la primera cancela este frame.
+     let frame = 0;
+     let tries = 0;
+     const restore = () => {
+       const reachable = document.documentElement.scrollHeight - window.innerHeight >= target;
+       if (reachable || tries++ > 60) {
+         pendingScrollY = null;
+         window.scrollTo({ top: target, behavior: "instant" });
+         return;
+       }
+       frame = requestAnimationFrame(restore);
+     };
+     frame = requestAnimationFrame(() => (frame = requestAnimationFrame(restore)));
+     return () => cancelAnimationFrame(frame);
+     // Solo al montar.
+     // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, []);
 
    // Debounce búsqueda
    useEffect(() => {
@@ -692,6 +736,11 @@ import { TabIndicator } from "@/components/ui/TabIndicator";
    return (
      <div
        className="feed-swipe events-swipe hide-scrollbar flex min-h-screen flex-col bg-bg text-ink"
+       onClickCapture={(event) => {
+         // Solo el listado sin filtros se restaura (es lo que guarda el snapshot).
+         const link = (event.target as Element).closest?.('a[href^="/events/"]');
+         if (link && !hasActiveChips && viewMode === "grid") pendingScrollY = window.scrollY;
+       }}
      >
        {/* Header: marca, búsqueda y mensajes */}
        <header
