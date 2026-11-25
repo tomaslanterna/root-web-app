@@ -114,7 +114,9 @@ export default function CrewDetailPage() {
     try {
       const [crewRes, rankingsRes, eventsRes] = await Promise.all([
         api.get(`/v1/crews/${id}`),
-        api.get(`/v1/crews/${id}/rankings`),
+        // El ranking de una crew temporal es solo para integrantes (403 para el resto): no es motivo para no mostrar
+        // la crew. Sin ranking se usa la lista de integrantes del detalle.
+        api.get(`/v1/crews/${id}/rankings`).catch(() => null),
         api.get(`/v1/crews/${id}/events`),
       ]);
       const crewData: CrewData = crewRes.data;
@@ -123,12 +125,12 @@ export default function CrewDetailPage() {
       setCrew(crewData);
       setCrewEvents(evList);
       setEventLeaderboard(
-        rankingsRes.data?.byEvent ||
-          rankingsRes.data?.allTime ||
+        rankingsRes?.data?.byEvent ||
+          rankingsRes?.data?.allTime ||
           crewData.leaderboardAllTime ||
           [],
       );
-      if (rankingsRes.data?.eventId) {
+      if (rankingsRes?.data?.eventId) {
         setSelectedEventId(rankingsRes.data.eventId);
       } else if (evList.length > 0) {
         setSelectedEventId(evList[0].id);

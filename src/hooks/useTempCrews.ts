@@ -123,9 +123,11 @@ export function useEventTempCrews(
     void load(eventId);
   }, [eventId, hasEmbedded, eventLoaded, waitForEvent, load]);
 
-  const reload = useCallback(() => load(eventId), [eventId, load]);
+  // Después de un cambio (pedir unirse, crear) manda la respuesta nueva, no el resumen que vino con el evento.
+  const [preferFetched, setPreferFetched] = useState(false);
+  const reload = useCallback(() => load(eventId).then(() => setPreferFetched(true)), [eventId, load]);
 
-  if (embedded) {
+  if (embedded && !(preferFetched && state.status === "ready")) {
     return {
       crews: embedded.preview ?? [],
       total: embedded.total ?? 0,

@@ -12,7 +12,7 @@ import { useEventTempCrews } from "@/hooks/useTempCrews";
 import { eventsApi } from "@/services/events";
 import { tempCrewsApi } from "@/services/tempCrews";
 import { AdmittingPill, EventMiniCard, TempCrewCard } from "@/components/match/TempCrewCards";
-import { CreateTempCrewSheet, JoinTempCrewSheet } from "@/components/match/TempCrewSheets";
+import { AlreadyInEventCrewModal, CreateTempCrewSheet, JoinTempCrewSheet } from "@/components/match/TempCrewSheets";
 import type { Event } from "@/types/events";
 import type { TempCrewEventRef, TempCrewSummary } from "@/types/tempCrews";
 
@@ -25,6 +25,7 @@ export default function EventTempCrewsPage({ params }: { params: Promise<{ id: s
   const [event, setEvent] = useState<Event | null>(null);
   const [eventFailed, setEventFailed] = useState(false);
   const [joining, setJoining] = useState<TempCrewSummary | null>(null);
+  const [isAlreadyOpen, setIsAlreadyOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -124,7 +125,10 @@ export default function EventTempCrewsPage({ params }: { params: Promise<{ id: s
                     crew={crew}
                     isBusy={cancel.isLoading}
                     onRequest={(target) => {
-                      if (!requireLogin()) setJoining(target);
+                      if (requireLogin()) return;
+                      // Solo se puede estar en una crew temporal por evento.
+                      if (viewerCrewId && viewerCrewId !== target.id) setIsAlreadyOpen(true);
+                      else setJoining(target);
                     }}
                     onCancelRequest={(target) => void cancel.mutate(target.id).catch(() => undefined)}
                   />
@@ -152,6 +156,7 @@ export default function EventTempCrewsPage({ params }: { params: Promise<{ id: s
         </div>
       )}
 
+      <AlreadyInEventCrewModal viewerCrewId={viewerCrewId} isOpen={isAlreadyOpen} onClose={() => setIsAlreadyOpen(false)} />
       <JoinTempCrewSheet
         crew={joining}
         onClose={() => setJoining(null)}

@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Check, Plus } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
 import { AdmittingPill, TempCrewLaneCard, TempCrewLaneEnd } from "@/components/match/TempCrewCards";
-import { CreateTempCrewSheet } from "@/components/match/TempCrewSheets";
+import { AlreadyInEventCrewModal, CreateTempCrewSheet, JoinTempCrewSheet } from "@/components/match/TempCrewSheets";
 import type { TempCrewEventRef, TempCrewSummary } from "@/types/tempCrews";
 
 export const TEMP_CREWS_ANCHOR = "crews-para-ir";
@@ -20,18 +20,42 @@ interface EventTempCrewsSectionProps {
   crews: TempCrewSummary[];
   total: number;
   viewerCrewId: string | null;
+  /** Para refrescar la lista después de pedir unirse. */
+  onChanged?: () => void;
   className?: string;
 }
 
 /**
  * Resumen de crews temporales en el detalle del evento: cuántas admiten gente, un carrusel con hasta 3,
  * "Unirme a una crew" al final (lleva a la lista completa) y el botón para crear una.
- * Desde acá no se pide unirse: eso se hace en la lista o en el detalle de cada crew.
+ * Tocar una crew en la que no estás abre la hoja para pedir unirte; si ya estás, la creaste o ya pediste,
+ * abre su detalle. Si ya tenés otra crew en este evento, avisa que solo se puede estar en una.
  */
-export function EventTempCrewsSection({ event, crews, total, viewerCrewId, className }: EventTempCrewsSectionProps) {
+export function EventTempCrewsSection({ event, crews, total, viewerCrewId, onChanged, className }: EventTempCrewsSectionProps) {
   const router = useRouter();
   const { user } = useAuth();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [joining, setJoining] = useState<TempCrewSummary | null>(null);
+  const [isAlreadyOpen, setIsAlreadyOpen] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 3200);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  const openJoin = (crew: TempCrewSummary) => {
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+    // Solo se puede estar en una crew temporal por evento.
+    if (viewerCrewId && viewerCrewId !== crew.id) {
+      setIsAlreadyOpen(true);
+      return;
+    }
+    setJoining(crew);
+  };
   const listHref = `/events/${event.id}/crews`;
   const lane = crews.slice(0, LANE_MAX);
 
@@ -66,7 +90,7 @@ export function EventTempCrewsSection({ event, crews, total, viewerCrewId, class
           className="-mx-4 px-4 scroll-px-4 pb-1 flex gap-3 overflow-x-auto overscroll-x-contain snap-x snap-mandatory hide-scrollbar lg:mx-0 lg:px-0 lg:scroll-px-0 lg:pb-0 lg:grid lg:grid-cols-[repeat(3,minmax(0,1fr))_156px] lg:overflow-visible"
         >
           {lane.map((crew) => (
-            <TempCrewLaneCard key={crew.id} crew={crew} />
+            <TempCrewLaneCard key={crew.id} crew={crew} onRequestJoin={openJoin} />
           ))}
           <TempCrewLaneEnd href={listHref} total={total} />
         </div>
@@ -87,6 +111,22 @@ export function EventTempCrewsSection({ event, crews, total, viewerCrewId, class
         >
           <Plus className="size-[18px]" strokeWidth={2.4} aria-hidden="true" /> Crear crew temporal
         </button>
+      )}
+
+      <AlreadyInEventCrewModal viewerCrewId={viewerCrewId} isOpen={isAlreadyOpen} onClose={() => setIsAlreadyOpen(false)} />
+      <JoinTempCrewSheet
+        crew={joining}
+        onClose={() => setJoining(null)}
+        onSent={(crew) => {
+          setJoining(null);
+          setToast(`Solicitud enviada a ${crew.name}`);
+          onChanged?.();
+        }}
+      />
+      {toast && (
+        <div role="status" className="fixed left-4 right-4 bottom-[calc(1.5rem+var(--root-safe-bottom))] z-40 mx-auto max-w-sm h-12 px-4 rounded-2xl bg-ink text-bg text-sm font-semibold flex items-center gap-2 shadow-[0_12px_40px_rgba(0,0,0,0.5)] animate-fade-in">
+          <Check className="size-[18px]" aria-hidden="true" /> {toast}
+        </div>
       )}
 
       <CreateTempCrewSheet
