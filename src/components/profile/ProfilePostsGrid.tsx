@@ -40,13 +40,13 @@ export function ProfilePostsGrid({ posts, isMyProfile, onCreatePost }: ProfilePo
 
   return (
     // Grilla tipo Instagram: 3 por fila, formato vertical 9:16 y separación mínima.
-    <div className="grid grid-cols-3 gap-0.5">
+    <div className="grid grid-cols-3 gap-0.5 lg:grid-cols-4 lg:gap-2.5 lg:pt-4">
       {posts.map((post, index) => (
         <Link
           key={post.id}
           href={`/posts/${post.id}`}
           aria-label={post.title || post.content || "Ver publicación"}
-          className="group relative aspect-[9/16] overflow-hidden bg-surface-2 block focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
+          className="group relative aspect-[9/16] overflow-hidden bg-surface-2 block lg:rounded-xl lg:aspect-[4/5] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
         >
           <PostThumbnail
             url={post.headerImageUrl}

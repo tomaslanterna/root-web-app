@@ -108,7 +108,7 @@ export function BroadcastChannel({
     <>
       <section
         data-testid="community-chat"
-        className="flex h-[calc(100dvh-12rem-var(--root-safe-top,env(safe-area-inset-top,0px))-var(--root-safe-bottom,env(safe-area-inset-bottom,0px)))] w-full min-w-0 max-w-full flex-col overflow-hidden rounded-2xl border-0 bg-[#111114] shadow-[0_16px_40px_-12px_rgba(0,0,0,0.7)] mb-[calc(5rem+var(--root-safe-bottom,env(safe-area-inset-bottom,0px)))] sm:h-[calc(100dvh-13.5rem)] sm:mb-20 sm:rounded-3xl"
+        className="flex h-[calc(100dvh-12rem-var(--root-safe-top,env(safe-area-inset-top,0px))-var(--root-safe-bottom,env(safe-area-inset-bottom,0px)))] w-full min-w-0 max-w-full flex-col overflow-hidden rounded-2xl border-0 bg-[#111114] shadow-[0_16px_40px_-12px_rgba(0,0,0,0.7)] mb-[calc(5rem+var(--root-safe-bottom,env(safe-area-inset-bottom,0px)))] sm:h-[calc(100dvh-13.5rem)] sm:mb-20 sm:rounded-3xl lg:h-[560px] lg:mb-0"
       >
         {/* Header */}
         <div className="shrink-0 flex flex-col gap-2.5 border-b border-white/[0.06] bg-[#0E1118]/80 p-3 sm:p-4 md:px-6 sm:flex-row sm:items-center sm:justify-between">
@@ -370,12 +370,12 @@ export function BroadcastChannel({
       {/* Fixed Chat Input Footer */}
       <footer
         data-testid="community-chat-footer"
-        className="liquid-glass-bar fixed bottom-0 left-1/2 z-30 w-full max-w-md -translate-x-1/2 overflow-hidden shadow-[0_-12px_40px_rgba(0,0,0,0.8)] md:max-w-[1360px]"
+        className="liquid-glass-bar fixed bottom-0 left-1/2 z-30 w-full max-w-md -translate-x-1/2 overflow-hidden shadow-[0_-12px_40px_rgba(0,0,0,0.8)] md:max-w-[1360px] lg:static lg:translate-x-0 lg:max-w-none lg:mt-4 lg:mb-12 lg:rounded-3xl lg:shadow-none"
       >
         {/* Liquid Glass: Specular top edge highlight */}
         <div className="liquid-glass-specular" />
 
-        <div className="relative z-10 mx-auto w-full min-w-0 max-w-4xl px-3.5 pt-2.5 pb-[calc(0.75rem+var(--root-safe-bottom,env(safe-area-inset-bottom,0px)))] sm:px-6 sm:py-3.5">
+        <div className="relative z-10 mx-auto w-full min-w-0 max-w-4xl px-3.5 pt-2.5 pb-[calc(0.75rem+var(--root-safe-bottom,env(safe-area-inset-bottom,0px)))] sm:px-6 sm:py-3.5 lg:max-w-none lg:px-4">
           {error && (
             <p className="mb-2 text-xs font-bold text-red-400" role="alert">
               {error}

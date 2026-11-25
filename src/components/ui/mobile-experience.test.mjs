@@ -20,7 +20,7 @@ test("active attendance can be cleared and voy! is a standalone selectable filte
 test("pull to refresh uses the animated root mark (square with the dancing face) without a circular loader", () => {
   assert.match(refresh, /<RootMark/);
   assert.match(rootLogo, /<RootBootAnimation variant="mark"/);
-  assert.match(rootLogo, />\s*r\s*</);
+  assert.match(rootLogo, /aria-label="root"/);
   assert.doesNotMatch(refresh, /rounded-full bg-\[#14171F\]/);
   assert.doesNotMatch(refresh, /Loader2|ArrowDown/);
 });

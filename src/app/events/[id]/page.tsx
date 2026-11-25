@@ -28,6 +28,10 @@ import { cn, copyTextToClipboard } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { badgeReviewHref } from "@/lib/badgeReviewLink";
 import { TabIndicator } from "@/components/ui/TabIndicator";
+import { useEventTempCrews } from "@/hooks/useTempCrews";
+import { EventTempCrewsSection, EventTempCrewsSkeleton, TEMP_CREWS_ANCHOR } from "@/components/match/EventTempCrewsSection";
+import { AdmittingPill } from "@/components/match/TempCrewCards";
+import type { TempCrewEventRef } from "@/types/tempCrews";
 
 const fallbackBanner =
   "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=80&w=1200&auto=format&fit=crop";
@@ -153,6 +157,17 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     }));
   }, [event]);
 
+  // Crews temporales: si el backend no tiene el endpoint, la sección no aparece.
+  const tempCrewEvent = useMemo<TempCrewEventRef | null>(
+    () =>
+      event
+        ? { id: event.id, title: event.title, date: event.date, location: event.location, cinematicBannerUrl: event.cinematicBannerUrl }
+        : null,
+    [event],
+  );
+  // Si el detalle del evento ya trae el resumen (`event.tempCrews`), no hay otra llamada.
+  const tempCrews = useEventTempCrews(eventId, tempCrewEvent, 3, event?.tempCrews);
+
   const hasLineup = useMemo(() => {
     if (!event) return false;
     return (event.artists && event.artists.length > 0) || (event.lineup && event.lineup.length > 0);
@@ -238,6 +253,49 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     { id: "rules", label: "Reglas" },
   ] as const;
 
+  // Radar de pista: en mobile va en la columna; en escritorio (lg) se repite en el lateral junto al póster.
+  const renderRadar = (radarId: string, radarClassName: string) => (
+    <section
+      aria-labelledby={radarId}
+      className={radarClassName}
+    >
+      <div className="flex flex-col gap-1">
+        <h2 id={radarId} className="label-mono text-ink-2 m-0">Radar de pista</h2>
+        <span className="text-[15px]">
+          <span className="num-mono font-semibold">{event.goingCount}</span> van
+        </span>
+      </div>
+      <EventAttendanceVote
+        eventId={event.id}
+        initialGoing={event.goingCount}
+        initialNotGoing={event.notGoingCount}
+        initialStatus={event.userRsvp}
+        onChange={updateAttendance}
+        showMetrics={false}
+        showNotGoing={false}
+      />
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+        {event.goingCount > 0 ? (
+          <button
+            type="button"
+            onClick={() => setIsAttendeesOpen(true)}
+            className="min-h-11 text-sm font-medium text-accent hover:text-accent-hover"
+          >
+            Ver a quiénes seguís que van
+          </button>
+        ) : (
+          <span className="text-sm text-ink-2">Sé el primero en confirmar</span>
+        )}
+        {user?.username && <Link
+          href={badgeReviewHref(user.username, event.id)}
+          className="min-h-11 inline-flex items-center text-sm font-medium text-ink-2 hover:text-ink"
+        >
+          Dejar reseña
+        </Link>}
+      </div>
+    </section>
+  );
+
   const roundButton =
     "size-11 rounded-full bg-bg/80 text-ink flex items-center justify-center transition-colors hover:bg-bg focus-visible:outline-2 focus-visible:outline-accent";
 
@@ -252,7 +310,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       <SwipeBack onBack={goBack} />
 
       {/* Header fijo: volver y compartir quedan arriba mientras se hace scroll */}
-      <header className="fixed inset-x-0 top-0 z-40 pointer-events-none">
+      <header className="fixed inset-x-0 top-0 z-40 pointer-events-none lg:hidden">
         <div className="mx-auto flex w-full max-w-3xl justify-between px-4 pt-[calc(1rem+var(--root-safe-top))] md:px-12 md:pt-10">
           <button
             type="button"
@@ -273,12 +331,40 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         </div>
       </header>
 
-      <div className="w-full max-w-3xl mx-auto md:px-8 md:pt-6">
+      {/* Escritorio: volver y compartir en una barra propia (en mobile flotan sobre el póster). */}
+      <div data-dsk className="hidden lg:flex items-center justify-between gap-3 pb-6">
+        <button
+          type="button"
+          onClick={goBack}
+          className="h-11 px-4 rounded-control bg-surface border border-line text-sm font-semibold flex items-center gap-2 hover:bg-surface-2 transition-colors focus-visible:outline-2 focus-visible:outline-accent"
+        >
+          <ChevronLeft className="size-[18px]" aria-hidden="true" />
+          Volver
+        </button>
+        <button
+          type="button"
+          onClick={handleShare}
+          className="h-11 px-4 rounded-control bg-surface border border-line text-sm font-semibold flex items-center gap-2 hover:bg-surface-2 transition-colors focus-visible:outline-2 focus-visible:outline-accent"
+        >
+          <Share className="size-[18px]" aria-hidden="true" />
+          Compartir
+        </button>
+      </div>
+
+      <div className="w-full max-w-3xl mx-auto md:px-8 md:pt-6 lg:max-w-none lg:px-0 lg:pt-0 lg:grid lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)] lg:gap-x-12 lg:items-start">
+        {/* Escritorio: póster completo y radar fijos en el lateral izquierdo. */}
+        <aside data-dsk className="hidden lg:flex flex-col gap-4 col-start-1 row-start-1 row-end-[40] self-start sticky top-28">
+          <div className="relative aspect-[4/5] rounded-hero overflow-hidden bg-surface-2 border border-line">
+            <Image src={banner} alt={`Póster de ${event.title}`} fill sizes="420px" className="object-cover object-center" />
+          </div>
+          {renderRadar("event-radar-desktop", "p-4 rounded-card bg-surface border border-line flex flex-col gap-3.5")}
+        </aside>
+
         {/* Póster */}
         <div
           role="img"
           aria-label={`Póster de ${event.title}`}
-          className="relative h-[470px] md:h-[520px] md:rounded-hero overflow-hidden bg-surface-2"
+          className="relative h-[470px] md:h-[520px] md:rounded-hero overflow-hidden bg-surface-2 lg:hidden"
         >
           <Image
             src={banner}
@@ -291,18 +377,25 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         </div>
 
         {/* Identidad */}
-        <div className="px-4 md:px-0 pt-6 flex flex-col gap-3.5">
+        <div className="px-4 md:px-0 pt-6 flex flex-col gap-3.5 lg:col-start-2 lg:pt-0">
           <div className="flex flex-wrap gap-2">
             {event.genre && (
               <span className="label-mono px-2.5 py-[7px] rounded-full bg-accent/12 text-accent">{event.genre}</span>
             )}
             <span className="label-mono px-2.5 py-[7px] rounded-full bg-surface-2 text-ink-2">+18</span>
+            {tempCrews.status === "ready" && tempCrews.total > 0 && (
+              <a href={`#${TEMP_CREWS_ANCHOR}`} className="rounded-full focus-visible:outline-2 focus-visible:outline-accent">
+                <AdmittingPill>
+                  {tempCrews.total} {tempCrews.total === 1 ? "crew buscando gente" : "crews buscando gente"}
+                </AdmittingPill>
+              </a>
+            )}
           </div>
           <h1 className="font-display text-[34px] md:text-5xl m-0">{event.title}</h1>
         </div>
 
         {/* Datos clave */}
-        <dl className="mx-4 md:mx-0 mt-5 grid grid-cols-2 gap-px rounded-card overflow-hidden bg-line border border-line">
+        <dl className="mx-4 md:mx-0 mt-5 grid grid-cols-2 gap-px rounded-card overflow-hidden bg-line border border-line lg:col-start-2 lg:grid-cols-4">
           <div className="bg-surface p-3.5 flex flex-col gap-1">
             <dt className="label-mono text-ink-3">Fecha</dt>
             <dd className="m-0 text-[15px] font-semibold">{formattedDate}</dd>
@@ -333,51 +426,27 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         </dl>
 
         {/* Radar de pista */}
-        <section
-          aria-labelledby="event-radar"
-          className="mx-4 md:mx-0 mt-4 p-4 rounded-card bg-surface border border-line flex flex-col gap-3.5"
-        >
-          <div className="flex flex-col gap-1">
-            <h2 id="event-radar" className="label-mono text-ink-2 m-0">Radar de pista</h2>
-            <span className="text-[15px]">
-              <span className="num-mono font-semibold">{event.goingCount}</span> van
-            </span>
-          </div>
-          <EventAttendanceVote
-            eventId={event.id}
-            initialGoing={event.goingCount}
-            initialNotGoing={event.notGoingCount}
-            initialStatus={event.userRsvp}
-            onChange={updateAttendance}
-            showMetrics={false}
-          />
-          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-            {event.goingCount > 0 ? (
-              <button
-                type="button"
-                onClick={() => setIsAttendeesOpen(true)}
-                className="min-h-11 text-sm font-medium text-accent hover:text-accent-hover"
-              >
-                Ver a quiénes seguís que van
-              </button>
-            ) : (
-              <span className="text-sm text-ink-2">Sé el primero en confirmar</span>
-            )}
-            {user?.username && <Link
-              href={badgeReviewHref(user.username, event.id)}
-              className="min-h-11 inline-flex items-center text-sm font-medium text-ink-2 hover:text-ink"
-            >
-              Dejar reseña
-            </Link>}
-          </div>
-        </section>
+        {renderRadar("event-radar", "mx-4 md:mx-0 mt-4 p-4 rounded-card bg-surface border border-line flex flex-col gap-3.5 lg:hidden")}
 
-        <div className="mx-4 md:mx-0 mt-4">
+        {/* Crews temporales: resumen con carrusel; la lista completa está en /events/[id]/crews. */}
+        {tempCrewEvent && tempCrews.status === "ready" ? (
+          <EventTempCrewsSection
+            event={tempCrewEvent}
+            crews={tempCrews.crews}
+            total={tempCrews.total}
+            viewerCrewId={tempCrews.viewerCrewId}
+            className="mx-4 md:mx-0 mt-4 lg:col-start-2 lg:mt-6"
+          />
+        ) : (
+          tempCrews.showPlaceholder && <EventTempCrewsSkeleton className="mx-4 md:mx-0 mt-4 lg:col-start-2 lg:mt-6" />
+        )}
+
+        <div className="mx-4 md:mx-0 mt-4 lg:col-start-2">
           <EventLiveRankingCard eventId={event.id} eventTitle={event.title} eventLocation={event.location} />
         </div>
 
         {/* Información en pestañas */}
-        <div ref={tabsRef} className="mx-4 md:mx-0 mt-7 scroll-mt-24">
+        <div ref={tabsRef} className="mx-4 md:mx-0 mt-7 scroll-mt-24 lg:col-start-2">
           <div
             ref={tabsListRef}
             role="tablist"
@@ -495,7 +564,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
         {/* Entradas: solo si el evento tiene ticket_url */}
         {hasTicketUrl && (
-          <section id="tickets-section" aria-labelledby="event-tickets" className="mx-4 md:mx-0 mt-8 scroll-mt-28">
+          <section id="tickets-section" aria-labelledby="event-tickets" className="mx-4 md:mx-0 mt-8 scroll-mt-28 lg:col-start-2">
             <div className="rounded-card bg-surface border border-line p-4 md:p-5 flex flex-col gap-4">
               {/* Header replegable */}
               <button
@@ -606,7 +675,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         )}
 
         {/* Muro */}
-        <section className="mx-4 md:mx-0 mt-8">
+        <section className="mx-4 md:mx-0 mt-8 lg:col-start-2">
           <CommentSection targetId={event.id} title="Muro y comunidad" />
         </section>
       </div>

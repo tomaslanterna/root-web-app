@@ -697,9 +697,9 @@ import { TabIndicator } from "@/components/ui/TabIndicator";
        <header
          ref={headerRef}
          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-         className="sticky top-0 z-40 w-full bg-bg/95 backdrop-blur-md border-b border-line"
+         className="sticky top-0 z-40 w-full bg-bg/95 backdrop-blur-md border-b border-line lg:-mt-24 lg:h-24 lg:border-b-0"
        >
-         <div className="w-full max-w-7xl mx-auto px-4 md:px-6 pt-[calc(0.75rem+var(--root-safe-top))] pb-3 md:pt-6 flex items-center justify-between gap-3">
+         <div className="w-full max-w-7xl mx-auto px-4 md:px-6 pt-[calc(0.75rem+var(--root-safe-top))] pb-3 md:pt-6 flex items-center justify-between gap-3 lg:hidden">
            <h1 className="m-0 shrink-0 flex">
              <RootLogo size={30} />
            </h1>
@@ -1499,7 +1499,7 @@ import { TabIndicator } from "@/components/ui/TabIndicator";
                  ))}
                </div>
              ) : (
-               <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-5">
+               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-5">
                  {[1, 2, 3, 4, 5, 6, 7, 8].map((item) => (
                    <EventCardSkeleton key={item} variant="grid" />
                  ))}
@@ -1555,7 +1555,7 @@ import { TabIndicator } from "@/components/ui/TabIndicator";
                  ))}
                </div>
              ) : (
-               <div key="grid" className="tab-panel-in grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-5">
+               <div key="grid" className="tab-panel-in grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-5">
                  {displayEvents.map((event, index) => (
                    <EventCard
                      key={event.id}

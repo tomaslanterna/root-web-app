@@ -32,7 +32,7 @@ export function CommunityHeader({
 
   return (
     <header>
-      <div className="relative h-[200px] bg-surface-2">
+      <div className="relative h-[200px] bg-surface-2 lg:h-[260px] lg:rounded-hero lg:overflow-hidden lg:border lg:border-line">
         <CommunityCover coverImageUrl={community.coverImageUrl} category={community.category} sizes="100vw" />
         {/* Fijos en mobile: volver e info siguen a mano al scrollear. En desktop quedan sobre la portada. */}
         <div className="fixed md:absolute z-40 top-[calc(1rem+var(--root-safe-top))] md:top-4 inset-x-4 flex justify-between pointer-events-none [&>*]:pointer-events-auto">
@@ -53,8 +53,8 @@ export function CommunityHeader({
         </div>
       </div>
 
-      <div className="mx-auto w-full max-w-4xl px-4 pt-4 sm:px-6 flex flex-col gap-2">
-        <h1 className="font-display m-0 text-[30px]">{community.name}</h1>
+      <div className="mx-auto w-full max-w-4xl px-4 pt-4 sm:px-6 flex flex-col gap-2 lg:max-w-none lg:px-0 lg:pt-6">
+        <h1 className="font-display m-0 text-[30px] lg:text-[44px]">{community.name}</h1>
         <span className="text-sm text-ink-2">
           <span className="num-mono font-semibold text-ink">{community.membersCount.toLocaleString("es-AR")}</span>{" "}
           miembros{meta ? ` · ${meta}` : ""}

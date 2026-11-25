@@ -6,7 +6,7 @@ import { api } from "@/lib/api";
 import { matchApi } from "@/services/match";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Loader2, MessageSquare, Plus, UserPlus } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Clock3, Loader2, Lock, MessageSquare, Plus, Share2, UserPlus } from "lucide-react";
 import { SwipeBack } from "@/components/ui/SwipeBack";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
@@ -19,6 +19,13 @@ import { CrewInviteLink } from "@/components/match/CrewInviteLink";
 import { TabIndicator } from "@/components/ui/TabIndicator";
 import { useBackNavigation } from "@/hooks/useBackNavigation";
 import { useMutation } from "@/hooks/useMutation";
+import { useTempCrewRequests } from "@/hooks/useTempCrews";
+import { tempCrewsApi } from "@/services/tempCrews";
+import { isDemoTempCrewId, isTempCrewsDemo, tempCrewsDemo } from "@/services/tempCrewsDemo";
+import { AdmittingPill, EventMiniCard, TempCrewRequestCard, TemporalTag, freeSpots, freeSpotsLabel } from "@/components/match/TempCrewCards";
+import { JoinTempCrewSheet } from "@/components/match/TempCrewSheets";
+import { copyTextToClipboard } from "@/lib/utils";
+import type { TempCrewDetailExtras, TempCrewSummary } from "@/types/tempCrews";
 
 interface LeaderboardEntry {
   userId: string;
@@ -41,6 +48,9 @@ interface CrewData {
   members?: LeaderboardEntry[];
   leaderboardAllTime: LeaderboardEntry[];
   events?: any[];
+  /** "temporary": crew armada para ir a un evento puntual (ver root-backend-service/TEMP_CREWS.md). */
+  type?: string;
+  tempCrew?: TempCrewDetailExtras;
 }
 
 const FALLBACK_EVENT_IMAGE =
@@ -87,6 +97,20 @@ export default function CrewDetailPage() {
 
   const loadCrewData = useCallback(async () => {
     if (!id) return;
+    if (isTempCrewsDemo() && isDemoTempCrewId(String(id))) {
+      try {
+        const demo = await tempCrewsDemo.getCrewDetail(String(id));
+        setCrew(demo as CrewData);
+        setCrewEvents(demo.events);
+        setEventLeaderboard(demo.leaderboardAllTime);
+        setSelectedEventId(demo.events[0]?.id ?? "");
+      } catch {
+        setCrew(null);
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
     try {
       const [crewRes, rankingsRes, eventsRes] = await Promise.all([
         api.get(`/v1/crews/${id}`),
@@ -213,6 +237,26 @@ export default function CrewDetailPage() {
   const isHost =
     !!user?.id && allTimeMembers.some((m) => m.userId === user.id && m.role === "host");
 
+  // Crew temporal: atada a un evento, con cupo y solicitudes que aprueba quien la creó.
+  const temp = crew?.type === "temporary" && crew.tempCrew ? crew.tempCrew : null;
+  const isTempHost = !!temp && !!user?.id && (temp.hostId === user.id || isHost);
+  const [joinTarget, setJoinTarget] = useState<TempCrewSummary | null>(null);
+  const [tempToast, setTempToast] = useState<string | null>(null);
+  const reloadCrew = useCallback(() => void loadCrewData(), [loadCrewData]);
+  const tempRequests = useTempCrewRequests(String(id ?? ""), isTempHost, reloadCrew);
+  const { mutate: saveAdmitting, isLoading: isSavingAdmitting, error: admittingError } = useMutation(tempCrewsApi.setAdmitting, {
+    onError: (_err, { isAdmitting }) =>
+      setCrew((prev) => (prev?.tempCrew ? { ...prev, tempCrew: { ...prev.tempCrew, isAdmitting: !isAdmitting } } : prev)),
+  });
+  const { mutate: cancelRequest, isLoading: isCancellingRequest } = useMutation(tempCrewsApi.cancelMyRequest, {
+    onSuccess: () => void loadCrewData(),
+  });
+  useEffect(() => {
+    if (!tempToast) return;
+    const timer = setTimeout(() => setTempToast(null), 3200);
+    return () => clearTimeout(timer);
+  }, [tempToast]);
+
   const { mutate: joinCrew, isLoading: isJoining, error: joinError } = useMutation(matchApi.joinPublicCrew, {
     onSuccess: () => void loadCrewData(),
   });
@@ -254,11 +298,53 @@ export default function CrewDetailPage() {
   const isMe = (member: LeaderboardEntry) => member.userId === user?.id;
   const timeZone = "America/Montevideo";
 
+  const tempHost = temp ? allTimeMembers.find((m) => m.userId === temp.hostId) ?? allTimeMembers.find((m) => m.role === "host") : undefined;
+  const tempMemberCount = crew.memberCount || allTimeMembers.length;
+  const tempSpots = temp ? freeSpots({ capacity: temp.capacity, memberCount: tempMemberCount }) : 0;
+  const tempSummary: TempCrewSummary | null =
+    temp && tempHost
+      ? {
+          id: crew.id,
+          name: crew.name,
+          plan: temp.plan,
+          capacity: temp.capacity,
+          memberCount: tempMemberCount,
+          isAdmitting: temp.isAdmitting,
+          host: { userId: tempHost.userId, name: tempHost.name, username: tempHost.username, avatarUrl: tempHost.avatarUrl },
+          membersPreview: allTimeMembers.slice(0, 4).map((m) => ({ userId: m.userId, name: m.name, username: m.username, avatarUrl: m.avatarUrl })),
+          event: temp.event,
+          viewerRole: null,
+          viewerRequestStatus: temp.viewerRequestStatus,
+        }
+      : null;
+  const toggleAdmitting = () => {
+    if (!temp) return;
+    const next = !temp.isAdmitting;
+    setCrew((prev) => (prev?.tempCrew ? { ...prev, tempCrew: { ...prev.tempCrew, isAdmitting: next } } : prev));
+    void saveAdmitting({ crewId: String(id), isAdmitting: next }).catch(() => undefined);
+  };
+  const shareCrew = async () => {
+    const url = window.location.href;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: crew.name, text: `Sumate a ${crew.name} en Root`, url });
+        return;
+      } catch {
+        // se copia el link
+      }
+    }
+    if (await copyTextToClipboard(url)) setTempToast("Link copiado");
+  };
+  const endedNotice = temp?.eventEnded ? "El evento terminó. La crew sigue acá, con su chat y sus pasos, pero ya no admite gente." : "";
+  // En escritorio la crew temporal va en dos columnas; en mobile los envoltorios no cambian nada (display: contents).
+  const leftColumnClass = temp ? "contents lg:flex lg:flex-col lg:col-start-1 lg:row-start-2 lg:self-start lg:sticky lg:top-28" : "contents";
+  const rightColumnClass = temp ? "contents lg:block lg:col-start-2 lg:row-start-2 lg:min-w-0" : "contents";
+
   return (
-    <div className="min-h-[100dvh] bg-bg text-ink pb-[calc(var(--root-mobile-nav-clearance)+1rem)] md:pb-16">
-      <div className="w-full max-w-2xl mx-auto px-4">
+    <div className={cn("min-h-[100dvh] bg-bg text-ink pb-[calc(var(--root-mobile-nav-clearance)+1rem)] md:pb-16", temp && !isMember && "pb-[calc(7rem+var(--root-safe-bottom))]")}>
+      <div className={cn("w-full max-w-2xl mx-auto px-4", temp && "lg:max-w-none lg:px-0 lg:grid lg:grid-cols-[minmax(0,400px)_minmax(0,1fr)] lg:gap-x-8 lg:items-start")}>
         {/* Header fijo: volver y chat quedan a mano mientras se scrollea el ranking. */}
-        <header className="sticky top-0 z-30 -mx-4 px-4 pt-[calc(0.75rem+var(--root-safe-top))] pb-3 md:pt-6 bg-bg/95 backdrop-blur-md flex items-center justify-between">
+        <header className={cn("sticky top-0 z-30 -mx-4 px-4 pt-[calc(0.75rem+var(--root-safe-top))] pb-3 md:pt-6 bg-bg/95 backdrop-blur-md flex items-center justify-between", temp && "lg:static lg:mx-0 lg:px-0 lg:pt-2 lg:pb-6 lg:bg-transparent lg:backdrop-blur-none lg:col-span-2")}>
           <SwipeBack onBack={goBack} />
           <button
             type="button"
@@ -268,36 +354,130 @@ export default function CrewDetailPage() {
           >
             <ChevronLeft className="size-[22px]" aria-hidden="true" />
           </button>
-          <Link
-            href={`/chat/squad/${id}`}
-            aria-label="Abrir chat de la crew"
-            className="h-11 px-3.5 rounded-control bg-surface border border-line flex items-center gap-2 text-sm font-semibold hover:bg-surface-2 transition-colors focus-visible:outline-2 focus-visible:outline-accent"
-          >
-            <MessageSquare className="size-[18px]" aria-hidden="true" /> Chat
-          </Link>
+          {temp ? (
+            <button
+              type="button"
+              onClick={() => void shareCrew()}
+              aria-label="Compartir crew"
+              className="h-11 px-3.5 rounded-control bg-surface border border-line flex items-center gap-2 text-sm font-semibold hover:bg-surface-2 transition-colors focus-visible:outline-2 focus-visible:outline-accent"
+            >
+              <Share2 className="size-[18px]" aria-hidden="true" /> <span className="hidden lg:inline">Compartir</span>
+            </button>
+          ) : (
+            <Link
+              href={`/chat/squad/${id}`}
+              aria-label="Abrir chat de la crew"
+              className="h-11 px-3.5 rounded-control bg-surface border border-line flex items-center gap-2 text-sm font-semibold hover:bg-surface-2 transition-colors focus-visible:outline-2 focus-visible:outline-accent"
+            >
+              <MessageSquare className="size-[18px]" aria-hidden="true" /> Chat
+            </Link>
+          )}
         </header>
 
-        <div className="pt-2 flex items-center gap-4">
-          <CrewMonogram name={crew.name} className="size-[72px] rounded-[18px] text-2xl" />
+        <div className={leftColumnClass}>
+        <div className={cn("pt-2 flex items-center gap-4", temp && "lg:pt-0")}>
+          <CrewMonogram
+            name={crew.name}
+            imageUrl={temp?.event.cinematicBannerUrl?.trim() || undefined}
+            className={cn("size-[72px] rounded-[18px] text-2xl", temp && "lg:size-[96px] lg:rounded-[24px]")}
+          />
           <div className="min-w-0 flex flex-col gap-1.5">
             <h1 className="font-display text-[26px] m-0">{crew.name}</h1>
-            <span className="text-sm text-ink-2">
-              {crew.memberCount || allTimeMembers.length} integrantes ·{" "}
-              <span className="num-mono">{totalCrewSteps.toLocaleString("es-AR")}</span> pasos
-            </span>
-            <span
-              className={cn(
-                "self-start label-mono px-2 py-1 rounded-full",
-                crew.isPublic ? "bg-accent/12 text-accent" : "bg-surface-2 text-ink-2",
-              )}
-            >
-              {crew.isPublic ? "Pública" : "Privada"}
-            </span>
+            {temp ? (
+              <span className="text-sm text-ink-2">
+                <span className="num-mono text-ink">{tempMemberCount}/{temp.capacity}</span> integrantes ·{" "}
+                {isTempHost ? "creada por vos" : `de ${tempHost?.name ?? "su creador"}`}
+              </span>
+            ) : (
+              <span className="text-sm text-ink-2">
+                {crew.memberCount || allTimeMembers.length} integrantes ·{" "}
+                <span className="num-mono">{totalCrewSteps.toLocaleString("es-AR")}</span> pasos
+              </span>
+            )}
+            {temp ? (
+              <span className="flex flex-wrap gap-1.5">
+                <TemporalTag />
+                {temp.isAdmitting && tempSpots > 0 ? (
+                  <AdmittingPill small />
+                ) : (
+                  <span className="h-6 px-2.5 rounded-full bg-surface-2 text-[11px] font-semibold text-ink-2 flex items-center">
+                    {tempSpots === 0 ? "Completa" : "Cerrada"}
+                  </span>
+                )}
+              </span>
+            ) : (
+              <span
+                className={cn(
+                  "self-start label-mono px-2 py-1 rounded-full",
+                  crew.isPublic ? "bg-accent/12 text-accent" : "bg-surface-2 text-ink-2",
+                )}
+              >
+                {crew.isPublic ? "Pública" : "Privada"}
+              </span>
+            )}
           </div>
         </div>
 
+        {temp && (
+          <>
+            <EventMiniCard event={temp.event} href={`/events/${temp.event.id}`} className="mt-4" />
+            {temp.plan && <p className="mt-3 mb-0 text-sm leading-normal text-ink-2 break-words">{temp.plan}</p>}
+            {isMember && (
+              <Link
+                href={`/chat/squad/${id}`}
+                className="mt-4 h-[50px] rounded-control bg-accent text-on-accent text-[15px] font-semibold flex items-center justify-center gap-2 hover:bg-accent-hover transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              >
+                <MessageSquare className="size-[18px]" aria-hidden="true" /> Abrir chat
+              </Link>
+            )}
+            {isTempHost && (
+              <div className="mt-4 p-3.5 flex items-center gap-3 rounded-card bg-surface border border-line">
+                <span className="flex-1 min-w-0 flex flex-col gap-0.5">
+                  <span id="crew-admitting-label" className="text-[15px] font-semibold">Admitiendo solicitudes</span>
+                  <span className="text-[13px] text-ink-2">
+                    {!temp.isAdmitting
+                      ? "La crew no aparece en el evento ni recibe solicitudes."
+                      : tempSpots > 0
+                        ? `La crew aparece en el evento. ${freeSpotsLabel(tempSpots)}.`
+                        : "Está completa: no aparece en el evento."}
+                  </span>
+                  {admittingError && <span role="alert" className="text-[13px] text-rose-400">No se pudo guardar el cambio.</span>}
+                </span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={temp.isAdmitting}
+                  aria-labelledby="crew-admitting-label"
+                  disabled={isSavingAdmitting}
+                  onClick={toggleAdmitting}
+                  className={cn(
+                    "relative h-7 w-12 shrink-0 rounded-full transition-colors disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+                    temp.isAdmitting ? "bg-accent" : "bg-surface-2 border border-line-strong",
+                  )}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      "absolute top-1/2 size-5 -translate-y-1/2 rounded-full transition-[left,background-color] duration-200",
+                      temp.isAdmitting ? "left-[26px] bg-on-accent" : "left-1 bg-ink-2",
+                    )}
+                  />
+                </button>
+              </div>
+            )}
+            {!isMember && (
+              <div className="mt-4 p-3.5 flex items-center gap-3 rounded-card bg-surface-2 border border-line">
+                <Lock className="size-[18px] text-ink-2 shrink-0" aria-hidden="true" />
+                <span className="text-sm leading-snug text-ink-2">
+                  El chat y el ranking se abren cuando {tempHost ? tempHost.name.split(" ")[0] : "quien la creó"} te acepta.
+                </span>
+              </div>
+            )}
+          </>
+        )}
+
         {/* Quien no es miembro: a una pública se suma con un toque; a una privada solo con invitación. */}
-        {!isMember && user && crew.isPublic && (
+        {!temp && !isMember && user && crew.isPublic && (
           <div className="mt-4 flex flex-col gap-2">
             <Button onClick={() => void joinCrew(String(id)).catch(() => undefined)} disabled={isJoining} className="h-11 w-full">
               {isJoining ? "Uniendo…" : "Unirme a la crew"}
@@ -305,12 +485,12 @@ export default function CrewDetailPage() {
             {joinError && <p role="alert" className="m-0 text-sm text-rose-400">No pudimos sumarte. Probá de nuevo.</p>}
           </div>
         )}
-        {!isMember && !crew.isPublic && (
+        {!temp && !isMember && !crew.isPublic && (
           <p className="mt-4 mb-0 text-sm text-ink-2">Es una crew privada: para sumarte te tienen que pasar su link de invitación.</p>
         )}
 
         {/* Solo quien la creó decide si es pública o privada. */}
-        {isHost && (
+        {isHost && !temp && (
           <div className="mt-4 p-3.5 flex items-center gap-3 rounded-card bg-surface border border-line">
             <span className="flex-1 min-w-0 flex flex-col gap-0.5">
               <span id="crew-visibility-label" className="text-[15px] font-semibold">Crew pública</span>
@@ -368,7 +548,49 @@ export default function CrewDetailPage() {
           />
         )}
 
-        <div role="tablist" aria-label="Crew" className="relative mt-5 flex p-[2px] rounded-lg bg-surface border border-line">
+        {temp && endedNotice && (
+          <p className="hidden lg:block mt-4 mb-0 text-[13px] text-ink-3">{endedNotice}</p>
+        )}
+        </div>
+
+        <div className={rightColumnClass}>
+        {isTempHost && (
+          <section
+            aria-labelledby="crew-requests"
+            className="mt-6 flex flex-col gap-3 lg:mt-0 lg:mb-6 lg:p-[22px] lg:rounded-hero lg:border lg:border-accent/25 lg:overflow-hidden lg:bg-[linear-gradient(180deg,rgba(212,255,0,0.07),rgba(212,255,0,0)_160px)]"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <h2 id="crew-requests" className="font-display text-[22px] m-0 lg:text-[30px]">
+                Solicitudes <span className="num-mono text-accent">{tempRequests.requests.length}</span>
+              </h2>
+              <span className="text-xs text-ink-3">{tempSpots > 0 ? freeSpotsLabel(tempSpots) : "Crew completa"}</span>
+            </div>
+            {tempRequests.respondError && (
+              <p role="alert" className="m-0 text-[13px] text-rose-400">No se pudo responder la solicitud. Probá de nuevo.</p>
+            )}
+            {tempRequests.status === "loading" ? (
+              <div className="h-[220px] rounded-card bg-surface border border-line animate-pulse" aria-hidden="true" />
+            ) : tempRequests.requests.length === 0 ? (
+              <p className="m-0 p-4 rounded-card bg-surface border border-line text-[15px] text-ink-2">
+                {tempRequests.status === "unavailable" ? "No pudimos cargar las solicitudes." : "No hay solicitudes pendientes."}
+              </p>
+            ) : (
+              <div className="-mx-4 px-4 scroll-px-4 pb-1 flex gap-3 items-stretch overflow-x-auto overscroll-x-contain snap-x snap-mandatory hide-scrollbar lg:-mx-[22px] lg:px-[22px] lg:scroll-px-[22px]">
+                {tempRequests.requests.map((request) => (
+                  <TempCrewRequestCard
+                    key={request.id}
+                    request={request}
+                    isBusy={tempRequests.respondingId === request.id}
+                    canAccept={tempSpots > 0}
+                    onRespond={(decision) => void tempRequests.respond(request.id, decision).catch(() => undefined)}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        <div role="tablist" aria-label="Crew" className={cn("relative mt-5 flex p-[2px] rounded-lg bg-surface border border-line", temp && "lg:mt-0")}>
           <TabIndicator variant="pill" />
           {(["ranking", "members"] as const).map((tab) => (
             <button
@@ -479,10 +701,12 @@ export default function CrewDetailPage() {
               <p className="py-8 text-center text-[15px] text-ink-2">Todavía no hay pasos registrados en esta crew.</p>
             )}
 
+            {/* Las crews temporales ya están atadas a un evento: no hace falta la lista de eventos. */}
+            {!temp && (
             <section aria-labelledby="crew-events" className="mt-7">
               <div className="flex items-center justify-between gap-3 mb-2.5">
                 <h2 id="crew-events" className="label-mono text-ink-2 m-0">Eventos de la crew</h2>
-                {user && (
+                {user && !temp && (
                   <button
                     type="button"
                     aria-expanded={isAddEventOpen}
@@ -562,6 +786,7 @@ export default function CrewDetailPage() {
                 </div>
               )}
             </section>
+            )}
           </div>
         ) : (
           <ul key="members" className="tab-panel-in mt-4 p-0 list-none rounded-card overflow-hidden bg-surface border border-line divide-y divide-white/[0.06]">
@@ -587,7 +812,61 @@ export default function CrewDetailPage() {
             ))}
           </ul>
         )}
+        {temp && endedNotice && (
+          <p className="mt-6 mb-0 text-center text-[13px] text-ink-3 lg:hidden">{endedNotice}</p>
+        )}
+        </div>
       </div>
+
+      {/* Quien no está en la crew temporal: pedir unirse (o ver/cancelar su solicitud). */}
+      {temp && !isMember && user && (
+        <div className="fixed inset-x-0 bottom-0 z-30 px-4 pt-3.5 pb-[calc(0.875rem+var(--root-safe-bottom))] bg-bg/95 backdrop-blur-md border-t border-line flex items-center gap-3 lg:bottom-6 lg:inset-x-auto lg:right-8 lg:w-[400px] lg:rounded-card lg:border lg:shadow-[0_20px_50px_rgba(0,0,0,0.6)]">
+          <span className="flex-1 min-w-0 flex flex-col gap-0.5">
+            <span className="text-[15px] font-semibold">
+              {temp.viewerRequestStatus === "pending" ? "Solicitud enviada" : tempSpots > 0 && temp.isAdmitting ? freeSpotsLabel(tempSpots) : "No admite gente ahora"}
+            </span>
+            <span className="text-xs text-ink-2">
+              {temp.viewerRequestStatus === "pending"
+                ? `Esperando a ${tempHost?.name.split(" ")[0] ?? "quien la creó"}`
+                : `${tempHost?.name.split(" ")[0] ?? "Quien la creó"} aprueba cada solicitud`}
+            </span>
+          </span>
+          {temp.viewerRequestStatus === "pending" ? (
+            <button
+              type="button"
+              onClick={() => void cancelRequest(String(id)).catch(() => undefined)}
+              disabled={isCancellingRequest}
+              className="h-12 px-4 rounded-control bg-surface-2 border border-line-strong text-sm font-semibold flex items-center gap-1.5 disabled:opacity-60"
+            >
+              <Clock3 className="size-4" aria-hidden="true" /> Cancelar
+            </button>
+          ) : (
+            <Button
+              onClick={() => tempSummary && setJoinTarget(tempSummary)}
+              disabled={!temp.isAdmitting || tempSpots === 0 || !tempSummary}
+              className="h-12"
+            >
+              <UserPlus className="size-[17px]" aria-hidden="true" /> Pedir unirme
+            </Button>
+          )}
+        </div>
+      )}
+
+      {tempToast && (
+        <div role="status" className="fixed left-4 right-4 bottom-[calc(6.5rem+var(--root-safe-bottom))] z-40 mx-auto max-w-sm h-12 px-4 rounded-2xl bg-ink text-bg text-sm font-semibold flex items-center gap-2 shadow-[0_12px_40px_rgba(0,0,0,0.5)] animate-fade-in">
+          <Check className="size-[18px]" aria-hidden="true" /> {tempToast}
+        </div>
+      )}
+
+      <JoinTempCrewSheet
+        crew={joinTarget}
+        onClose={() => setJoinTarget(null)}
+        onSent={(target) => {
+          setJoinTarget(null);
+          setTempToast(`Solicitud enviada a ${target.name}`);
+          void loadCrewData();
+        }}
+      />
 
       <AddCrewMembersModal
         isOpen={isAddMembersOpen}
