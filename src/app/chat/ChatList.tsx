@@ -2,6 +2,7 @@
 
 import { useMatch } from "@/context/MatchContext";
 import { Avatar } from "@/components/ui/Avatar";
+import { TemporalTag } from "@/components/match/TempCrewCards";
 import { ChevronLeft, Loader2, Plus, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { CrewMonogram } from "@/components/match/CrewMonogram";
@@ -168,12 +169,20 @@ export function ChatList({ className, onBack, backButtonRef }: { className?: str
             const unread = chat.unread_count ?? 0;
             return (
               <Link key={chat.id} href={`/chat/${chat.id}`} className={rowClass}>
-                <Avatar
-                  src={otherUser?.avatarUrl}
-                  fallback={otherUser?.name || "U"}
-                  username={chat.type !== "CREWS" ? otherUser?.username : undefined}
-                  className="size-[52px] rounded-full shrink-0"
-                />
+                {chat.crew_type === "temporary" ? (
+                  <span
+                    aria-hidden="true"
+                    className="size-[52px] rounded-xl shrink-0 bg-surface-2 bg-cover bg-center border border-line"
+                    style={chat.event_image?.trim() ? { backgroundImage: `url(${chat.event_image.trim()})` } : undefined}
+                  />
+                ) : (
+                  <Avatar
+                    src={otherUser?.avatarUrl}
+                    fallback={otherUser?.name || "U"}
+                    username={chat.type !== "CREWS" ? otherUser?.username : undefined}
+                    className="size-[52px] rounded-full shrink-0"
+                  />
+                )}
                 <span className="flex-1 min-w-0 flex flex-col gap-[3px]">
                   <span className="flex justify-between items-baseline gap-2">
                     <span className="text-base font-semibold truncate">
@@ -181,6 +190,7 @@ export function ChatList({ className, onBack, backButtonRef }: { className?: str
                       {chat.type !== "CREWS" && otherUser?.username && (
                         <span className="font-normal text-ink-3"> @{otherUser.username}</span>
                       )}
+                      {chat.crew_type === "temporary" && <span className="ml-2 align-middle"><TemporalTag /></span>}
                     </span>
                     <span className={`num-mono text-xs shrink-0 ${unread ? "text-accent" : "text-ink-3"}`}>
                       {formatChatTime(chat.updated_at)}

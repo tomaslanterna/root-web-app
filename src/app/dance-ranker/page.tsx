@@ -182,8 +182,8 @@ export default function DanceRankerPage() {
 
   return (
     <div className="num-display min-h-[100dvh] bg-bg text-ink pb-[calc(var(--root-mobile-nav-clearance)+1rem)] md:pb-16">
-      <header className="sticky top-0 z-30 w-full bg-bg/95 backdrop-blur-md border-b border-line">
-        <div className="w-full max-w-2xl mx-auto px-4 pt-[calc(0.75rem+var(--root-safe-top))] pb-3 md:pt-6 flex items-center gap-3">
+      <header className="sticky top-0 z-30 w-full bg-bg/95 backdrop-blur-md border-b border-line lg:static lg:border-b-0 lg:bg-transparent lg:backdrop-blur-none">
+        <div className="w-full max-w-2xl mx-auto px-4 pt-[calc(0.75rem+var(--root-safe-top))] pb-3 md:pt-6 flex items-center gap-3 lg:max-w-none lg:px-0 lg:pt-2 lg:pb-6">
           <SwipeBack />
           <button
             type="button"
@@ -193,41 +193,41 @@ export default function DanceRankerPage() {
           >
             <ChevronLeft className="size-[22px]" aria-hidden="true" />
           </button>
-          <h1 className="font-display not-italic m-0 flex-1 text-2xl">Dance stats</h1>
+          <h1 className="font-display not-italic m-0 flex-1 text-2xl lg:text-[44px]">Dance stats</h1>
           {headerDate && <span className="text-[13px] text-ink-2">{headerDate}</span>}
         </div>
       </header>
 
-      <div className="w-full max-w-2xl mx-auto pt-4">
+      <div className="w-full max-w-2xl mx-auto pt-4 lg:max-w-none lg:pt-0 lg:grid lg:grid-cols-3 lg:gap-5 lg:items-start">
 
         {error ? (
-          <div role="alert" className={cn(card, "mx-4 mt-8 p-6 text-center")}>
+          <div role="alert" className={cn(card, "mx-4 mt-8 p-6 text-center lg:col-span-3 lg:mx-0 lg:mt-0")}>
             <p className="m-0 text-base">No pudimos cargar tus estadísticas.</p>
             <Button variant="secondary" className="mt-4 not-italic tracking-normal" onClick={retry}>Reintentar</Button>
           </div>
         ) : (
           <>
             {isAtLiveEvent && liveEvent && (
-              <div className="px-4 mb-4 not-italic font-normal tracking-normal">
+              <div className="px-4 mb-4 not-italic font-normal tracking-normal lg:col-span-3 lg:px-0 lg:mb-0">
                 <EventLiveRankingCard eventId={liveEvent.id} eventTitle={liveEvent.title} eventLocation={liveEvent.location} />
               </div>
             )}
 
             {last ? (
-              <section aria-labelledby="dance-hero" className="px-4 flex flex-col">
+              <section aria-labelledby="dance-hero" className="px-4 flex flex-col lg:col-span-2 lg:self-stretch lg:justify-center lg:p-8 lg:rounded-hero lg:bg-surface lg:border lg:border-line">
                 <h2 id="dance-hero" className="m-0 flex flex-col font-[inherit]">
                   <span className="text-[15px] text-ink-2">{wasLastNight ? "Anoche tiraste" : "En tu última fiesta tiraste"}</span>
-                  <span className="text-[clamp(72px,28vw,112px)] leading-[0.95] tracking-[-0.07em] text-accent">{fmt(last.stepsCount)}</span>
+                  <span className="text-[clamp(72px,28vw,112px)] leading-[0.95] tracking-[-0.07em] text-accent lg:text-[144px]">{fmt(last.stepsCount)}</span>
                   <span className="mt-1.5 text-[22px] leading-tight">pasos en {last.eventTitle}.</span>
                 </h2>
               </section>
             ) : (
-              <p className={cn(card, "mx-4 p-6 text-center text-base")}>
+              <p className={cn(card, "mx-4 p-6 text-center text-base lg:col-span-2 lg:mx-0")}>
                 Todavía no registraste pasos. Activá el contador en tu próxima fiesta.
               </p>
             )}
 
-            <section aria-label="Totales" className="mx-4 mt-7 grid grid-cols-2 gap-px rounded-card overflow-hidden bg-line border border-line">
+            <section aria-label="Totales" className="mx-4 mt-7 lg:mx-0 lg:mt-0 lg:self-stretch lg:content-stretch grid grid-cols-2 gap-px rounded-card overflow-hidden bg-line border border-line">
               <div className="col-span-2 bg-surface p-4 flex items-baseline justify-between gap-2">
                 <span className="label-mono text-ink-2 not-italic whitespace-nowrap">Total histórico</span>
                 <span className="flex flex-wrap items-baseline justify-end gap-x-1.5">
@@ -245,7 +245,7 @@ export default function DanceRankerPage() {
               </div>
             </section>
 
-            <section aria-labelledby="dance-activity" className={cn(card, "mx-4 mt-6 p-4 flex flex-col gap-[18px]")}>
+            <section aria-labelledby="dance-activity" className={cn(card, "mx-4 mt-6 p-4 flex flex-col gap-[18px] lg:col-span-2 lg:mx-0 lg:mt-0 lg:p-6")}>
               <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-3">
                 <h2 id="dance-activity" className="font-display not-italic m-0 text-xl">Actividad</h2>
                 <div role="radiogroup" aria-label="Período" className="relative flex p-[2px] rounded-lg bg-bg border border-line">
@@ -347,7 +347,7 @@ export default function DanceRankerPage() {
             </section>
 
             {last && (
-              <section className={cn(card, "mx-4 mt-3 overflow-hidden")}>
+              <section className={cn(card, "mx-4 mt-3 overflow-hidden lg:mx-0 lg:mt-0")}>
                 <button
                   type="button"
                   aria-expanded={crewsOpen}

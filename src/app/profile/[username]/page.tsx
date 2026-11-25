@@ -275,9 +275,9 @@ export default function UserProfilePage() {
   };
 
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-bg pb-[calc(var(--root-mobile-nav-clearance)+1rem)] text-ink md:pb-16">
-      <header className="sticky top-0 z-30 w-full bg-bg/95 backdrop-blur-md border-b border-line">
-        <div className="w-full max-w-3xl mx-auto px-4 pt-[calc(0.75rem+var(--root-safe-top))] pb-3 md:pt-6 flex items-center gap-3">
+    <div className="flex min-h-[100dvh] flex-col bg-bg pb-[calc(var(--root-mobile-nav-clearance)+1rem)] text-ink md:pb-16 lg:flow-root">
+      <header className="sticky top-0 z-30 w-full bg-bg/95 backdrop-blur-md border-b border-line lg:static lg:border-b-0 lg:bg-transparent lg:backdrop-blur-none">
+        <div className="w-full max-w-3xl mx-auto px-4 pt-[calc(0.75rem+var(--root-safe-top))] pb-3 md:pt-6 flex items-center gap-3 lg:max-w-none lg:px-0 lg:pt-2 lg:pb-6">
         {/* Volver: en el perfil de otra persona siempre; en el propio solo si se llegó desde búsqueda o una comunidad
             (desde la barra de abajo es una pestaña raíz). */}
         {showBack && <SwipeBack onBack={handleProfileBack} />}
@@ -318,10 +318,10 @@ export default function UserProfilePage() {
         </div>
       </header>
 
-      <div className="w-full max-w-3xl mx-auto px-4 pt-5 flex items-center gap-[18px]">
+      <div className="w-full max-w-3xl mx-auto px-4 pt-5 flex items-center gap-[18px] lg:float-left lg:clear-left lg:w-[340px] lg:mx-0 lg:px-0 lg:flex-col lg:items-start lg:p-6 lg:rounded-hero lg:bg-surface lg:border lg:border-line">
         <div
           className={cn(
-            "relative size-[88px] shrink-0 rounded-full overflow-hidden bg-surface-2",
+            "relative size-[88px] shrink-0 rounded-full overflow-hidden bg-surface-2 lg:size-[112px]",
             isMyProfile && "ring-2 ring-accent ring-offset-[3px] ring-offset-bg",
           )}
         >
@@ -385,7 +385,7 @@ export default function UserProfilePage() {
       </div>
 
       {!isMyProfile && (
-        <div className="w-full max-w-3xl mx-auto px-4 pt-4 grid grid-cols-2 gap-2">
+        <div className="w-full max-w-3xl mx-auto px-4 pt-4 grid grid-cols-2 gap-2 lg:float-left lg:clear-left lg:w-[340px] lg:mx-0 lg:px-0">
           <Button
             onClick={toggleFollow}
             disabled={isFollowingLoading || isUnfollowingLoading}
@@ -413,7 +413,7 @@ export default function UserProfilePage() {
       )}
 
       {isMyProfile && !profileUser.isKycVerified && (
-        <div className="w-full max-w-3xl mx-auto px-4 pt-3">
+        <div className="w-full max-w-3xl mx-auto px-4 pt-3 lg:float-left lg:clear-left lg:w-[340px] lg:mx-0 lg:px-0">
           <Link
             href="/kyc"
             className="p-3.5 rounded-card bg-surface border border-dashed border-info/45 flex items-center gap-3 hover:bg-surface-2 transition-colors"
@@ -431,7 +431,7 @@ export default function UserProfilePage() {
       )}
 
       {!showContent && (
-        <section className="mt-6 w-full max-w-3xl mx-auto px-4">
+        <section className="mt-6 w-full max-w-3xl mx-auto px-4 lg:ml-[372px] lg:mr-0 lg:max-w-none lg:w-auto lg:mt-0 lg:px-0">
           <div className="rounded-card border border-line bg-surface px-5 py-8 flex flex-col items-center gap-3 text-center">
             <span className="size-12 rounded-full bg-surface-2 flex items-center justify-center">
               <Lock className="size-5 text-ink-2" aria-hidden="true" />
@@ -447,7 +447,7 @@ export default function UserProfilePage() {
       )}
 
       {showContent && <>
-      <div className="mt-6 w-full max-w-3xl mx-auto">
+      <div className="mt-6 w-full max-w-3xl mx-auto lg:ml-[372px] lg:mr-0 lg:max-w-none lg:w-auto lg:mt-0">
         <div role="tablist" aria-label="Contenido del perfil" className="relative flex border-b border-line">
           <TabIndicator variant="underline" />
           {tabs.map((tab) => {
@@ -474,7 +474,7 @@ export default function UserProfilePage() {
         </div>
       </div>
 
-      <div key={activeTab} id={`profile-tab-${activeTab}`} role="tabpanel" aria-label={activeTab} className={cn("tab-panel-in w-full max-w-3xl mx-auto", activeTab === "Posts" ? "pt-0.5" : "px-4 pt-4")}>
+      <div key={activeTab} id={`profile-tab-${activeTab}`} role="tabpanel" aria-label={activeTab} className={cn("tab-panel-in w-full max-w-3xl mx-auto lg:ml-[372px] lg:mr-0 lg:max-w-none lg:w-auto", activeTab === "Posts" ? "pt-0.5" : "px-4 pt-4")}>
         {activeTab === "Insignias" && (
           <BadgeCollection key={`${username}:${currentUser?.id || "guest"}`} username={username} isOwner={isMyProfile} initialBadgeId={isMyProfile ? badgeToOpen : null} />
         )}

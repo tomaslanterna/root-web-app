@@ -33,6 +33,12 @@ export interface ChatInfo {
   squad_id?: string;
   name?: string;
   event_id?: string;
+  /** Crews temporales: datos para la etiqueta y el evento fijado. */
+  crew_type?: "permanent" | "temporary";
+  event_title?: string;
+  event_date?: string;
+  event_location?: string;
+  event_image?: string;
 }
 
 export type ChatRealtimeEvent =

@@ -155,8 +155,8 @@ export default function SettingsPage() {
   return (
     <main className="min-h-[100dvh] bg-bg text-ink flex flex-col pb-[calc(var(--root-mobile-nav-clearance)+1rem)] md:pb-16 relative">
       {/* Header unificado Nocturno Editorial */}
-      <header className="sticky top-0 z-30 w-full bg-bg/95 backdrop-blur-md border-b border-line">
-        <div className="w-full max-w-2xl mx-auto px-4 pt-[calc(0.75rem+var(--root-safe-top))] pb-3 md:pt-6 flex items-center gap-3">
+      <header className="sticky top-0 z-30 w-full bg-bg/95 backdrop-blur-md border-b border-line lg:static lg:border-b-0 lg:bg-transparent lg:backdrop-blur-none">
+        <div className="w-full max-w-2xl mx-auto px-4 pt-[calc(0.75rem+var(--root-safe-top))] pb-3 md:pt-6 flex items-center gap-3 lg:max-w-none lg:px-0 lg:pt-2 lg:pb-6">
           <SwipeBack />
           <button
             type="button"
@@ -172,7 +172,7 @@ export default function SettingsPage() {
         </div>
       </header>
 
-      <div className="w-full max-w-2xl mx-auto px-4 pt-5 space-y-4">
+      <div className="w-full max-w-2xl mx-auto px-4 pt-5 space-y-4 lg:max-w-none lg:px-0 lg:pt-0 lg:grid lg:grid-cols-2 lg:gap-5 lg:space-y-0 lg:items-start">
         {/* Notificaciones */}
         <section className="rounded-card border border-line bg-surface p-5 space-y-3.5">
           <div className="flex items-center gap-3">
@@ -224,7 +224,7 @@ export default function SettingsPage() {
         </section>
 
         {/* Opciones de configuración */}
-        <div className="bg-surface border border-line rounded-card overflow-hidden divide-y divide-line">
+        <div className="bg-surface border border-line rounded-card overflow-hidden divide-y divide-line lg:col-start-2 lg:row-start-1 lg:row-span-2">
           {/* Perfil privado: seguir requiere que aceptes la solicitud. */}
           <div className="w-full flex items-center justify-between gap-3 p-4.5">
             <div className="flex items-center gap-3.5 min-w-0">
@@ -371,7 +371,7 @@ export default function SettingsPage() {
         </div>
 
         {logoutError && (
-          <p className="text-xs font-semibold text-danger px-1" role="alert">
+          <p className="text-xs font-semibold text-danger px-1 lg:col-start-2" role="alert">
             {logoutError}
           </p>
         )}

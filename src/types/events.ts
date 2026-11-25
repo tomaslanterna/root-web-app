@@ -1,3 +1,5 @@
+import type { TempCrewsEventSummary } from "@/types/tempCrews";
+
 export type EventRSVPStatus = "going" | "not_going";
 
 export interface Artist {
@@ -53,6 +55,8 @@ export interface Event {
   ticketUrl?: string;
   ticketInfoFetchedAt?: string;
   createdAt: string;
+  /** Solo en el detalle: resumen de crews temporales (si el backend lo incluye). */
+  tempCrews?: TempCrewsEventSummary | null;
 }
 
 export interface EventAttendee {

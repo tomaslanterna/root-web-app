@@ -2,7 +2,8 @@
 
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
-import { Check, CheckCheck, ChevronLeft, Send, Clock3 } from "lucide-react";
+import { Check, CheckCheck, ChevronLeft, Send, Clock3, Pin } from "lucide-react";
+import { TemporalTag, formatTempCrewEventDate } from "@/components/match/TempCrewCards";
 import Link from "next/link";
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
@@ -70,6 +71,9 @@ export function ChatConversation({ chatId }: { chatId: string }) {
   }
 
   const otherUser = chatInfo.participants?.find((participant) => participant.id !== currentUser?.id) || chatInfo.participants?.[0];
+  // Crew temporal: muestra su nombre, la etiqueta y el evento fijado arriba.
+  const isTempCrew = chatInfo.type === "CREWS" && chatInfo.crew_type === "temporary";
+  const tempEventBanner = chatInfo.event_image?.trim();
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,8 +99,25 @@ export function ChatConversation({ chatId }: { chatId: string }) {
         <Link href="/chat" className="p-1 rounded-full hover:bg-white/10 text-white transition-colors md:hidden">
           <ChevronLeft className="w-5 h-5" />
         </Link>
-        <Avatar src={otherUser?.avatarUrl} fallback={otherUser?.name || "U"} username={otherUser?.username} size="sm" className="ring-2 ring-[#D4FF00]/40" />
+        {isTempCrew ? (
+          <span
+            aria-hidden="true"
+            className="size-10 shrink-0 rounded-xl bg-surface-2 bg-cover bg-center border border-white/10"
+            style={tempEventBanner ? { backgroundImage: `url(${tempEventBanner})` } : undefined}
+          />
+        ) : (
+          <Avatar src={otherUser?.avatarUrl} fallback={otherUser?.name || "U"} username={otherUser?.username} size="sm" className="ring-2 ring-[#D4FF00]/40" />
+        )}
         <div className="min-w-0 flex-1">
+          {isTempCrew ? (
+            <div className="min-w-0 flex flex-col gap-0.5">
+              <span className="flex items-center gap-2 min-w-0">
+                <span className="text-[15px] font-bold truncate">{chatInfo.name || "Crew temporal"}</span>
+                <TemporalTag />
+              </span>
+              <span className="text-xs text-neutral-400">{chatInfo.participants?.length ?? 0} integrantes</span>
+            </div>
+          ) : (
           <p className="text-xs font-black uppercase tracking-wider text-white truncate">
             {chatInfo.type === "CREWS" ? (
               <span>
@@ -106,9 +127,25 @@ export function ChatConversation({ chatId }: { chatId: string }) {
               otherUser?.name
             )}
           </p>
+          )}
         </div>
-        {chatInfo.event_id && <Link href={`/events/${chatInfo.event_id}`} className="shrink-0 tech-label text-[10px] text-[#D4FF00]">Ver evento</Link>}
+        {chatInfo.event_id && !isTempCrew && <Link href={`/events/${chatInfo.event_id}`} className="shrink-0 tech-label text-[10px] text-[#D4FF00]">Ver evento</Link>}
       </header>
+
+      {isTempCrew && chatInfo.event_id && (
+        <Link
+          href={`/events/${chatInfo.event_id}`}
+          className="mx-4 mt-2.5 shrink-0 flex items-center gap-2.5 px-3 py-2 rounded-2xl bg-[#14171F] border border-[#D4FF00]/25 text-white hover:bg-white/[0.06] transition-colors"
+        >
+          <Pin className="size-4 text-[#D4FF00] shrink-0" aria-hidden="true" />
+          <span className="flex-1 min-w-0 text-[13px] truncate">
+            <b>{chatInfo.event_title || "Evento"}</b>
+            {chatInfo.event_date && ` · ${formatTempCrewEventDate(chatInfo.event_date, true)}`}
+            {chatInfo.event_location && ` · ${chatInfo.event_location}`}
+          </span>
+          <span className="text-[13px] font-semibold text-[#D4FF00] shrink-0">Ver</span>
+        </Link>
+      )}
 
       {/* Chat Area */}
       <div ref={chatAreaRef} onScroll={() => {
@@ -142,6 +179,15 @@ export function ChatConversation({ chatId }: { chatId: string }) {
                 : hasPreviousFromSameSender
                   ? "rounded-tl-sm"
                   : "rounded-bl-sm";
+
+            // Avisos del sistema (alguien entró, se creó la crew): centrados, sin globo.
+            if (msg.type === "system") {
+              return (
+                <p key={msg.id} data-message-id={msg.id} className={`${spacingClass || "mt-0"} mx-auto max-w-[85%] w-fit px-3 py-1.5 rounded-full bg-[#14171F] border border-white/10 text-center text-xs text-neutral-400`}>
+                  {msg.content}
+                </p>
+              );
+            }
 
             return (
               <div

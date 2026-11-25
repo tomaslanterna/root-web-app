@@ -18,6 +18,8 @@ interface EventAttendanceVoteProps {
   onChange?: (response: RSVPResponse) => void;
   className?: string;
   showMetrics?: boolean;
+  /** false: solo se muestra "Voy" (tocarlo de nuevo lo desmarca). */
+  showNotGoing?: boolean;
 }
 
 export function EventAttendanceVote({
@@ -28,6 +30,7 @@ export function EventAttendanceVote({
   onChange,
   className,
   showMetrics = true,
+  showNotGoing = true,
 }: EventAttendanceVoteProps) {
   const router = useRouter();
   const { user } = useAuth();
@@ -78,7 +81,7 @@ export function EventAttendanceVote({
 
   return (
     <div className={cn("space-y-3", className)}>
-      <div role="group" aria-label="¿Vas a ir?" className="grid grid-cols-2 gap-2">
+      <div role="group" aria-label="¿Vas a ir?" className={cn("grid gap-2", showNotGoing ? "grid-cols-2" : "grid-cols-1")}>
         <button
           type="button"
           aria-label={status === "going" ? "Desmarcar Voy" : "Marcar Voy"}
@@ -95,7 +98,7 @@ export function EventAttendanceVote({
           <Check className="size-[18px]" strokeWidth={2.4} aria-hidden="true" />
           Voy
         </button>
-        <button
+        {showNotGoing && <button
           type="button"
           aria-label={status === "not_going" ? "Desmarcar No voy" : "Marcar No voy"}
           aria-pressed={status === "not_going"}
@@ -109,12 +112,12 @@ export function EventAttendanceVote({
           )}
         >
           No voy
-        </button>
+        </button>}
       </div>
 
-      {status && (
+      {status && (showNotGoing || status === "going") && (
         <p className="m-0 text-center text-[12px] text-ink-3">
-          Tocá nuevamente la opción activa para desmarcarla.
+          {showNotGoing ? "Tocá nuevamente la opción activa para desmarcarla." : "Tocá Voy de nuevo para desmarcarlo."}
         </p>
       )}
 

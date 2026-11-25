@@ -5,7 +5,8 @@ import fs from "node:fs";
 const page = fs.readFileSync(new URL("./page.tsx", import.meta.url), "utf8");
 
 test("the event header (back and share) is fixed, not part of the poster that scrolls away", () => {
-  const header = page.indexOf('<header className="fixed inset-x-0 top-0 z-40 pointer-events-none">');
+  // En escritorio (lg) la barra se oculta: volver y compartir van en una barra propia.
+  const header = page.search(/<header className="fixed inset-x-0 top-0 z-40 pointer-events-none(?: lg:hidden)?">/);
   const poster = page.indexOf("{/* Póster */}");
   assert.ok(header !== -1, "a fixed header must exist");
   assert.ok(header < poster, "the header lives outside the poster");

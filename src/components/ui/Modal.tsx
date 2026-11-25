@@ -12,9 +12,11 @@ interface ModalProps {
   footer?: ReactNode;
   presentation?: "dialog" | "screen";
   header?: ReactNode;
+  /** Ancho del diálogo: "sm" (por defecto) o "lg" para formularios. */
+  size?: "sm" | "lg";
 }
 
-export function Modal({ isOpen, onClose, title, children, footer, presentation = "dialog", header }: ModalProps) {
+export function Modal({ isOpen, onClose, title, children, footer, presentation = "dialog", header, size = "sm" }: ModalProps) {
   useNativeBackHandler(isOpen, onClose);
   const ref = useRef<HTMLDivElement>(null);
   const close = useRef(onClose);
@@ -41,7 +43,7 @@ export function Modal({ isOpen, onClose, title, children, footer, presentation =
 
   return (
     <div className={`fixed inset-0 z-[80] flex items-center justify-center bg-black/80 ${presentation === "screen" ? "" : "p-4 backdrop-blur-sm"}`}>
-      <div ref={ref} tabIndex={-1} role="dialog" aria-modal="true" aria-label={title} className={presentation === "screen" ? "mx-auto flex h-[100dvh] w-full max-w-md flex-col overflow-hidden bg-bg pt-[var(--root-safe-top)] pb-[var(--root-safe-bottom)] md:h-[min(900px,100dvh)] md:rounded-hero md:border md:border-line" : "bg-surface text-ink rounded-hero border border-line w-full max-w-sm max-h-[85dvh] overflow-hidden flex flex-col shadow-[0_24px_48px_rgba(0,0,0,0.6)] motion-safe:animate-fade-in"}>
+      <div ref={ref} tabIndex={-1} role="dialog" aria-modal="true" aria-label={title} className={presentation === "screen" ? "mx-auto flex h-[100dvh] w-full max-w-md flex-col overflow-hidden bg-bg pt-[var(--root-safe-top)] pb-[var(--root-safe-bottom)] md:h-[min(900px,100dvh)] md:rounded-hero md:border md:border-line" : `bg-surface text-ink rounded-hero border border-line w-full ${size === "lg" ? "max-w-[560px]" : "max-w-sm"} max-h-[85dvh] overflow-hidden flex flex-col shadow-[0_24px_48px_rgba(0,0,0,0.6)] motion-safe:animate-fade-in`}>
         
         {/* Header */}
         {header || <div className="flex items-center justify-between gap-3 pl-4 pr-2 py-2 border-b border-line">

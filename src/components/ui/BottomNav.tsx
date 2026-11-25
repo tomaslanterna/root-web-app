@@ -5,10 +5,12 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Calendar,
+  MessageSquare,
   Search,
   Users,
   User,
 } from "lucide-react";
+import { RootLogo } from "@/components/ui/RootLogo";
 import { DiscoBallIcon } from "@/components/ui/DancerIcon";
 import { cn, isValidImageUrl } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
@@ -183,12 +185,7 @@ export function BottomNav() {
               aria-label="root home"
               className="flex items-center gap-2.5 group"
             >
-              <div className="w-7 h-7 rounded-xl bg-[#D4FF00] text-neutral-950 flex items-center justify-center font-black italic text-xs tracking-tighter shadow-[0_6px_20px_rgba(212,255,0,0.16)] group-hover:scale-105 active:scale-95 transition-transform">
-                r
-              </div>
-              <span className="text-lg font-black italic tracking-tighter text-white group-hover:text-[#D4FF00] transition-colors">
-                root
-              </span>
+              <RootLogo size={24} className="text-white group-hover:opacity-90 transition-opacity" />
             </Link>
           </div>
 
@@ -233,6 +230,19 @@ export function BottomNav() {
 
           {/* Lado derecho: búsqueda y perfil / acceso */}
           <div className="flex items-center gap-2">
+            {user && (
+              <Link
+                href="/chat"
+                aria-label="Mensajes"
+                title="Mensajes"
+                className={cn(
+                  "size-9 rounded-full border text-neutral-300 flex items-center justify-center transition-colors hover:text-white hover:border-white/25 hover:bg-white/[0.08] focus-visible:outline-2 focus-visible:outline-accent",
+                  pathname.startsWith("/chat") ? "border-[#D4FF00]/50 bg-white/[0.08] text-white" : "border-white/10 bg-white/[0.04]",
+                )}
+              >
+                <MessageSquare className="size-4" aria-hidden="true" />
+              </Link>
+            )}
             <Link
               href="/search"
               aria-label="Buscar"

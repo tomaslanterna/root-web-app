@@ -128,7 +128,7 @@ export default function CommunityDetailPage({ params }: CommunityDetailPageProps
       />
 
       <div className="sticky top-[calc(var(--root-safe-top)+4.25rem)] md:top-20 z-20 bg-bg/95 backdrop-blur-md">
-        <nav aria-label="Navegación de la comunidad" className="mx-auto w-full max-w-4xl px-4 py-3 sm:px-6">
+        <nav aria-label="Navegación de la comunidad" className="mx-auto w-full max-w-4xl px-4 py-3 sm:px-6 lg:max-w-none lg:px-0">
           <div role="tablist" className="relative flex p-[2px] rounded-lg bg-surface border border-line">
             <TabIndicator variant="pill" />
             {TABS.map((tab) => {
@@ -155,7 +155,7 @@ export default function CommunityDetailPage({ params }: CommunityDetailPageProps
       </div>
 
       {/* Main Tab Content Area */}
-      <main className="mx-auto w-full max-w-4xl px-4 pt-1 sm:px-6">
+      <main className="mx-auto w-full max-w-4xl px-4 pt-1 sm:px-6 lg:max-w-none lg:px-0">
         {activeTab === "channel" && (
           <div id="community-tab-channel" role="tabpanel" aria-label="Canal">
             {isGuest ? (
