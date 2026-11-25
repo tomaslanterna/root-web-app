@@ -4,10 +4,10 @@
 	"backgroundColor": "#0A0B0D",
 	"webDir": "native-shell",
 	"ios": {
-		"limitsNavigationsToAppBoundDomains": false
+		"limitsNavigationsToAppBoundDomains": true
 	},
 	"server": {
-		"url": "http://192.168.1.9:3000",
+		"url": "https://root-web-app.vercel.app",
 		"cleartext": true,
 		"allowNavigation": [
 			"*"
