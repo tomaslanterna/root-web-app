@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useCallback, useContext, useState, useEffect } from "react";
+import React, { createContext, useCallback, useContext, useMemo, useState, useEffect } from "react";
 import { DEFAULT_CURRENT_VIBE_PROFILE, type UserVibeProfile } from "@/lib/mocks";
 import type { EventSquad } from "@/types/match";
 import type { Event } from "@/types/events";
@@ -30,17 +30,19 @@ interface MatchContextType {
 
 const MatchContext = createContext<MatchContextType | undefined>(undefined);
 const STORAGE_KEYS = { VIBE_PROFILE: "root_vibe_profile", SWIPES: "root_event_swipes" };
+const NO_SWIPES: Record<string, SwipeDirection> = {};
+const NO_SQUADS: EventSquad[] = [];
 
 export function MatchProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const userId = user?.id;
   const { subscribe } = useChatRealtime();
   const [preferences, setPreferences] = useState<UserVibeProfile>(DEFAULT_CURRENT_VIBE_PROFILE);
-  const vibeProfile = { ...preferences, userId: userId ?? "" };
+  const vibeProfile = useMemo(() => ({ ...preferences, userId: userId ?? "" }), [preferences, userId]);
   const [swipes, setSwipes] = useState<{ userId?: string; data: Record<string, SwipeDirection> }>({ data: {} });
-  const swipedEventIds = swipes.userId === userId ? swipes.data : {};
+  const swipedEventIds = swipes.userId === userId ? swipes.data : NO_SWIPES;
   const [snapshot, setSnapshot] = useState<{ userId: string; data: EventSquad[] }>();
-  const squads = snapshot && snapshot.userId === userId ? snapshot.data : [];
+  const squads = snapshot && snapshot.userId === userId ? snapshot.data : NO_SQUADS;
   const [activeMatchedSquad, setActiveMatchedSquad] = useState<EventSquad | null>(null);
   const [matchedEvent, setMatchedEvent] = useState<Event | null>(null);
   const [isMatchModalOpen, setIsMatchModalOpen] = useState(false);
@@ -99,15 +101,15 @@ export function MatchProvider({ children }: { children: React.ReactNode }) {
     return () => { active = false; unsubscribe(); document.removeEventListener("visibilitychange", onVisible); };
   }, [userId, subscribe, getMatches]);
 
-  const updateVibeProfile = (updates: Partial<UserVibeProfile>) => {
+  const updateVibeProfile = useCallback((updates: Partial<UserVibeProfile>) => {
     setPreferences((previous) => {
       const next = { ...previous, ...updates };
       try { localStorage.setItem(STORAGE_KEYS.VIBE_PROFILE, JSON.stringify(next)); } catch { /* Storage unavailable. */ }
       return next;
     });
-  };
+  }, []);
 
-  const swipeEvent = async (event: Event, direction: SwipeDirection) => {
+  const swipeEvent = useCallback(async (event: Event, direction: SwipeDirection) => {
     if (!userId) return;
     try {
       const response = await postSwipe({ event, direction, profile: vibeProfile });
@@ -124,25 +126,31 @@ export function MatchProvider({ children }: { children: React.ReactNode }) {
         setIsMatchModalOpen(true);
       }
     } catch { /* Report through squadsError; never create a local/mock match. */ }
-  };
+  }, [userId, postSwipe, vibeProfile]);
 
-  const resetSwipes = () => {
+  const resetSwipes = useCallback(() => {
     setSwipes({ userId, data: {} });
     try { localStorage.removeItem(`${STORAGE_KEYS.SWIPES}:${userId}`); } catch { /* Storage unavailable. */ }
-  };
-  const closeMatchModal = () => {
+  }, [userId]);
+  const closeMatchModal = useCallback(() => {
     setIsMatchModalOpen(false);
     setActiveMatchedSquad(null);
     setMatchedEvent(null);
-  };
+  }, []);
+
+  const squadsError = loadError || swipeError ? "No pudimos cargar o actualizar tus crews. Intentá nuevamente." : undefined;
+  // Estable entre renders: los consumidores solo se vuelven a dibujar cuando cambia algo de lo que exponen.
+  const value = useMemo(() => ({
+    vibeProfile, updateVibeProfile, swipedEventIds, swipeEvent, resetSwipes, squads,
+    isLoadingSquads, squadsError, refreshSquads, activeMatchedSquad, setActiveMatchedSquad, matchedEvent,
+    isMatchModalOpen, closeMatchModal, isPreferencesOpen, setIsPreferencesOpen,
+  }), [
+    vibeProfile, updateVibeProfile, swipedEventIds, swipeEvent, resetSwipes, squads, isLoadingSquads, squadsError,
+    refreshSquads, activeMatchedSquad, matchedEvent, isMatchModalOpen, closeMatchModal, isPreferencesOpen,
+  ]);
 
   return (
-    <MatchContext.Provider value={{
-      vibeProfile, updateVibeProfile, swipedEventIds, swipeEvent, resetSwipes, squads,
-      isLoadingSquads, squadsError: loadError || swipeError ? "No pudimos cargar o actualizar tus crews. Intentá nuevamente." : undefined,
-      refreshSquads, activeMatchedSquad, setActiveMatchedSquad, matchedEvent, isMatchModalOpen,
-      closeMatchModal, isPreferencesOpen, setIsPreferencesOpen,
-    }}>
+    <MatchContext.Provider value={value}>
       {children}
     </MatchContext.Provider>
   );

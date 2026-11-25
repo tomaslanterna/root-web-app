@@ -1,6 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { debugLog } from "@/lib/debugLog";
 import { Geolocation } from "@capacitor/geolocation";
 import { api } from "@/lib/api";
 import { useEventPresence } from "@/hooks/useEventPresence";
@@ -62,7 +63,7 @@ export function DanceProvider({ children }: { children: React.ReactNode }) {
       let hasLocation = false;
 
       try {
-        console.log("DANCE_CONTEXT: Pidiendo permisos / getCurrentPosition...");
+        debugLog("DANCE_CONTEXT: Pidiendo permisos / getCurrentPosition...");
         const position = await Geolocation.getCurrentPosition({
           enableHighAccuracy: true,
           maximumAge: 300000,
@@ -71,7 +72,7 @@ export function DanceProvider({ children }: { children: React.ReactNode }) {
         lat = position.coords.latitude;
         lng = position.coords.longitude;
         hasLocation = true;
-        console.log("DANCE_CONTEXT: Ubicación obtenida:", lat, lng);
+        debugLog("DANCE_CONTEXT: Ubicación obtenida:", lat, lng);
       } catch (geoErr) {
         console.warn(
           "DANCE_CONTEXT: No se pudo obtener GPS, consultando igual eventos de hoy con RSVP going:",
@@ -84,7 +85,7 @@ export function DanceProvider({ children }: { children: React.ReactNode }) {
           ? { lat, lng }
           : { lat: 0, lng: 0, hasLocation: "false" },
       });
-      console.log("DANCE_CONTEXT: Respuesta live-status:", res.data);
+      debugLog("DANCE_CONTEXT: Respuesta live-status:", res.data);
 
       if (res.data?.isLive && res.data?.event) {
         const ev = res.data.event;
@@ -94,7 +95,7 @@ export function DanceProvider({ children }: { children: React.ReactNode }) {
           : startMs + 12 * 60 * 60 * 1000;
 
         if (!Number.isNaN(endMs) && Date.now() > endMs) {
-          console.log(
+          debugLog(
             "DANCE_CONTEXT: El evento ya finalizó según su hora de cierre.",
           );
           setLiveEvent(null);
@@ -113,7 +114,7 @@ export function DanceProvider({ children }: { children: React.ReactNode }) {
         setAttendanceConfirmed(Boolean(res.data?.attendanceConfirmed));
 
         if (atVenue && hasLocation) {
-          console.log(
+          debugLog(
             "DANCE_CONTEXT: ¡Usuario en la ubicación del evento! Activando startDanceSession...",
           );
           const existingSteps = res.data.userSteps || 0;
@@ -122,7 +123,7 @@ export function DanceProvider({ children }: { children: React.ReactNode }) {
           stopDanceSession();
         }
       } else {
-        console.log(
+        debugLog(
           "DANCE_CONTEXT: No hay fiesta de hoy con RSVP going ni evento activo.",
         );
         setLiveEvent(null);
@@ -137,13 +138,47 @@ export function DanceProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user, startDanceSession, stopDanceSession]);
 
+  // Para decidir, sin re-crear el intervalo, si hay que seguir chequeando en segundo plano.
+  const liveEventRef = React.useRef(liveEvent);
   useEffect(() => {
-    checkLiveStatus();
-    // Validar ubicación y horario cada 1 minuto (60.000 ms)
-    const interval = setInterval(checkLiveStatus, 60 * 1000);
+    liveEventRef.current = liveEvent;
+  }, [liveEvent]);
+
+  useEffect(() => {
+    // Validar ubicación y horario cada 1 minuto.
+    // En segundo plano se sigue chequeando solo si hay un evento en vivo hoy: es lo que detecta la llegada al
+    // lugar y pasa la Live Activity / notificación de pantalla de bloqueo a "EN VIVO" con el celular en el
+    // bolsillo. Sin evento de hoy no se pide GPS ni se consulta /live-status en segundo plano (ahorra batería),
+    // y al volver a primer plano se chequea en el momento. Los pasos en pantalla de bloqueo los actualiza el
+    // código nativo y no dependen de esto.
+    let interval: ReturnType<typeof setInterval> | undefined;
+    const isHidden = () => document.visibilityState !== "visible";
+    const pause = () => {
+      if (interval) clearInterval(interval);
+      interval = undefined;
+    };
+    const tick = () => {
+      if (isHidden() && !liveEventRef.current) {
+        pause();
+        return;
+      }
+      void checkLiveStatus();
+    };
+    const start = () => {
+      if (interval) return;
+      void checkLiveStatus();
+      interval = setInterval(tick, 60 * 1000);
+    };
+    const onVisibility = () => {
+      if (!isHidden()) start();
+      else if (!liveEventRef.current) pause();
+    };
+    onVisibility();
+    document.addEventListener("visibilitychange", onVisibility);
 
     return () => {
-      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibility);
+      pause();
       stopDanceSession();
     };
   }, [checkLiveStatus, stopDanceSession]);
@@ -170,20 +205,23 @@ export function DanceProvider({ children }: { children: React.ReactNode }) {
     };
   }, [liveEvent, checkLiveStatus]);
 
+  const value = useMemo(
+    () => ({
+      liveEvent,
+      isAtVenue,
+      attendanceConfirmed,
+      steps,
+      totalSessionSteps,
+      isTracking,
+      forceStartNative,
+      simulateSteps,
+      refreshLiveStatus: checkLiveStatus,
+    }),
+    [liveEvent, isAtVenue, attendanceConfirmed, steps, totalSessionSteps, isTracking, forceStartNative, simulateSteps, checkLiveStatus],
+  );
+
   return (
-    <DanceContext.Provider
-      value={{
-        liveEvent,
-        isAtVenue,
-        attendanceConfirmed,
-        steps,
-        totalSessionSteps,
-        isTracking,
-        forceStartNative,
-        simulateSteps,
-        refreshLiveStatus: checkLiveStatus,
-      }}
-    >
+    <DanceContext.Provider value={value}>
       {children}
     </DanceContext.Provider>
   );

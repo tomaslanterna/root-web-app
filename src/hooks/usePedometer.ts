@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
+import { debugLog } from "@/lib/debugLog";
 import { Health } from '@capgo/capacitor-health';
 import { Capacitor, registerPlugin, type PluginListenerHandle } from '@capacitor/core';
 import { listenAndroidLiveSteps } from '@/lib/androidLiveActivity';
@@ -69,7 +70,7 @@ export function usePedometer() {
         const delta = cleanTotal - lastStepTotalRef.current;
         lastStepTotalRef.current = cleanTotal;
         updatePendingSteps((prev) => prev + delta);
-        console.log(
+        debugLog(
           `✅ [USE_PEDOMETER - ${source}]: +${delta} pasos nuevos (Total acumulado evento: ${cleanTotal})`,
         );
       }
@@ -106,7 +107,7 @@ export function usePedometer() {
         cmPedometerSteps = Math.round(cmRes.steps);
       }
     } catch (cmErr) {
-      console.log(
+      debugLog(
         "🌉 [BRIDGE SWIFT CMPedometer]: No disponible en este dispositivo/build:",
         cmErr,
       );
@@ -159,7 +160,7 @@ export function usePedometer() {
       console.error("USE_PEDOMETER: Error leyendo HealthKit:", e);
     }
 
-    console.log("🌉 [BRIDGE SWIFT CMPedometer vs HealthKit]:", {
+    debugLog("🌉 [BRIDGE SWIFT CMPedometer vs HealthKit]:", {
       cmPedometerSteps,
       healthKitSteps,
       lastRecordedTotal: lastStepTotalRef.current,
@@ -222,7 +223,7 @@ export function usePedometer() {
         liveListenersRef.current = [];
 
         const updateListener = await NativePedometer.addListener('pedometerUpdate', (data) => {
-          console.log("🏃 [BRIDGE SWIFT CMPedometer LIVE UPDATE]:", data);
+          debugLog("🏃 [BRIDGE SWIFT CMPedometer LIVE UPDATE]:", data);
           if (data && typeof data.steps === 'number' && data.steps > 0) {
             applySensorTotal(data.steps, 'CMPedometer-Live');
           }
@@ -235,9 +236,9 @@ export function usePedometer() {
         const startRes = await NativePedometer.startLiveUpdates({
           startDate: sessionStartTimeRef.current.toISOString(),
         });
-        console.log("🚀 [BRIDGE SWIFT CMPedometer startLiveUpdates]:", startRes);
+        debugLog("🚀 [BRIDGE SWIFT CMPedometer startLiveUpdates]:", startRes);
       } catch (err) {
-        console.log("🌉 [BRIDGE SWIFT CMPedometer startLiveUpdates]: No disponible aún:", err);
+        debugLog("🌉 [BRIDGE SWIFT CMPedometer startLiveUpdates]: No disponible aún:", err);
       }
     }
 

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { debugLog } from "@/lib/debugLog";
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -144,7 +145,7 @@ export default function SettingsPage() {
 
   const handleUpgradeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Upgrade requested:', { role: 'RRPP', socials, contact, productora });
+    debugLog('Upgrade requested:', { role: 'RRPP', socials, contact, productora });
     setUpgradeSubmitted(true);
     setTimeout(() => {
       setUpgradeSubmitted(false);

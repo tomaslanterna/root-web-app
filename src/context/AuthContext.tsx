@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { revokePushForLogout } from '@/services/notifications';
 import type { AuthUser as User } from '@/types/auth';
@@ -42,24 +42,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => { active = false; };
   }, []);
 
-  const login = (newToken: string, newUser: User) => {
+  const login = useCallback((newToken: string, newUser: User) => {
     setToken(newToken);
     setUser(newUser);
     localStorage.setItem('root_jwt_token', newToken);
     localStorage.setItem('root_user', JSON.stringify(newUser));
-  };
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     await revokePushForLogout();
     setToken(null);
     setUser(null);
     localStorage.removeItem('root_jwt_token');
     localStorage.removeItem('root_user');
     router.push('/login');
-  };
+  }, [router]);
+
+  // Estable entre renders: los ~40 componentes que usan useAuth solo se vuelven a dibujar si cambia la sesión.
+  const value = useMemo(() => ({ user, token, login, logout, isLoading }), [user, token, login, logout, isLoading]);
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isLoading }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { debugLog } from "@/lib/debugLog";
 import Link from "next/link";
 import { Clock, Music, ChevronRight } from "lucide-react";
 import { useDanceContext } from "@/context/DanceContext";
@@ -158,7 +159,7 @@ export function LiveEventBanner({
       eventStartEpochMs: eventStartMsForEffect,
     }, { eventEndEpochMs: eventEndMsForEffect })
       .then((res) => {
-        console.log("🔒 [LOCK SCREEN LIVE ACTIVITY]:", res);
+        debugLog("🔒 [LOCK SCREEN LIVE ACTIVITY]:", res);
       })
       .catch((err) => {
         console.warn("🔒 [LOCK SCREEN LIVE ACTIVITY ERROR]:", err);
