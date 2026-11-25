@@ -49,6 +49,25 @@ export function notificationChatPath(data: unknown, userId: string): string | nu
   return `/chat/${payload.chat_id}`;
 }
 
+/** Push types whose tap opens a screen in the app. Title/body come from the backend as-is. */
+export type PushNotificationType = "chat.message" | "user.birthday";
+
+export function notificationPath(data: unknown, userId: string): string | null {
+  if (!data || typeof data !== "object") return null;
+  const payload = data as Record<string, unknown>;
+  if (payload.recipient_id !== userId) return null;
+  const type = payload.type as PushNotificationType | undefined;
+  switch (type) {
+    case "chat.message":
+      return notificationChatPath(payload, userId);
+    case "user.birthday":
+      // /profile resolves the signed-in user's current username (data.username may be stale).
+      return "/profile";
+    default:
+      return null;
+  }
+}
+
 let currentSession: AndroidPushSession | null = null;
 let nativeReset: Promise<void> = Promise.resolve();
 
@@ -102,7 +121,7 @@ export class AndroidPushSession {
     }));
     this.handles.push(await PushNotifications.addListener("pushNotificationActionPerformed", ({ notification }) => {
       if (this.stopped) return;
-      const path = notificationChatPath(notification.data, this.userId);
+      const path = notificationPath(notification.data, this.userId);
       if (path) this.openChat(path);
     }));
   }

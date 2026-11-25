@@ -90,6 +90,19 @@ test("notification tap only opens validated chats addressed to this account", as
   await r.session.dispose();
 });
 
+test("birthday notification tap opens the signed-in user's own profile", async () => {
+  const r = runtime({ platform: "ios" });
+  await r.session.enable();
+  const data = { type: "user.birthday", username: "pocho", recipient_id: "user-a", notification_id: "48a09314-cedb-410b-a243-e45e688fb47e" };
+  r.listeners.get("pushNotificationActionPerformed")({ notification: { data } });
+  assert.deepEqual(r.paths, ["/profile"]);
+  assert.equal(r.notificationPath(data, "user-a"), "/profile");
+  assert.equal(r.notificationPath({ ...data, recipient_id: "user-b" }, "user-a"), null);
+  assert.equal(r.notificationPath({ ...data, type: "user.unknown" }, "user-a"), null);
+  assert.equal(r.notificationChatPath(data, "user-a"), null);
+  await r.session.dispose();
+});
+
 test("logout waits for in-flight registration and then revokes with the original JWT", async () => {
   let finishPut;
   const gate = new Promise(resolve => { finishPut = resolve; });

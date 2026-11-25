@@ -20,6 +20,14 @@ export interface EventArtist {
   artist?: Artist;
 }
 
+export interface EventRRPP {
+  userId: string;
+  name: string;
+  username: string;
+  avatarUrl?: string | null;
+  position?: number;
+}
+
 export interface TicketTier {
   name: string;
   price: number;
@@ -43,6 +51,8 @@ export interface Event {
   description: string;
   lineup: string[];
   artists?: EventArtist[];
+  /** Solo en el detalle: RRPPs oficiales, ya ordenados por position y nombre. */
+  rrpps?: EventRRPP[];
   genre?: string;
   price?: number;
   isFree: boolean;

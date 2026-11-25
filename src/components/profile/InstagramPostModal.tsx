@@ -229,9 +229,9 @@ export function InstagramPostModal({
             </div>
 
             {/* Contador de Likes */}
-            <div className="text-xs font-black uppercase tracking-wider text-white">
+            <div className="flex items-baseline gap-1.5 text-xs font-black uppercase tracking-wider text-white">
               <span className="num-display">{totalLikes}</span>{" "}
-              {totalLikes === 1 ? "Me gusta" : "Me gustas"}
+              Me gusta
             </div>
           </footer>
         </div>

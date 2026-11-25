@@ -296,9 +296,9 @@ export default function PostDetailPage({
             </div>
 
             {/* Contador de Likes */}
-            <div className="text-xs font-black uppercase tracking-wider text-white">
+            <div className="flex items-baseline gap-1.5 text-xs font-black uppercase tracking-wider text-white">
               <span className="num-display">{likesCount}</span>{" "}
-              {likesCount === 1 ? "Me gusta" : "Me gustas"}
+              Me gusta
             </div>
 
             {/* Pie de foto / Caption */}
