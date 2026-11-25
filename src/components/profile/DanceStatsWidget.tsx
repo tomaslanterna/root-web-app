@@ -43,7 +43,8 @@ export function DanceStatsWidget() {
         });
 
         // Orden cronológico ascendente: fiesta más antigua a la izquierda, más reciente a la derecha.
-        const sorted = Array.from(aggregatedMap.values()).sort(
+        // Las fiestas sin pasos no se muestran (serían barras vacías con "0.0k").
+        const sorted = Array.from(aggregatedMap.values()).filter((session) => session.stepsCount > 0).sort(
           (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
         );
         setSessions(sorted);
