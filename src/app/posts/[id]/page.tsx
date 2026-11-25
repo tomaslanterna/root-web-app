@@ -19,6 +19,7 @@ import { usePostDetail } from "@/hooks/usePostDetail";
 import { postsApi } from "@/services/posts";
 import { useAuth } from "@/context/AuthContext";
 import { ReportContentAction } from "@/components/communities/ReportContentAction";
+import { PostDetailSkeleton } from "@/components/ui/PostDetailSkeleton";
 import { cn, copyTextToClipboard } from "@/lib/utils";
 
 export default function PostDetailPage({
@@ -125,19 +126,25 @@ export default function PostDetailPage({
 
   if (!hasLoaded && isLoadingPost) {
     return (
-      <div className="flex min-h-[100dvh] flex-col bg-[#0B0D10] text-white">
+      <div className="min-h-[100dvh] bg-[#0B0D10] text-white flex flex-col">
+        {/* Mismo header que la publicación cargada: volver funciona y el autor aparece como esqueleto. */}
         <DetailHeader
+          position="sticky"
+          className="max-w-xl"
           showBrand={false}
           showSave={false}
           showShare={false}
           onBack={() => router.back()}
-        />
-        <div className="flex-1 flex flex-col items-center justify-center gap-3 p-6 pt-safe-header">
-          <div className="w-8 h-8 border-4 border-[#D4FF00] border-t-transparent rounded-full animate-spin" />
-          <p className="text-xs font-black uppercase tracking-wider text-neutral-400">
-            Cargando publicación...
-          </p>
-        </div>
+        >
+          <div aria-hidden="true" className="flex items-center gap-3 min-w-0 animate-pulse">
+            <div className="size-10 shrink-0 rounded-full bg-white/10" />
+            <div className="flex flex-col gap-1.5">
+              <div className="h-3 w-28 rounded bg-white/10" />
+              <div className="h-2.5 w-20 rounded bg-white/[0.06]" />
+            </div>
+          </div>
+        </DetailHeader>
+        <PostDetailSkeleton />
       </div>
     );
   }

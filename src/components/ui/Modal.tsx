@@ -1,8 +1,20 @@
 "use client";
 import { ReactNode, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { Button } from "./Button";
 import { useNativeBackHandler } from "@/hooks/useNativeBack";
+
+/**
+ * Dónde se montan los overlays (modales y lo que tenga que quedar por encima de ellos). Van fuera del árbol de la
+ * página porque un ancestro con transform (animaciones de entrada, gesto de volver, transición de páginas) hace que
+ * position: fixed se ubique respecto de ese ancestro y no de la pantalla: el modal quedaba fuera de vista si el
+ * usuario había bajado. Se usa el contenedor del tema y no <body> para conservar los estilos de .light-theme.
+ */
+export function getOverlayRoot(): HTMLElement | null {
+  if (typeof document === "undefined") return null;
+  return document.querySelector<HTMLElement>("[data-theme]") ?? document.body;
+}
 
 interface ModalProps {
   isOpen: boolean;
@@ -40,8 +52,10 @@ export function Modal({ isOpen, onClose, title, children, footer, presentation =
     return () => { node?.removeEventListener("keydown", keydown); document.body.style.overflow = previous; focused?.focus({ preventScroll: true }); };
   }, [isOpen]);
   if (!isOpen) return null;
+  const overlayRoot = getOverlayRoot();
+  if (!overlayRoot) return null;
 
-  return (
+  return createPortal(
     <div className={`fixed inset-0 z-[80] flex items-center justify-center bg-black/80 ${presentation === "screen" ? "" : "p-4 backdrop-blur-sm"}`}>
       <div ref={ref} tabIndex={-1} role="dialog" aria-modal="true" aria-label={title} className={presentation === "screen" ? "mx-auto flex h-[100dvh] w-full max-w-md flex-col overflow-hidden bg-bg pt-[var(--root-safe-top)] pb-[var(--root-safe-bottom)] md:h-[min(900px,100dvh)] md:rounded-hero md:border md:border-line" : `bg-surface text-ink rounded-hero border border-line w-full ${size === "lg" ? "max-w-[560px]" : "max-w-sm"} max-h-[85dvh] overflow-hidden flex flex-col shadow-[0_24px_48px_rgba(0,0,0,0.6)] motion-safe:animate-fade-in`}>
         
@@ -69,7 +83,8 @@ export function Modal({ isOpen, onClose, title, children, footer, presentation =
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    overlayRoot,
   );
 }
 
