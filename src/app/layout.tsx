@@ -11,6 +11,7 @@ import { PushNotificationsProvider } from "@/context/PushNotificationsContext";
 import { DanceProvider } from "@/context/DanceContext";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { CapacitorSetup } from "@/components/CapacitorSetup";
+import { ContentProtection } from "@/components/ContentProtection";
 import { ReviewReminder } from "@/components/profile/ReviewReminder";
 import { InterestsPrompt } from "@/components/InterestsPrompt";
 import { AppSplash } from "@/components/AppSplash";
@@ -64,6 +65,7 @@ export default function RootLayout({
         <AppSplash />
         <ServiceWorkerRegister />
         <CapacitorSetup />
+        <ContentProtection />
         <GoogleOAuthProvider clientId={process.env.GOOGLE_CLIENT_ID || ""}>
           <ThemeProvider>
             <AuthProvider>

@@ -4,8 +4,11 @@
   from { opacity: 0; transform: translateY(5px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.badge-detail-content { animation: badge-detail-enter 300ms 50ms both ease-out; }
-.badge-detail-header { animation: badge-detail-enter 250ms both ease-out; }
+/* "backwards" y no "both": al terminar no queda un transform aplicado. Un transform en un ancestro hace que los
+   elementos position: fixed de adentro (como el modal de confirmar la reseña) se ubiquen respecto de este
+   contenedor y no de la pantalla. */
+.badge-detail-content { animation: badge-detail-enter 300ms 50ms backwards ease-out; }
+.badge-detail-header { animation: badge-detail-enter 250ms backwards ease-out; }
 .badge-detail-closing { animation: none; opacity: 0; transition: opacity 160ms ease-out; }
 
 @keyframes badge-laurel-left-enter {
@@ -246,6 +249,11 @@ input, textarea, [contenteditable="true"] {
   -ms-user-select: auto;
   user-select: auto;
 }
+
+/*
+  Imágenes no descargables: las reglas de -webkit-touch-callout y -webkit-user-drag están en
+  src/components/ContentProtection.tsx. Acá el minificador (lightningcss) las borra por ser prefijos de proveedor.
+*/
 
 @layer utilities {
   .hide-scrollbar {
