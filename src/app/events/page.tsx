@@ -304,6 +304,28 @@ import { TabIndicator } from "@/components/ui/TabIndicator";
    // 2) Ese cuadrado se achica proporcionalmente hasta 56px.
    useEffect(() => {
      let frame = 0;
+     // Los rangos dependen solo del ancho de la fila: se miden al montar y al cambiar el tamaño, no en cada frame.
+     let textRange = 0;
+     let squareRange = 0;
+     let range = 0;
+     // Último valor aplicado: si no cambió (p. ej. ya colapsado y se sigue bajando la lista), no se escribe nada.
+     let lastCollapse = -1;
+     const measure = () => {
+       const row = featuredRowRef.current;
+       if (!row) {
+         textRange = squareRange = range = 0;
+         return;
+       }
+       const style = getComputedStyle(row);
+       const inner = row.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+       const cols = window.matchMedia("(min-width: 1280px)").matches ? 4 : window.matchMedia("(min-width: 768px)").matches ? 3 : 2;
+       const gap = cols > 2 ? 20 : 12;
+       const column = (inner - (cols - 1) * gap) / cols;
+       textRange = FEATURED_TEXT_HEIGHT;
+       squareRange = Math.max(0, column - FEATURED_COMPACT_SIZE);
+       range = Math.max(0, textRange + squareRange);
+       lastCollapse = -1;
+     };
      const update = () => {
        frame = 0;
        const bar = stickyBarRef.current;
@@ -311,22 +333,10 @@ import { TabIndicator } from "@/components/ui/TabIndicator";
        const spacer = collapseSpacerRef.current;
        const header = headerRef.current;
        if (!bar || !anchor || !spacer || !header) return;
-       let range = 0;
-       let textRange = 0;
-       let squareRange = 0;
-       const row = featuredRowRef.current;
-       if (row) {
-         const style = getComputedStyle(row);
-         const inner = row.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-         const cols = window.matchMedia("(min-width: 1280px)").matches ? 4 : window.matchMedia("(min-width: 768px)").matches ? 3 : 2;
-         const gap = cols > 2 ? 20 : 12;
-         const column = (inner - (cols - 1) * gap) / cols;
-         textRange = FEATURED_TEXT_HEIGHT;
-         squareRange = Math.max(0, column - FEATURED_COMPACT_SIZE);
-         range = Math.max(0, textRange + squareRange);
-       }
        const passed = header.getBoundingClientRect().bottom - anchor.getBoundingClientRect().top;
        const collapse = Math.min(range, Math.max(0, passed));
+       if (collapse === lastCollapse) return;
+       lastCollapse = collapse;
        const collapseFooter = Math.min(textRange, collapse);
        const pFooter = textRange > 0 ? collapseFooter / textRange : 0;
        const collapseSquare = Math.max(0, collapse - textRange);
@@ -340,12 +350,31 @@ import { TabIndicator } from "@/components/ui/TabIndicator";
      const schedule = () => {
        if (!frame) frame = requestAnimationFrame(update);
      };
+     const remeasure = () => {
+       measure();
+       schedule();
+     };
+     measure();
      update();
      window.addEventListener("scroll", schedule, { passive: true });
-     window.addEventListener("resize", schedule);
+     window.addEventListener("resize", remeasure);
+     // La fila también cambia de ancho sin resize de ventana (p. ej. al cargar el layout de escritorio). Su alto cambia
+     // en cada frame mientras se achica: solo el ancho dispara una nueva medición.
+     const row = featuredRowRef.current;
+     let rowWidth = row?.clientWidth ?? 0;
+     const observer =
+       row && typeof ResizeObserver !== "undefined"
+         ? new ResizeObserver(() => {
+             if (row.clientWidth === rowWidth) return;
+             rowWidth = row.clientWidth;
+             remeasure();
+           })
+         : null;
+     if (row) observer?.observe(row);
      return () => {
        window.removeEventListener("scroll", schedule);
-       window.removeEventListener("resize", schedule);
+       window.removeEventListener("resize", remeasure);
+       observer?.disconnect();
        if (frame) cancelAnimationFrame(frame);
      };
    }, [featuredEvents.length]);

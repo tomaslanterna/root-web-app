@@ -1,4 +1,5 @@
 import axios from "axios";
+import { debugLog } from "@/lib/debugLog";
 
 declare module "axios" {
   interface AxiosRequestConfig { skipAuthRedirect?: boolean }
@@ -13,7 +14,7 @@ export const api = axios.create({
   baseURL: API_BASE_URL,
 });
 
-console.log("Axios baseURL configured as:", api.defaults.baseURL);
+debugLog("Axios baseURL configured as:", api.defaults.baseURL);
 api.interceptors.request.use(
   (config) => {
     if (typeof window !== "undefined") {

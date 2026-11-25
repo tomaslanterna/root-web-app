@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useMutation } from "@/hooks/useMutation";
 import { chatApi, connectChatSocket, type ChatRealtimeEvent } from "@/services/chat";
@@ -32,7 +32,9 @@ export function ChatRealtimeProvider({ children }: { children: ReactNode }) {
       for (const listener of listeners.current) listener(event);
     }, setState, () => { void logoutRef.current().catch(() => undefined); });
   }, [token, userId, acknowledge]);
-  return <ChatRealtimeContext.Provider value={{ subscribe, state: token ? state : "disconnected" }}>{children}</ChatRealtimeContext.Provider>;
+  const visibleState = token ? state : "disconnected";
+  const value = useMemo(() => ({ subscribe, state: visibleState }), [subscribe, visibleState]);
+  return <ChatRealtimeContext.Provider value={value}>{children}</ChatRealtimeContext.Provider>;
 }
 
 export function useChatRealtime() {

@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
+import { debugLog } from "@/lib/debugLog";
 import { App } from "@capacitor/app";
 import { Capacitor } from "@capacitor/core";
 import { useLocation } from "./useLocation";
@@ -82,7 +83,7 @@ export function useDanceSync() {
       }
       isSyncingRef.current = true;
       try {
-        console.log(
+        debugLog(
           `USE_DANCESYNC: Enviando ${currentSteps} pasos al servidor...`,
         );
         const pos = await requestLocation();
@@ -112,7 +113,7 @@ export function useDanceSync() {
           lng,
         });
 
-        console.log(
+        debugLog(
           `USE_DANCESYNC: ${currentSteps} pasos registrados en el servidor exitosamente.`,
         );
         if (currentSteps > 0) {
@@ -194,7 +195,7 @@ export function useDanceSync() {
       initialSteps: any,
       knownCoords?: { lat: number; lng: number },
     ) => {
-      console.log(
+      debugLog(
         "USE_DANCESYNC: startDanceSession ejecutado para el evento",
         event?.id,
       );
@@ -308,6 +309,10 @@ export function useDanceSync() {
     ],
   );
 
+  // Estables para que el value de DanceContext no cambie en cada render.
+  const simulateSteps = useCallback(() => setSteps((prev) => prev + 10), [setSteps]);
+  const forceStartNative = useCallback(() => startTracking(), [startTracking]);
+
   return {
     isTracking,
     isSyncing,
@@ -316,7 +321,7 @@ export function useDanceSync() {
     startDanceSession,
     stopDanceSession,
     syncToBackend,
-    simulateSteps: () => setSteps((prev) => prev + 10),
-    forceStartNative: () => startTracking(),
+    simulateSteps,
+    forceStartNative,
   };
 }
