@@ -87,7 +87,7 @@ export function EventTempCrewsSection({ event, crews, total, viewerCrewId, onCha
       {lane.length > 0 && (
         <div
           aria-label="Algunas crews que admiten gente"
-          className="-mx-4 px-4 scroll-px-4 pb-1 flex gap-3 overflow-x-auto overscroll-x-contain snap-x snap-mandatory hide-scrollbar lg:mx-0 lg:px-0 lg:scroll-px-0 lg:pb-0 lg:grid lg:grid-cols-[repeat(3,minmax(0,1fr))_156px] lg:overflow-visible"
+          className="-mx-4 px-4 scroll-px-4 pb-1 flex gap-3 overflow-x-auto overscroll-x-contain snap-x snap-mandatory hide-scrollbar lg:mx-0 lg:px-0 lg:scroll-px-0 lg:pb-0 xl:grid xl:grid-cols-[repeat(3,minmax(0,1fr))_156px] xl:overflow-visible"
         >
           {lane.map((crew) => (
             <TempCrewLaneCard key={crew.id} crew={crew} onRequestJoin={openJoin} />
@@ -151,11 +151,11 @@ export function EventTempCrewsSkeleton({ className }: { className?: string }) {
         <span className="h-7 w-28 rounded-full bg-surface-2 animate-pulse" />
       </div>
       <span className="h-10 w-full max-w-md rounded-md bg-surface-2/70 animate-pulse" />
-      <div className="-mx-4 px-4 flex gap-3 overflow-hidden lg:mx-0 lg:px-0 lg:grid lg:grid-cols-[repeat(3,minmax(0,1fr))_156px]">
+      <div className="-mx-4 px-4 flex gap-3 overflow-hidden lg:mx-0 lg:px-0 xl:grid xl:grid-cols-[repeat(3,minmax(0,1fr))_156px]">
         {[0, 1, 2].map((i) => (
-          <span key={i} className="w-[236px] h-[178px] shrink-0 rounded-card bg-surface border border-line animate-pulse lg:w-auto" />
+          <span key={i} className="w-[236px] h-[178px] shrink-0 rounded-card bg-surface border border-line animate-pulse xl:w-auto" />
         ))}
-        <span className="w-[160px] h-[178px] shrink-0 rounded-card border border-dashed border-accent/30 lg:w-auto" />
+        <span className="w-[160px] h-[178px] shrink-0 rounded-card border border-dashed border-accent/30 xl:w-auto" />
       </div>
       <span className="h-[50px] rounded-control bg-surface-2 animate-pulse lg:h-12 lg:w-52" />
     </div>

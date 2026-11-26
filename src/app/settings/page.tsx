@@ -20,6 +20,7 @@ import {
   UserCheck,
   FileText,
   ShieldCheck,
+  LifeBuoy,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useMutation } from '@/hooks/useMutation';
@@ -390,6 +391,27 @@ export default function SettingsPage() {
                 </span>
                 <span className="text-xs text-ink-2">
                   Tratamiento y protección de tus datos
+                </span>
+              </div>
+            </div>
+            <ChevronRight className="size-5 text-ink-3" />
+          </Link>
+
+          {/* Soporte */}
+          <Link
+            href="/support"
+            className="w-full flex items-center justify-between p-4.5 hover:bg-surface-2 transition-colors text-left"
+          >
+            <div className="flex items-center gap-3.5">
+              <div className="p-2.5 bg-accent/10 rounded-control text-accent shrink-0">
+                <LifeBuoy className="size-5" />
+              </div>
+              <div>
+                <span className="font-bold text-ink block text-[15px]">
+                  Soporte
+                </span>
+                <span className="text-xs text-ink-2">
+                  Contactá a nuestro equipo por email
                 </span>
               </div>
             </div>

@@ -110,7 +110,7 @@ export function TempCrewLaneCard({ crew, onRequestJoin }: { crew: TempCrewSummar
     </>
   );
   const classes =
-    "w-[236px] shrink-0 snap-start p-3.5 rounded-card bg-surface border border-line flex flex-col gap-2.5 text-left hover:bg-surface-2 transition-colors focus-visible:outline-2 focus-visible:outline-accent lg:w-auto lg:min-w-0";
+    "w-[236px] shrink-0 snap-start p-3.5 rounded-card bg-surface border border-line flex flex-col gap-2.5 text-left hover:bg-surface-2 transition-colors focus-visible:outline-2 focus-visible:outline-accent xl:w-auto xl:min-w-0";
 
   if (onRequestJoin && canRequestToJoin(crew)) {
     return (
@@ -131,7 +131,7 @@ export function TempCrewLaneEnd({ href, total }: { href: string; total: number }
   return (
     <Link
       href={href}
-      className="w-[160px] shrink-0 snap-end p-4 rounded-card border border-dashed border-accent/55 bg-accent/[0.05] flex flex-col justify-center gap-3 hover:bg-accent/10 transition-colors lg:w-auto"
+      className="w-[160px] shrink-0 snap-end p-4 rounded-card border border-dashed border-accent/55 bg-accent/[0.05] flex flex-col justify-center gap-3 hover:bg-accent/10 transition-colors xl:w-auto"
     >
       <span className="size-11 rounded-full bg-accent text-on-accent flex items-center justify-center">
         <ArrowUpRight className="size-[18px]" aria-hidden="true" />
