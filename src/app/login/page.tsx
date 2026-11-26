@@ -12,6 +12,7 @@ import { RootLogo } from "@/components/ui/RootLogo";
 import { Capacitor } from "@capacitor/core";
 import { GoogleSignIn } from "@capawesome/capacitor-google-sign-in";
 import { ACCOUNT_DELETED_PARAM } from "@/hooks/useAccountDeletion";
+import { AppleSignInButton } from "@/components/auth/AppleSignInButton";
 
 interface GoogleAuthWrapperProps {
   onSuccess: (idToken: string) => void;
@@ -172,7 +173,8 @@ export default function LoginPage() {
           </p>
         )}
 
-        <div className="mt-8 flex flex-col [&>div]:w-full [&>div>div]:!w-full [&>div>div]:!flex [&>div>div]:!justify-center [&>div>div>iframe]:!max-w-full">
+        <div className="mt-8 flex flex-col gap-3 [&>div]:w-full [&>div>div]:!w-full [&>div>div]:!flex [&>div>div]:!justify-center [&>div>div>iframe]:!max-w-full">
+          <AppleSignInButton onError={setError} />
           <GoogleAuthWrapper
             onSuccess={googleAuthMutate}
             onError={handleGoogleError}

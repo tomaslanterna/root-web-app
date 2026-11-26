@@ -27,6 +27,7 @@ import { useAuth } from '@/context/AuthContext';
 import { FULL_NAME_ERROR, isFullName, normalizeFullName } from "@/lib/fullName";
 import { TERMS_VERSION, needsProfileCompletion } from "@/lib/terms";
 import { TermsCheckbox } from "@/components/ui/TermsCheckbox";
+import { AppleSignInButton } from "@/components/auth/AppleSignInButton";
 import type { RegisterInput } from "@/types/auth";
 
 export default function RegisterPage() {
@@ -447,7 +448,9 @@ export default function RegisterPage() {
           <span className="text-xs font-bold text-neutral-500 uppercase tracking-widest">o</span>
         </div>
 
-        <div className="flex justify-center [&>div]:w-full [&>div>div]:!w-full [&>div>div]:!flex [&>div>div]:!justify-center [&>div>div>iframe]:!max-w-full">
+        <div className="flex flex-col items-center gap-3 [&>div]:w-full [&>div>div]:!w-full [&>div>div]:!flex [&>div>div]:!justify-center [&>div>div>iframe]:!max-w-full">
+          {/* Con Apple, igual que con Google, los términos se aceptan después en /complete-profile. */}
+          <AppleSignInButton onError={setError} />
           <GoogleLogin
             onSuccess={handleGoogleSuccess}
             onError={handleGoogleError}
