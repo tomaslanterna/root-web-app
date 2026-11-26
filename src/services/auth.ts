@@ -1,5 +1,5 @@
 import { api } from "@/lib/api";
-import type { AuthResponse, AuthUser, LoginCredentials, RegisterInput, ResetPasswordInput, AuthMessage } from "@/types/auth";
+import type { AppleLoginInput, AuthResponse, AuthUser, LoginCredentials, RegisterInput, ResetPasswordInput, AuthMessage } from "@/types/auth";
 
 export const authApi = {
   login: async (credentials: LoginCredentials) => {
@@ -9,6 +9,11 @@ export const authApi = {
   
   googleLogin: async (idToken: string) => {
     const { data } = await api.post<AuthResponse>("/v1/auth/google", { idToken }, { skipAuthRedirect: true });
+    return data;
+  },
+
+  appleLogin: async (input: AppleLoginInput) => {
+    const { data } = await api.post<AuthResponse>("/v1/auth/apple", input, { skipAuthRedirect: true });
     return data;
   },
 

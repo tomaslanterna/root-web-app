@@ -19,6 +19,15 @@ export type FollowStatus = "none" | "requested" | "following";
 
 export interface LoginCredentials { email: string; password: string }
 export interface AuthResponse { token: string; user: AuthUser }
+/** Lo que se manda a /v1/auth/apple. Apple manda el nombre solo la primera vez que la persona entra. */
+export interface AppleLoginInput {
+  identityToken: string;
+  authorizationCode: string;
+  /** Nonce original: a Apple se le mandó su SHA-256. */
+  nonce: string;
+  givenName: string;
+  familyName: string;
+}
 export interface RegisterInput extends LoginCredentials {
   name: string;
   username: string;

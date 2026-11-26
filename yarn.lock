@@ -277,6 +277,11 @@
   resolved "https://registry.npmjs.org/@capacitor/synapse/-/synapse-1.0.4.tgz"
   integrity sha512-/C1FUo8/OkKuAT4nCIu/34ny9siNHr9qtFezu4kxm6GY1wNFxrCFWjfYx5C1tUhVGz3fxBABegupkpjXvjCHrw==
 
+"@capawesome/capacitor-apple-sign-in@^0.1.5":
+  version "0.1.5"
+  resolved "https://registry.npmjs.org/@capawesome/capacitor-apple-sign-in/-/capacitor-apple-sign-in-0.1.5.tgz"
+  integrity sha512-53anfdKMU+092mKj1Sy9YuKulnGVso0Dxhjjxeinjl1yeWxFXNKHTSzTYAoMMQ/Tt095If1rBpzMdACnlaWeFw==
+
 "@capawesome/capacitor-google-sign-in@^0.1.4":
   version "0.1.4"
   resolved "https://registry.npmjs.org/@capawesome/capacitor-google-sign-in/-/capacitor-google-sign-in-0.1.4.tgz"
