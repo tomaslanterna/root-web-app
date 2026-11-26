@@ -12,6 +12,8 @@
 	</dict>
 	<key>WKAppBoundDomains</key>
 	<array>
+		<string>www.estoesroot.com</string>
+		<string>estoesroot.com</string>
 		<string>root-web-app.vercel.app</string>
 	</array>
 	<key>CAPACITOR_DEBUG</key>
