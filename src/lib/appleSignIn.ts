@@ -50,9 +50,24 @@ export async function sha256Hex(value: string): Promise<string> {
 }
 
 function isCanceled(error: unknown): boolean {
-  const code = (error as { code?: string } | null)?.code;
-  const message = String((error as { message?: string } | null)?.message ?? "").toLowerCase();
-  return code === ErrorCode.SignInCanceled || message.includes("cancel");
+  const value = error as { code?: string; message?: string; error?: string } | null;
+  const message = String(value?.message ?? "").toLowerCase();
+  // En la web, Apple JS rechaza con { error: "popup_closed_by_user" } (sin message) cuando se cierra la ventana.
+  const appleJsError = String(value?.error ?? "").toLowerCase();
+  return (
+    value?.code === ErrorCode.SignInCanceled ||
+    message.includes("cancel") ||
+    appleJsError === "popup_closed_by_user" ||
+    appleJsError === "user_cancelled_authorize"
+  );
+}
+
+/** Error antes de llegar al servidor (plugin, hoja o ventana de Apple). Lleva el detalle original para diagnosticar. */
+export class AppleSignInClientError extends Error {
+  constructor(readonly detail: unknown) {
+    super("Apple sign-in failed before reaching the server");
+    this.name = "AppleSignInClientError";
+  }
 }
 
 /** Abre Sign in with Apple y devuelve lo que hay que mandarle al backend (/v1/auth/apple). */
@@ -86,6 +101,6 @@ export async function signInWithApple(): Promise<AppleLoginInput> {
     };
   } catch (error) {
     if (isCanceled(error)) throw new AppleSignInCanceledError();
-    throw error;
+    throw new AppleSignInClientError(error);
   }
 }

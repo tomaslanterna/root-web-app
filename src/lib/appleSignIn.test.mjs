@@ -18,16 +18,20 @@ function loadLib(platform) {
       signIn: async (options) => {
         calls.push(["signIn", options]);
         if (platform === "cancel") throw Object.assign(new Error("canceled"), { code: "SIGN_IN_CANCELED" });
+        if (platform === "popup-closed") throw { error: "popup_closed_by_user" };
+        if (platform === "broken") throw new Error("AppleSignIn plugin is not implemented on ios");
         return { idToken: "id-token", authorizationCode: "code", givenName: "Ana", familyName: null, state: options.state };
       },
     },
     ErrorCode: { SignInCanceled: "SIGN_IN_CANCELED" },
     SignInScope: { Email: "EMAIL", FullName: "FULL_NAME" },
   };
-  const capacitor = { Capacitor: { isNativePlatform: () => platform !== "web", getPlatform: () => (platform === "web" ? "web" : "ios") } };
+  const web = platform === "web" || platform === "popup-closed";
+  const capacitor = { Capacitor: { isNativePlatform: () => !web, getPlatform: () => (web ? "web" : "ios") } };
   vm.runInNewContext(outputText, {
     module, exports: module.exports, crypto: globalThis.crypto, TextEncoder,
-    process: { env: {} },
+    process: { env: platform === "popup-closed" ? { NEXT_PUBLIC_APPLE_SERVICES_ID: "com.emnetwork.root.web" } : {} },
+    window: { location: { origin: "https://www.estoesroot.com" } },
     require: (name) => (name === "@capacitor/core" ? capacitor : plugin),
   });
   return { lib: module.exports, calls };
@@ -64,4 +68,17 @@ test("login and register show Continue with Apple above Google", () => {
     const google = source.lastIndexOf(googleTag);
     assert.ok(apple !== -1 && apple < google, `${page}: Apple button must come before Google`);
   }
+});
+
+test("closing Apple's web popup is a cancellation too", async () => {
+  const { lib, calls } = loadLib("popup-closed");
+  await assert.rejects(lib.signInWithApple(), (error) => error.name === "AppleSignInCanceledError");
+  // En la web usa la Return URL del dominio actual.
+  assert.equal(calls.find((c) => c[0] === "signIn")[1].redirectUrl, "https://www.estoesroot.com/auth/apple/callback");
+});
+
+test("failures inside Apple's sheet are client errors with the original detail", async () => {
+  const { lib } = loadLib("broken");
+  await assert.rejects(lib.signInWithApple(), (error) =>
+    error.name === "AppleSignInClientError" && /not implemented/.test(error.detail.message));
 });
