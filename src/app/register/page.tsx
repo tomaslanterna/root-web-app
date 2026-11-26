@@ -25,6 +25,9 @@ import { usersApi } from '@/services/users';
 import { useMutation } from '@/hooks/useMutation';
 import { useAuth } from '@/context/AuthContext';
 import { FULL_NAME_ERROR, isFullName, normalizeFullName } from "@/lib/fullName";
+import { TERMS_VERSION, needsProfileCompletion } from "@/lib/terms";
+import { TermsCheckbox } from "@/components/ui/TermsCheckbox";
+import type { RegisterInput } from "@/types/auth";
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -38,6 +41,8 @@ export default function RegisterPage() {
     country: '',
   });
 
+  // Fuera de formData: la validación de abajo exige que todos sus valores sean texto no vacío.
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   
@@ -81,7 +86,8 @@ export default function RegisterPage() {
     {
       onSuccess: (data) => {
         login(data.token, data.user);
-        router.push('/events');
+        // Con Google los términos se aceptan en /complete-profile (y ahí se completan los datos que falten).
+        router.push(needsProfileCompletion(data.user) ? '/complete-profile' : '/events');
       },
       onError: (err) => {
         console.error('Error in Google Auth:', err);
@@ -103,7 +109,7 @@ export default function RegisterPage() {
   };
 
   const { mutate: registerMutate } = useMutation(
-    async (registerData: any) => {
+    async (registerData: RegisterInput) => {
       const response = await authApi.register(registerData);
       return response;
     },
@@ -173,6 +179,11 @@ export default function RegisterPage() {
       return;
     }
 
+    if (!acceptedTerms) {
+      setError('Para crear tu cuenta tenés que aceptar los Términos y la Política de privacidad.');
+      return;
+    }
+
     setIsLoading(true);
     
     // API expects name, username, email, password, dob, documentId
@@ -183,7 +194,9 @@ export default function RegisterPage() {
       password: formData.password,
       dob: formData.dob,
       documentId: formData.documentId,
-      country: formData.country
+      country: formData.country,
+      acceptedTerms: true,
+      termsVersion: TERMS_VERSION,
     });
   };
 
@@ -402,6 +415,8 @@ export default function RegisterPage() {
             />
           </div>
 
+          <TermsCheckbox checked={acceptedTerms} onChange={setAcceptedTerms} />
+
           {error && (
             <div className="text-red-400 text-xs font-semibold px-2 text-center animate-fade-in">
               {error}
@@ -413,7 +428,7 @@ export default function RegisterPage() {
               type="submit"
               variant="primary"
               size="full"
-              disabled={isLoading || aliasStatus === 'invalid'}
+              disabled={isLoading || aliasStatus === 'invalid' || !acceptedTerms}
               className="group py-4 rounded-2xl flex items-center justify-center gap-2 relative overflow-hidden disabled:opacity-50"
             >
               {isLoading ? (

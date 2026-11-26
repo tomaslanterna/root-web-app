@@ -150,7 +150,13 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       id: `tier_${idx}`,
       name: tier.name,
       description: "",
-      priceLabel: tier.currency === "UYU" ? `$${tier.price.toLocaleString("es-UY")}` : `$${tier.price.toLocaleString("es-AR")} ${tier.currency}`,
+      // Sin precio (por ejemplo, los canjes de bancos): solo se muestra el nombre del lote.
+      priceLabel:
+        tier.price == null
+          ? null
+          : tier.currency === "UYU"
+            ? `$${tier.price.toLocaleString("es-UY")}`
+            : `$${tier.price.toLocaleString("es-AR")} ${tier.currency}`,
       status: tier.soldOut ? ("sold_out" as const) : tier.fewRemaining ? ("limited" as const) : ("available" as const),
       statusLabel: tier.soldOut ? "Agotado" : tier.fewRemaining ? "Últimos pases" : "Disponible",
       perk: "",
@@ -230,8 +236,8 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const banner = event.cinematicBannerUrl?.trim() || fallbackBanner;
   // Sin ticket_url no hay dónde comprar: no se muestra la sección de entradas ni el botón.
   const hasTicketUrl = Boolean(event.ticketUrl?.trim());
-  // El encabezado de Entradas muestra el precio del primer lote disponible.
-  const firstAvailableTier = ticketTiers?.find((tier) => tier.status !== "sold_out");
+  // El encabezado de Entradas muestra el precio del primer lote disponible que tenga precio (no un canje).
+  const firstAvailableTier = ticketTiers?.find((tier) => tier.status !== "sold_out" && tier.priceLabel != null);
 
   const updateAttendance = (response: RSVPResponse) => {
     setEvent((current) =>
@@ -622,7 +628,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                               <span className="text-[14px] font-semibold line-through">{tier.name}</span>
                               <span className="label-mono">Agotado</span>
                             </span>
-                            <span className="num-mono text-sm line-through">{tier.priceLabel}</span>
+                            {tier.priceLabel && <span className="num-mono text-sm line-through">{tier.priceLabel}</span>}
                           </li>
                         ) : (
                           <li
@@ -635,7 +641,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                                 {tier.status === "limited" ? "Disponible · quedan pocas" : "Disponible"}
                               </span>
                             </span>
-                            <span className="num-mono text-base font-semibold">{tier.priceLabel}</span>
+                            {tier.priceLabel && <span className="num-mono text-base font-semibold">{tier.priceLabel}</span>}
                           </li>
                         ),
                       )}

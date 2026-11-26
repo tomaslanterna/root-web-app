@@ -10,6 +10,8 @@ export interface AuthUser {
   country?: string;
   /** Perfil privado: seguir requiere que la persona acepte la solicitud. */
   isPrivate?: boolean;
+  /** Cuándo aceptó Términos y Privacidad. Si falta, se pide en /complete-profile. */
+  termsAcceptedAt?: string | null;
 }
 
 /** Relación con un perfil: lo seguís, le pediste seguirlo (privado) o ninguna. */
@@ -24,6 +26,9 @@ export interface RegisterInput extends LoginCredentials {
   dob?: string;
   documentId?: string;
   country?: string;
+  /** Obligatorio: el backend rechaza el registro (400) si no es true. */
+  acceptedTerms: true;
+  termsVersion: string;
 }
 export interface ResetPasswordInput { token: string; password: string; confirmPassword: string }
 export interface AuthMessage { message: string }

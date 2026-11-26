@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useMutation } from "@/hooks/useMutation";
 import { getComments, createComment } from "@/services/comments";
@@ -22,6 +22,13 @@ export function useComments(targetId: string, type: "events" | "posts", isMock: 
     return { id: generateUUID(), targetId, authorId: user?.id || "mock-author", authorName: user?.name || "Usuario", authorUsername: user?.username || "usuario", authorAvatar: user?.avatarUrl, content: text, timestamp: new Date().toISOString() };
   }, { onSuccess: (comment) => { setComments((current) => [comment, ...current]); setTotal((current) => current + 1); } });
   const fetchComments = list.mutate;
+  // Después de bloquear a alguien sus comentarios se sacan de la lista (el backend ya no los devuelve).
+  const hideAuthor = useCallback((authorId: string) => {
+    const removed = comments.filter((comment) => comment.authorId === authorId).length;
+    if (!removed) return;
+    setComments((current) => current.filter((comment) => comment.authorId !== authorId));
+    setTotal((count) => Math.max(0, count - removed));
+  }, [comments]);
   useEffect(() => { if (!isMock) void fetchComments(0).catch(() => undefined); }, [isMock, targetId, type, fetchComments]);
-  return { comments, total, hasMore, hasLoaded, fetchComments, postComment: create.mutate, isLoadingComments: list.isLoading, isPostingComment: create.isLoading, commentsError: list.error, createCommentError: create.error };
+  return { comments, total, hasMore, hasLoaded, fetchComments, hideAuthor, postComment: create.mutate, isLoadingComments: list.isLoading, isPostingComment: create.isLoading, commentsError: list.error, createCommentError: create.error };
 }

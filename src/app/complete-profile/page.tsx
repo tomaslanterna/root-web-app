@@ -9,6 +9,9 @@ import { usersApi } from '@/services/users';
 import { Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { TopNav } from '@/components/ui/TopNav';
 import { FULL_NAME_ERROR, isFullName, normalizeFullName } from "@/lib/fullName";
+import { TERMS_VERSION } from "@/lib/terms";
+import { TermsCheckbox } from "@/components/ui/TermsCheckbox";
+import type { UpdateMeInput } from '@/services/users';
 
 export default function CompleteProfilePage() {
   const { user, login, token } = useAuth();
@@ -24,6 +27,9 @@ export default function CompleteProfilePage() {
 
   const [aliasStatus, setAliasStatus] = useState<'idle' | 'loading' | 'valid' | 'invalid'>('idle');
   const [error, setError] = useState('');
+  // Separado de formData. Quien ya los aceptó (por ejemplo al registrarse) no lo vuelve a ver.
+  const termsPending = !user?.termsAcceptedAt;
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   // Initialize form with existing user data if any
   useEffect(() => {
@@ -68,7 +74,7 @@ export default function CompleteProfilePage() {
   };
 
   const { mutate: updateProfile, isLoading } = useMutation(
-    async (data: typeof formData) => {
+    async (data: UpdateMeInput) => {
       const response = await usersApi.updateMe(data);
       return response;
     },
@@ -132,7 +138,16 @@ export default function CompleteProfilePage() {
       return;
     }
 
-    updateProfile({ ...formData, name: normalizeFullName(formData.name) });
+    if (termsPending && !acceptedTerms) {
+      setError('Para continuar tenés que aceptar los Términos y la Política de privacidad.');
+      return;
+    }
+
+    updateProfile({
+      ...formData,
+      name: normalizeFullName(formData.name),
+      ...(termsPending ? { acceptedTerms: true, termsVersion: TERMS_VERSION } : {}),
+    });
   };
 
   return (
@@ -266,9 +281,11 @@ export default function CompleteProfilePage() {
               </select>
             </div>
 
+            {termsPending && <TermsCheckbox checked={acceptedTerms} onChange={setAcceptedTerms} />}
+
             <Button
               type="submit"
-              disabled={isLoading || aliasStatus === 'invalid'}
+              disabled={isLoading || aliasStatus === 'invalid' || (termsPending && !acceptedTerms)}
               className="w-full bg-[#D4FF00] text-black hover:bg-[#B3D600] font-black uppercase tracking-wider h-12 rounded-xl mt-4 disabled:opacity-50"
             >
               {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Guardar y Continuar'}

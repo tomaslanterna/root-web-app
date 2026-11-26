@@ -11,6 +11,9 @@ import {
   Share2,
   Check,
   BadgeCheck,
+  Ban,
+  Flag,
+  MoreHorizontal,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { CommentSection } from "@/components/ui/CommentSection";
@@ -18,7 +21,10 @@ import { DetailHeader } from "@/components/ui/DetailHeader";
 import { usePostDetail } from "@/hooks/usePostDetail";
 import { postsApi } from "@/services/posts";
 import { useAuth } from "@/context/AuthContext";
-import { ReportContentAction } from "@/components/communities/ReportContentAction";
+import { ActionSheet, type ActionSheetAction } from "@/components/ui/ActionSheet";
+import { ReportSheet } from "@/components/ui/ReportSheet";
+import { ConfirmModal } from "@/components/ui/Modal";
+import { useBlockActions } from "@/hooks/useBlocks";
 import { PostDetailSkeleton } from "@/components/ui/PostDetailSkeleton";
 import { cn, copyTextToClipboard } from "@/lib/utils";
 
@@ -42,6 +48,11 @@ export default function PostDetailPage({
   const [showHeartBurst, setShowHeartBurst] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const lastTapRef = useRef<number>(0);
+  const [showActions, setShowActions] = useState(false);
+  const [showReport, setShowReport] = useState(false);
+  const [confirmBlock, setConfirmBlock] = useState(false);
+  const [blockError, setBlockError] = useState<string | null>(null);
+  const blockActions = useBlockActions();
 
   // Sync post data when loaded
   useEffect(() => {
@@ -124,6 +135,28 @@ export default function PostDetailPage({
     }
   };
 
+  const requireLogin = (action: () => void) => () => {
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+    action();
+  };
+
+  const handleBlockAuthor = async () => {
+    const username = post?.authorUsername;
+    if (!username) return;
+    setBlockError(null);
+    try {
+      await blockActions.block(username);
+      setConfirmBlock(false);
+      // Ya no se ven sus publicaciones: se vuelve a la pantalla anterior.
+      router.back();
+    } catch {
+      setBlockError("No pudimos bloquear la cuenta. Intentá nuevamente.");
+    }
+  };
+
   if (!hasLoaded && isLoadingPost) {
     return (
       <div className="min-h-[100dvh] bg-[#0B0D10] text-white flex flex-col">
@@ -174,6 +207,28 @@ export default function PostDetailPage({
     );
   }
 
+  const isMyPost = !!user && post.authorId === user.id;
+  const authorLabel = post.authorName || "Usuario";
+  const postActions: ActionSheetAction[] = [
+    {
+      id: "report",
+      label: "Denunciar publicación",
+      icon: <Flag />,
+      destructive: true,
+      onSelect: requireLogin(() => setShowReport(true)),
+    },
+    // Bloquear necesita el alias del autor (authorUsername); sin él solo se puede denunciar.
+    ...(post.authorUsername
+      ? [{
+          id: "block",
+          label: `Bloquear a ${authorLabel}`,
+          icon: <Ban />,
+          destructive: true,
+          onSelect: requireLogin(() => { setBlockError(null); setConfirmBlock(true); }),
+        }]
+      : []),
+  ];
+
   return (
     <div className="min-h-[100dvh] bg-[#0B0D10] text-white flex flex-col pb-[calc(6.5rem+var(--root-safe-bottom,env(safe-area-inset-bottom,0px)))] sm:pb-32 relative">
       {/* Toast Feedback de Compartir */}
@@ -194,9 +249,20 @@ export default function PostDetailPage({
         onBack={() => router.back()}
         onShare={handleShare}
         isCopied={copiedLink}
+        rightActions={!isMyPost && (
+          <button
+            type="button"
+            onClick={() => setShowActions(true)}
+            aria-label="Más opciones"
+            aria-haspopup="menu"
+            className="w-10 h-10 rounded-full backdrop-blur-md border bg-black/40 border-white/10 text-white hover:bg-white/10 flex items-center justify-center transition-colors cursor-pointer"
+          >
+            <MoreHorizontal className="w-4 h-4" aria-hidden="true" />
+          </button>
+        )}
       >
         <Link
-          href={post.authorName ? `/profile/${post.authorName}` : "#"}
+          href={post.authorUsername || post.authorName ? `/profile/${encodeURIComponent(post.authorUsername || post.authorName || "")}` : "#"}
           className="flex items-center gap-3 min-w-0 group"
         >
           <Avatar
@@ -293,13 +359,6 @@ export default function PostDetailPage({
                 </button>
               </div>
 
-              {post.communityId && (
-                <ReportContentAction
-                  communityId={post.communityId}
-                  targetType="post"
-                  targetId={post.id}
-                />
-              )}
             </div>
 
             {/* Contador de Likes */}
@@ -343,6 +402,29 @@ export default function PostDetailPage({
           </div>
         </article>
       </main>
+
+      {!isMyPost && (
+        <>
+          <ActionSheet isOpen={showActions} onClose={() => setShowActions(false)} actions={postActions} />
+          <ReportSheet
+            isOpen={showReport}
+            onClose={() => setShowReport(false)}
+            target={{ targetType: "post", targetId: post.id, communityId: post.communityId }}
+          />
+          <ConfirmModal
+            isOpen={confirmBlock}
+            onClose={() => { if (!post.authorUsername || !blockActions.pending[post.authorUsername]) setConfirmBlock(false); }}
+            title={`¿Bloquear a ${authorLabel}?`}
+            message="No va a ver tu perfil ni tus publicaciones, no te va a poder escribir y se dejan de seguir. No le avisamos. Lo podés desbloquear cuando quieras desde Configuración."
+            confirmText="Bloquear"
+            variant="danger"
+            isLoading={!!post.authorUsername && blockActions.pending[post.authorUsername]}
+            onConfirm={() => void handleBlockAuthor()}
+          >
+            {blockError && <p role="alert" className="mt-3 mb-0 text-xs font-semibold text-danger">{blockError}</p>}
+          </ConfirmModal>
+        </>
+      )}
     </div>
   );
 }

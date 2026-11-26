@@ -11,6 +11,17 @@ import { isAxiosError } from "axios";
 
 export type { ChatMessage } from "@/services/chat";
 
+/** Por qué falló el último envío: bloqueo entre las cuentas (403), contenido rechazado (422) u otro error. */
+export type ChatSendErrorCode = "blocked" | "moderation" | "unknown";
+
+function sendErrorCode(failure: unknown): ChatSendErrorCode {
+  if (!isAxiosError(failure) || !failure.response) return "unknown";
+  const { status, data } = failure.response;
+  if (status === 403 && (data as { error?: string } | undefined)?.error === "blocked") return "blocked";
+  if (status === 422) return "moderation";
+  return "unknown";
+}
+
 export function useChat(chatId: string | undefined, currentUserId?: string) {
   const { user } = useAuth();
   const userId = currentUserId ?? user?.id;
@@ -19,6 +30,8 @@ export function useChat(chatId: string | undefined, currentUserId?: string) {
   const [loadedChat, setLoadedChat] = useState<string>();
   const [error, setError] = useState<string>();
   const [hasMore, setHasMore] = useState(false);
+  // Código del último envío fallido, por chat: al cambiar de conversación no se arrastra.
+  const [sendError, setSendError] = useState<{ chatId: string; code: ChatSendErrorCode }>();
   const messages = useMemo(() => snapshot.chatId === chatId ? snapshot.messages : [], [snapshot, chatId]);
   const messagesRef = useRef(messages);
   useEffect(() => { messagesRef.current = messages; }, [messages]);
@@ -117,9 +130,11 @@ export function useChat(chatId: string | undefined, currentUserId?: string) {
         real = await postMessage(variables);
       }
       merge(id, [real]);
+      setSendError((previous) => previous?.chatId === id && previous.code !== "blocked" ? undefined : previous);
       return real;
     } catch (failure) {
       if (activeChatRef.current === id) {
+        setSendError({ chatId: id, code: sendErrorCode(failure) });
         setSnapshot((previous) => ({
           ...previous,
           messages: previous.messages.map((m) => m.id === optimistic.id && (m.status === "sending" || m.status === "failed")
@@ -143,9 +158,13 @@ export function useChat(chatId: string | undefined, currentUserId?: string) {
     if (message) return transmit(message);
   };
 
+  const lastSendError = sendError && sendError.chatId === chatId ? sendError.code : undefined;
   return {
     messages, isLoading: loadedChat !== chatId, isLoadingMore, hasMore, error,
     sendMessage, retryMessage, refreshMessages, loadMore, connectionState,
+    lastSendError,
+    /** El backend respondió 403 "blocked": hay un bloqueo entre las cuentas y no se puede escribir. */
+    isBlocked: lastSendError === "blocked",
   };
 }
 

@@ -11,6 +11,8 @@ export interface Post {
   isFeatured?: boolean;
   isPinned?: boolean;
   authorName?: string;
+  /** Alias del autor (para bloquearlo). `authorName` es el nombre visible. */
+  authorUsername?: string;
   authorAvatar?: string;
   isVerified?: boolean;
   likesCount?: number;
