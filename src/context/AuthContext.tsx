@@ -10,6 +10,8 @@ interface AuthContextType {
   token: string | null;
   login: (token: string, user: User) => void;
   logout: () => Promise<void>;
+  /** Borra la sesión local sin llamar a la API (por ejemplo, después de eliminar la cuenta el token ya no vale). */
+  clearSession: () => void;
   isLoading: boolean;
 }
 
@@ -49,17 +51,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('root_user', JSON.stringify(newUser));
   }, []);
 
-  const logout = useCallback(async () => {
-    await revokePushForLogout();
+  // El registro push nativo se limpia solo: usePushNotifications lo da de baja cuando el token pasa a null.
+  const clearSession = useCallback(() => {
     setToken(null);
     setUser(null);
     localStorage.removeItem('root_jwt_token');
     localStorage.removeItem('root_user');
+  }, []);
+
+  const logout = useCallback(async () => {
+    await revokePushForLogout();
+    clearSession();
     router.push('/login');
-  }, [router]);
+  }, [router, clearSession]);
 
   // Estable entre renders: los ~40 componentes que usan useAuth solo se vuelven a dibujar si cambia la sesión.
-  const value = useMemo(() => ({ user, token, login, logout, isLoading }), [user, token, login, logout, isLoading]);
+  const value = useMemo(
+    () => ({ user, token, login, logout, clearSession, isLoading }),
+    [user, token, login, logout, clearSession, isLoading],
+  );
 
   return (
     <AuthContext.Provider value={value}>

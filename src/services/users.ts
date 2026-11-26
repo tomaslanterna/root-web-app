@@ -2,6 +2,7 @@ import { api } from "@/lib/api";
 import type { AuthUser, FollowStatus } from "@/types/auth";
 import type { Post } from "@/types/posts";
 import type { FollowListKind, FollowListResponse, FollowListUser } from "@/types/follows";
+import type { BlockedUser } from "@/types/moderation";
 
 export interface MusicInterests {
   genres: string[];
@@ -16,6 +17,9 @@ export interface UpdateMeInput {
   documentId?: string;
   dob?: string;
   country?: string;
+  /** Aceptación de Términos y Privacidad (usuarios que entraron con Google o anteriores a los términos). */
+  acceptedTerms?: boolean;
+  termsVersion?: string;
 }
 
 export const usersApi = {
@@ -82,6 +86,25 @@ export const usersApi = {
   },
   rejectFollowRequest: async (username: string) => {
     await api.delete(`/v1/users/me/follow-requests/${encodeURIComponent(username)}`);
+  },
+
+  /**
+   * Elimina la cuenta: queda dada de baja al instante y el token deja de valer. El backend guarda una copia
+   * privada 30 días y después la borra.
+   */
+  deleteAccount: async (): Promise<void> => {
+    await api.delete("/v1/users/me");
+  },
+  /** Bloqueo simétrico: ninguno ve al otro, no pueden escribirse y se dejan de seguir. */
+  blockUser: async (username: string): Promise<void> => {
+    await api.post(`/v1/users/${encodeURIComponent(username)}/block`);
+  },
+  unblockUser: async (username: string): Promise<void> => {
+    await api.delete(`/v1/users/${encodeURIComponent(username)}/block`);
+  },
+  getBlockedUsers: async (): Promise<BlockedUser[]> => {
+    const { data } = await api.get<{ data: BlockedUser[] }>("/v1/users/me/blocks");
+    return data?.data ?? [];
   },
 
   /** Intereses musicales: géneros elegidos, si ya respondió y la lista de géneros posibles. */

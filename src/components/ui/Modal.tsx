@@ -95,6 +95,12 @@ interface ConfirmModalProps extends Omit<ModalProps, "children" | "footer"> {
   confirmText?: string;
   cancelText?: string;
   isLoading?: boolean;
+  /** "danger": la acción no se deshace (eliminar cuenta, bloquear). El botón de confirmar va en rojo. */
+  variant?: "default" | "danger";
+  /** Deshabilita confirmar (por ejemplo, hasta escribir una palabra de confirmación). */
+  confirmDisabled?: boolean;
+  /** Contenido extra debajo del mensaje (un campo de confirmación, un error). */
+  children?: ReactNode;
 }
 
 export function ConfirmModal({ 
@@ -105,7 +111,10 @@ export function ConfirmModal({
   onConfirm, 
   confirmText = "Confirmar", 
   cancelText = "Cancelar",
-  isLoading = false
+  isLoading = false,
+  variant = "default",
+  confirmDisabled = false,
+  children,
 }: ConfirmModalProps) {
   return (
     <Modal
@@ -117,13 +126,19 @@ export function ConfirmModal({
           <Button variant="secondary" onClick={onClose} disabled={isLoading}>
             {cancelText}
           </Button>
-          <Button onClick={onConfirm} disabled={isLoading}>
+          <Button
+            variant={variant === "danger" ? "danger" : "primary"}
+            onClick={onConfirm}
+            disabled={isLoading || confirmDisabled}
+            className={variant === "danger" ? "bg-danger text-on-accent border-transparent hover:bg-danger/90" : undefined}
+          >
             {isLoading ? "Cargando..." : confirmText}
           </Button>
         </>
       }
     >
-      <p className="m-0 text-[15px] text-ink-2 leading-relaxed">{message}</p>
+      <p className="m-0 text-[15px] text-ink-2 leading-relaxed whitespace-pre-line">{message}</p>
+      {children}
     </Modal>
   );
 }

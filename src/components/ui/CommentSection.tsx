@@ -2,10 +2,13 @@
 
 import { FormEvent, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, LogIn, MessageCircle, Send } from "lucide-react";
+import { Ban, Flag, Loader2, LogIn, MessageCircle, MoreHorizontal, Send } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useComments } from "@/hooks/useComments";
-import { ReportContentAction } from "@/components/communities/ReportContentAction";
+import { useBlockActions } from "@/hooks/useBlocks";
+import { ActionSheet } from "./ActionSheet";
+import { ReportSheet } from "./ReportSheet";
+import { ConfirmModal } from "./Modal";
 import type { EventComment } from "@/types/events";
 import { Avatar } from "./Avatar";
 import { Button } from "./Button";
@@ -57,8 +60,35 @@ export function CommentSection({
   const [policyError, setPolicyError] = useState<string | null>(null);
   const [generalError, setGeneralError] = useState<string | null>(null);
   const commentsTopRef = useRef<HTMLDivElement>(null);
+  // ⋯ de un comentario ajeno: denunciarlo o bloquear a quien lo escribió.
+  const [menuComment, setMenuComment] = useState<EventComment | null>(null);
+  const [reportComment, setReportComment] = useState<EventComment | null>(null);
+  const [blockComment, setBlockComment] = useState<EventComment | null>(null);
+  const [blockError, setBlockError] = useState<string | null>(null);
+  const blockActions = useBlockActions();
 
-  const { comments, total, hasMore, hasLoaded, fetchComments, postComment, isLoadingComments, isPostingComment, commentsError } = useComments(targetId, endpointType, isMock, mockComments);
+  const { comments, total, hasMore, hasLoaded, fetchComments, hideAuthor, postComment, isLoadingComments, isPostingComment, commentsError } = useComments(targetId, endpointType, isMock, mockComments);
+
+  const requireLogin = (action: () => void) => () => {
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+    action();
+  };
+
+  const confirmBlockAuthor = async () => {
+    const comment = blockComment;
+    if (!comment?.authorUsername) return;
+    setBlockError(null);
+    try {
+      await blockActions.block(comment.authorUsername);
+      hideAuthor(comment.authorId);
+      setBlockComment(null);
+    } catch {
+      setBlockError("No pudimos bloquear la cuenta. Intentá nuevamente.");
+    }
+  };
 
   const handleContentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setContent(e.target.value);
@@ -224,14 +254,26 @@ export function CommentSection({
                   className="ring-1 ring-white/5 shrink-0" 
                 />
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline justify-between mb-1">
-                    <span className="text-sm font-bold text-neutral-200">{comment.authorName || "Usuario"}</span>
-                    <span className="tech-mono text-[10px] text-neutral-500">
-                      {formattedTime}
+                  <div className="flex items-baseline justify-between gap-2 mb-1">
+                    <span className="min-w-0 truncate text-sm font-bold text-neutral-200">{comment.authorName || "Usuario"}</span>
+                    <span className="shrink-0 flex items-center gap-1">
+                      <span className="tech-mono text-[10px] text-neutral-500">
+                        {formattedTime}
+                      </span>
+                      {comment.authorId !== user?.id && !isMock && (
+                        <button
+                          type="button"
+                          onClick={() => setMenuComment(comment)}
+                          aria-label={`Opciones del comentario de ${comment.authorName || "Usuario"}`}
+                          aria-haspopup="menu"
+                          className="-my-2 -mr-2 size-8 rounded-full flex items-center justify-center text-neutral-500 hover:text-white hover:bg-white/5 transition-colors focus-visible:outline-2 focus-visible:outline-[#D4FF00]"
+                        >
+                          <MoreHorizontal className="size-4" aria-hidden="true" />
+                        </button>
+                      )}
                     </span>
                   </div>
                   <p className="break-words text-sm text-neutral-400 font-medium leading-relaxed">{comment.content}</p>
-                  {reportCommunityId && <ReportContentAction communityId={reportCommunityId} targetType="comment" targetId={comment.id} />}
                 </div>
               </div>
             );
@@ -253,6 +295,44 @@ export function CommentSection({
         </div>
       )}
     </section>
+
+    <ActionSheet
+      isOpen={!!menuComment}
+      onClose={() => setMenuComment(null)}
+      actions={menuComment ? [
+        {
+          id: "report",
+          label: "Denunciar comentario",
+          icon: <Flag />,
+          destructive: true,
+          onSelect: requireLogin(() => setReportComment(menuComment)),
+        },
+        ...(menuComment.authorUsername ? [{
+          id: "block",
+          label: `Bloquear a ${menuComment.authorName || menuComment.authorUsername}`,
+          icon: <Ban />,
+          destructive: true,
+          onSelect: requireLogin(() => { setBlockError(null); setBlockComment(menuComment); }),
+        }] : []),
+      ] : []}
+    />
+    <ReportSheet
+      isOpen={!!reportComment}
+      onClose={() => setReportComment(null)}
+      target={{ targetType: "comment", targetId: reportComment?.id ?? "", communityId: reportCommunityId }}
+    />
+    <ConfirmModal
+      isOpen={!!blockComment}
+      onClose={() => { if (!blockComment?.authorUsername || !blockActions.pending[blockComment.authorUsername]) setBlockComment(null); }}
+      title={`¿Bloquear a ${blockComment?.authorName || blockComment?.authorUsername || "esta cuenta"}?`}
+      message="No va a ver tu perfil ni tus publicaciones, no te va a poder escribir y se dejan de seguir. Sus comentarios dejan de aparecerte. No le avisamos."
+      confirmText="Bloquear"
+      variant="danger"
+      isLoading={!!blockComment?.authorUsername && blockActions.pending[blockComment.authorUsername]}
+      onConfirm={() => void confirmBlockAuthor()}
+    >
+      {blockError && <p role="alert" className="mt-3 mb-0 text-xs font-semibold text-danger">{blockError}</p>}
+    </ConfirmModal>
 
     {/* Fixed bottom comment bar */}
     {fixedInput && (

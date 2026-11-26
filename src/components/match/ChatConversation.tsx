@@ -2,7 +2,7 @@
 
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
-import { Check, CheckCheck, ChevronLeft, Send, Clock3, Pin } from "lucide-react";
+import { Ban, Check, CheckCheck, ChevronLeft, Send, Clock3, Flag, MoreHorizontal, Pin, UserRound } from "lucide-react";
 import { TemporalTag, formatTempCrewEventDate } from "@/components/match/TempCrewCards";
 import Link from "next/link";
 import React, { useState, useEffect, useRef } from "react";
@@ -13,6 +13,15 @@ import { useChatInfo } from "@/hooks/useChatDirectory";
 import { resolveDeepLinkPath } from "@/lib/deepLinks";
 import { ChatConversationSkeleton, ChatMessagesSkeleton } from "@/components/chat/ChatSkeletons";
 import { SwipeBack } from "@/components/ui/SwipeBack";
+import { ActionSheet } from "@/components/ui/ActionSheet";
+import { ReportSheet } from "@/components/ui/ReportSheet";
+import { ConfirmModal } from "@/components/ui/Modal";
+import { useBlockActions } from "@/hooks/useBlocks";
+import type { ReportTarget } from "@/types/moderation";
+
+/** Mantener presionado un mensaje ajeno este tiempo abre "Denunciar mensaje". */
+const LONG_PRESS_MS = 500;
+const LONG_PRESS_TOLERANCE_PX = 10;
 
 export function ChatConversation({ chatId }: { chatId: string }) {
   const router = useRouter();
@@ -26,7 +35,26 @@ export function ChatConversation({ chatId }: { chatId: string }) {
   const nearBottomRef = useRef(true);
   const previousLastIdRef = useRef<string | undefined>(undefined);
 
-  const { messages, isLoading: isLoadingChat, sendMessage, retryMessage, hasMore, loadMore, isLoadingMore, error, refreshMessages } = useChat(chatId, currentUser?.id);
+  const { messages, isLoading: isLoadingChat, sendMessage, retryMessage, hasMore, loadMore, isLoadingMore, error, refreshMessages, isBlocked } = useChat(chatId, currentUser?.id);
+  const blockActions = useBlockActions();
+  const [showActions, setShowActions] = useState(false);
+  const [reportTarget, setReportTarget] = useState<{ target: ReportTarget; title: string } | null>(null);
+  const [confirmBlock, setConfirmBlock] = useState(false);
+  const [blockError, setBlockError] = useState<string | null>(null);
+  // Bloqueaste desde este chat: la caja de texto se reemplaza sin esperar a que falle un envío.
+  const [blockedHereChat, setBlockedHereChat] = useState<string>();
+  const longPress = useRef<{ timer: ReturnType<typeof setTimeout>; x: number; y: number } | null>(null);
+  // Si el mantener presionado abrió la denuncia, el clic que sigue al soltar no abre el link del mensaje.
+  const longPressFired = useRef(false);
+  const cancelLongPress = () => {
+    if (longPress.current) clearTimeout(longPress.current.timer);
+    longPress.current = null;
+  };
+  useEffect(() => cancelLongPress, []);
+  const reportMessage = (messageId: string) => {
+    cancelLongPress();
+    setReportTarget({ target: { targetType: "message", targetId: messageId }, title: "Denunciar mensaje" });
+  };
   useVisibleMessageReceipts(chatId, messages, currentUser?.id, chatAreaRef, !isLoadingInfo);
 
   useEffect(() => {
@@ -74,6 +102,22 @@ export function ChatConversation({ chatId }: { chatId: string }) {
   // Crew temporal: muestra su nombre, la etiqueta y el evento fijado arriba.
   const isTempCrew = chatInfo.type === "CREWS" && chatInfo.crew_type === "temporary";
   const tempEventBanner = chatInfo.event_image?.trim();
+
+  const isDirect = chatInfo.type === "DIRECT" && !!otherUser && otherUser.id !== currentUser?.id;
+  const otherUsername = otherUser?.username;
+  const composerBlocked = isBlocked || blockedHereChat === chatId;
+
+  const handleBlock = async () => {
+    if (!otherUsername) return;
+    setBlockError(null);
+    try {
+      await blockActions.block(otherUsername);
+      setConfirmBlock(false);
+      setBlockedHereChat(chatId);
+    } catch {
+      setBlockError("No pudimos bloquear la cuenta. Intentá nuevamente.");
+    }
+  };
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,6 +174,17 @@ export function ChatConversation({ chatId }: { chatId: string }) {
           )}
         </div>
         {chatInfo.event_id && !isTempCrew && <Link href={`/events/${chatInfo.event_id}`} className="shrink-0 tech-label text-[10px] text-[#D4FF00]">Ver evento</Link>}
+        {isDirect && (
+          <button
+            type="button"
+            onClick={() => setShowActions(true)}
+            aria-label="Más opciones"
+            aria-haspopup="menu"
+            className="size-10 shrink-0 rounded-full flex items-center justify-center text-white hover:bg-white/10 transition-colors focus-visible:outline-2 focus-visible:outline-[#D4FF00]"
+          >
+            <MoreHorizontal className="size-5" aria-hidden="true" />
+          </button>
+        )}
       </header>
 
       {isTempCrew && chatInfo.event_id && (
@@ -189,6 +244,33 @@ export function ChatConversation({ chatId }: { chatId: string }) {
               );
             }
 
+            // Mensaje ajeno: mantener presionado (táctil) o clic derecho abre "Denunciar mensaje".
+            const reportGestures = isMe ? {} : {
+              onContextMenu: (event: React.MouseEvent) => { event.preventDefault(); reportMessage(msg.id); },
+              onPointerDown: (event: React.PointerEvent) => {
+                if (event.pointerType === "mouse") return;
+                cancelLongPress();
+                longPressFired.current = false;
+                longPress.current = {
+                  timer: setTimeout(() => { longPressFired.current = true; reportMessage(msg.id); }, LONG_PRESS_MS),
+                  x: event.clientX, y: event.clientY,
+                };
+              },
+              onPointerMove: (event: React.PointerEvent) => {
+                const press = longPress.current;
+                if (press && Math.hypot(event.clientX - press.x, event.clientY - press.y) > LONG_PRESS_TOLERANCE_PX) cancelLongPress();
+              },
+              onPointerUp: cancelLongPress,
+              onPointerCancel: cancelLongPress,
+              onPointerLeave: cancelLongPress,
+              onClickCapture: (event: React.MouseEvent) => {
+                if (!longPressFired.current) return;
+                longPressFired.current = false;
+                event.preventDefault();
+                event.stopPropagation();
+              },
+            };
+
             return (
               <div
                 key={msg.id}
@@ -196,7 +278,8 @@ export function ChatConversation({ chatId }: { chatId: string }) {
                 className={`flex flex-col max-w-[85%] ${spacingClass} ${isMe ? "ml-auto items-end" : "mr-auto items-start"}`}
               >
                 <div
-                  className={`px-4 py-2.5 rounded-2xl text-sm ${
+                  {...reportGestures}
+                  className={`px-4 py-2.5 rounded-2xl text-sm ${isMe ? "" : "select-none [-webkit-touch-callout:none]"} ${
                     isMe
                       ? "bg-[#D4FF00] text-black font-medium"
                       : "bg-[#14171F] text-white border border-white/10"
@@ -231,7 +314,7 @@ export function ChatConversation({ chatId }: { chatId: string }) {
                     })}
                   </span>
                 </div>
-                {msg.status === "failed" && <button onClick={() => void retryMessage(msg.id).catch(() => undefined)} className="mt-1 text-[10px] text-red-300">No se envió. Reintentar</button>}
+                {msg.status === "failed" && !composerBlocked && <button onClick={() => void retryMessage(msg.id).catch(() => undefined)} className="mt-1 text-[10px] text-red-300">No se envió. Reintentar</button>}
                 {!hasNextFromSameSender && (
                   <span className="flex items-center gap-1 tech-mono text-[9px] text-neutral-500 mt-1 mx-1">
                     {formatTime(msg.timestamp)}
@@ -260,6 +343,11 @@ export function ChatConversation({ chatId }: { chatId: string }) {
 
       {/* Input Area */}
       <div className="shrink-0 p-4 bg-[#0B0D10] border-t border-white/10">
+        {composerBlocked ? (
+          <p role="status" className="m-0 py-3 text-center text-sm text-neutral-400">
+            No podés enviar mensajes a esta cuenta.
+          </p>
+        ) : (
         <form onSubmit={handleSend} className="flex gap-2">
           <input
             type="text"
@@ -277,7 +365,49 @@ export function ChatConversation({ chatId }: { chatId: string }) {
             <Send className="w-5 h-5 -ml-0.5" />
           </Button>
         </form>
+        )}
       </div>
+
+      {isDirect && otherUser && (
+        <ActionSheet
+          isOpen={showActions}
+          onClose={() => setShowActions(false)}
+          title={otherUser.name}
+          actions={[
+            ...(otherUsername
+              ? [{ id: "profile", label: "Ver perfil", icon: <UserRound />, onSelect: () => router.push(`/profile/${encodeURIComponent(otherUsername)}`) }]
+              : []),
+            {
+              id: "report",
+              label: "Denunciar",
+              icon: <Flag />,
+              destructive: true,
+              onSelect: () => setReportTarget({ target: { targetType: "user", targetId: otherUser.id }, title: "Denunciar cuenta" }),
+            },
+            ...(otherUsername && blockedHereChat !== chatId
+              ? [{ id: "block", label: "Bloquear", icon: <Ban />, destructive: true, onSelect: () => { setBlockError(null); setConfirmBlock(true); } }]
+              : []),
+          ]}
+        />
+      )}
+      <ReportSheet
+        isOpen={!!reportTarget}
+        onClose={() => setReportTarget(null)}
+        target={reportTarget?.target ?? { targetType: "message", targetId: "" }}
+        title={reportTarget?.title}
+      />
+      <ConfirmModal
+        isOpen={confirmBlock}
+        onClose={() => { if (!otherUsername || !blockActions.pending[otherUsername]) setConfirmBlock(false); }}
+        title={`¿Bloquear a ${otherUser?.name || "esta cuenta"}?`}
+        message="No va a ver tu perfil ni tus publicaciones, no te va a poder escribir y se dejan de seguir. No le avisamos. Lo podés desbloquear cuando quieras desde Configuración."
+        confirmText="Bloquear"
+        variant="danger"
+        isLoading={!!otherUsername && blockActions.pending[otherUsername]}
+        onConfirm={() => void handleBlock()}
+      >
+        {blockError && <p role="alert" className="mt-3 mb-0 text-xs font-semibold text-danger">{blockError}</p>}
+      </ConfirmModal>
     </div>
   );
 }

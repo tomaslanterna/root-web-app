@@ -21,6 +21,8 @@ import {
   FileText,
   ShieldCheck,
   LifeBuoy,
+  Ban,
+  Trash2,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useMutation } from '@/hooks/useMutation';
@@ -33,6 +35,11 @@ import { usersApi } from '@/services/users';
 import { cn } from '@/lib/utils';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { compressImageToJpeg } from '@/lib/compressImage';
+import { ConfirmModal } from '@/components/ui/Modal';
+import { useAccountDeletion } from '@/hooks/useAccountDeletion';
+
+/** Palabra que hay que escribir para confirmar la eliminación de la cuenta. */
+const DELETE_CONFIRMATION_WORD = 'ELIMINAR';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -57,6 +64,15 @@ export default function SettingsPage() {
   const [loggingOut, setLoggingOut] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  // Eliminar cuenta: modal que explica los 30 días y pide escribir ELIMINAR.
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const { deleteAccount, isDeleting, error: deleteError } = useAccountDeletion();
+  const canDelete = deleteConfirmation.trim().toUpperCase() === DELETE_CONFIRMATION_WORD;
+  const openDeleteModal = () => {
+    setDeleteConfirmation('');
+    setShowDeleteModal(true);
+  };
 
   // Edit Avatar states
   const [avatarUrl, setAvatarUrl] = useState('');
@@ -283,6 +299,23 @@ export default function SettingsPage() {
             </Link>
           )}
 
+          {/* Usuarios bloqueados: siempre visible, aunque el perfil sea público. */}
+          <Link
+            href="/settings/blocked"
+            className="w-full flex items-center justify-between p-4.5 hover:bg-surface-2 transition-colors text-left"
+          >
+            <div className="flex items-center gap-3.5">
+              <div className="p-2.5 bg-accent/10 rounded-control text-accent shrink-0">
+                <Ban className="size-5" />
+              </div>
+              <div>
+                <span className="font-bold text-ink block text-[15px]">Usuarios bloqueados</span>
+                <span className="text-xs text-ink-2">Cuentas que no te ven ni te pueden escribir</span>
+              </div>
+            </div>
+            <ChevronRight className="size-5 text-ink-3" />
+          </Link>
+
           {/* Intereses musicales: ordenan los eventos destacados. */}
           <button
             type="button"
@@ -432,6 +465,25 @@ export default function SettingsPage() {
               <span className="font-bold text-danger text-[15px]">
                 {loggingOut ? 'Cerrando sesión…' : 'Cerrar sesión'}
               </span>
+            </div>
+            <ChevronRight className="size-5 text-ink-3 group-hover:text-danger transition-colors" />
+          </button>
+
+          {/* Eliminar cuenta: pide confirmación escribiendo ELIMINAR. */}
+          <button
+            type="button"
+            onClick={openDeleteModal}
+            disabled={isDeleting}
+            className="w-full flex items-center justify-between p-4.5 hover:bg-danger/10 transition-colors cursor-pointer text-left group"
+          >
+            <div className="flex items-center gap-3.5">
+              <div className="p-2.5 bg-danger/10 rounded-control text-danger shrink-0">
+                <Trash2 className="size-5" />
+              </div>
+              <div>
+                <span className="font-bold text-danger block text-[15px]">Eliminar cuenta</span>
+                <span className="text-xs text-ink-2">Borra tu cuenta y tus datos</span>
+              </div>
             </div>
             <ChevronRight className="size-5 text-ink-3 group-hover:text-danger transition-colors" />
           </button>
@@ -631,6 +683,38 @@ export default function SettingsPage() {
           </form>
         )}
       </BottomSheet>
+
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => { if (!isDeleting) setShowDeleteModal(false); }}
+        title="Eliminar cuenta"
+        variant="danger"
+        confirmText="Eliminar cuenta"
+        isLoading={isDeleting}
+        confirmDisabled={!canDelete}
+        onConfirm={() => { if (canDelete) void deleteAccount().catch(() => undefined); }}
+        message={'Tu cuenta se da de baja ahora: no vas a poder entrar y tu perfil, tus posts y tus fotos dejan de verse.\n\nGuardamos una copia privada de tus datos durante 30 días por seguridad (abuso, reclamos o pedidos legales). Pasado ese plazo se borra para siempre, incluidas tus fotos y tu verificación de identidad.\n\nNo se puede deshacer. Tus mensajes en chats ajenos quedan como "Usuario eliminado".'}
+      >
+        <label className="mt-4 block text-[13px] font-semibold text-ink-2">
+          Para confirmar, escribí <span className="font-mono text-ink">{DELETE_CONFIRMATION_WORD}</span>
+          <input
+            type="text"
+            value={deleteConfirmation}
+            onChange={(e) => setDeleteConfirmation(e.target.value)}
+            autoCapitalize="characters"
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
+            aria-label={`Escribí ${DELETE_CONFIRMATION_WORD} para confirmar`}
+            className="mt-2 block w-full h-12 rounded-control border border-line-strong bg-surface-2 px-3 text-[15px] font-mono tracking-widest text-ink outline-none focus:border-danger/60"
+          />
+        </label>
+        {deleteError && (
+          <p role="alert" className="mt-3 mb-0 text-xs font-semibold text-danger">
+            No pudimos eliminar tu cuenta. Intentá nuevamente.
+          </p>
+        )}
+      </ConfirmModal>
 
       {showInterests && (
         <InterestsSheet

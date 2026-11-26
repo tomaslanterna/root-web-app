@@ -6,7 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button";
-import { Award, Check, ChevronLeft, ChevronRight, Grid3X3, Loader2, Lock, Plus, Settings, Share2, ShieldCheck } from "lucide-react";
+import { Award, Ban, Check, ChevronLeft, ChevronRight, Flag, Grid3X3, Loader2, Lock, MoreHorizontal, Plus, Settings, Share2, ShieldCheck } from "lucide-react";
 import { SwipeBack } from "@/components/ui/SwipeBack";
 import { MOCK_POSTS } from "@/lib/mocks";
 import { CreatePhotoModal } from "@/components/profile/CreatePhotoModal";
@@ -21,6 +21,10 @@ import type { AuthUser, FollowStatus } from "@/types/auth";
 import type { Post } from "@/types/posts";
 import { TabIndicator } from "@/components/ui/TabIndicator";
 import { useBackNavigation } from "@/hooks/useBackNavigation";
+import { useBlockActions } from "@/hooks/useBlocks";
+import { ActionSheet } from "@/components/ui/ActionSheet";
+import { ReportSheet } from "@/components/ui/ReportSheet";
+import { ConfirmModal } from "@/components/ui/Modal";
 
 interface ProfileUser extends AuthUser { followers?: string[]; following?: string[] }
 
@@ -43,6 +47,15 @@ export default function UserProfilePage() {
   const [followStatus, setFollowStatus] = useState<FollowStatus>("none");
   // Perfil privado que no seguís: se ve el encabezado, no el contenido.
   const [canViewContent, setCanViewContent] = useState(true);
+  // Lo bloqueaste vos (si te bloqueó él, el backend responde 404 y se ve "Usuario no encontrado").
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [showActions, setShowActions] = useState(false);
+  const [showReport, setShowReport] = useState(false);
+  const [confirmBlock, setConfirmBlock] = useState(false);
+  const [blockError, setBlockError] = useState<string | null>(null);
+  // Se incrementa para volver a pedir el perfil (después de desbloquear cambia qué se puede ver).
+  const [reloadKey, setReloadKey] = useState(0);
+  const blockActions = useBlockActions();
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const badgeToOpen = searchParams.get("badge");
@@ -97,7 +110,9 @@ export default function UserProfilePage() {
         const data = await usersApi.getUserProfile(username);
         setProfileUser(data.user);
         setFollowStatus(data.followStatus ?? (data.isFollowing ? "following" : "none"));
-        const canView = data.canViewContent ?? true;
+        const blocked = Boolean(data.isBlocked ?? data.user?.isBlocked);
+        setIsBlocked(blocked);
+        const canView = !blocked && (data.canViewContent ?? true);
         setCanViewContent(canView);
 
         // 1. Posts del perfil. Si es privado y no lo seguís no se piden.
@@ -172,7 +187,7 @@ export default function UserProfilePage() {
     };
 
     fetchProfileData();
-  }, [username]);
+  }, [username, reloadKey]);
 
   const { mutate: followMutate, isLoading: isFollowingLoading } = useMutation(
     () => usersApi.followUser(username),
@@ -222,6 +237,45 @@ export default function UserProfilePage() {
     }
   };
 
+  const handleBlock = async () => {
+    setBlockError(null);
+    try {
+      await blockActions.block(username);
+      setConfirmBlock(false);
+      // Bloqueo simétrico: se dejan de seguir en ambos sentidos.
+      setIsBlocked(true);
+      setFollowStatus("none");
+      setCanViewContent(false);
+      setUserPosts([]);
+      setProfileUser((prev) => prev ? ({
+        ...prev,
+        followers: (prev.followers || []).filter((id) => id !== currentUser?.id),
+        following: (prev.following || []).filter((id) => id !== currentUser?.id),
+      }) : prev);
+    } catch {
+      setBlockError("No pudimos bloquear la cuenta. Intentá nuevamente.");
+    }
+  };
+
+  const handleUnblock = async () => {
+    setBlockError(null);
+    try {
+      await blockActions.unblock(username);
+      setIsBlocked(false);
+      setReloadKey((key) => key + 1);
+    } catch {
+      setBlockError("No pudimos desbloquear la cuenta. Intentá nuevamente.");
+    }
+  };
+
+  const requireLogin = (action: () => void) => () => {
+    if (!currentUser) {
+      router.push("/login");
+      return;
+    }
+    action();
+  };
+
   const handleProfileBack = () => {
     if (fromCommunities) {
       router.replace(communityReturnTo);
@@ -251,7 +305,7 @@ export default function UserProfilePage() {
   ];
 
   const showBack = !isMyProfile || fromSearch || fromCommunities;
-  const showContent = isMyProfile || canViewContent;
+  const showContent = isMyProfile || (canViewContent && !isBlocked);
   const roleLabel = profileUser.role === "USER" ? "Raver" : profileUser.role;
   const squareButton =
     "size-11 shrink-0 rounded-control bg-surface border border-line flex items-center justify-center hover:bg-surface-2 transition-colors focus-visible:outline-2 focus-visible:outline-accent";
@@ -305,6 +359,18 @@ export default function UserProfilePage() {
             <Share2 className="size-5" aria-hidden="true" />
           )}
         </button>
+        {!isMyProfile && (
+          <button
+            type="button"
+            onClick={() => setShowActions(true)}
+            aria-label="Más opciones"
+            aria-haspopup="menu"
+            title="Más opciones"
+            className={squareButton}
+          >
+            <MoreHorizontal className="size-5" aria-hidden="true" />
+          </button>
+        )}
         {isMyProfile && (
           <Link
             href="/settings"
@@ -384,7 +450,7 @@ export default function UserProfilePage() {
         </div>
       </div>
 
-      {!isMyProfile && (
+      {!isMyProfile && !isBlocked && (
         <div className="w-full max-w-3xl mx-auto px-4 pt-4 grid grid-cols-2 gap-2 lg:float-left lg:clear-left lg:w-[340px] lg:mx-0 lg:px-0">
           <Button
             onClick={toggleFollow}
@@ -430,7 +496,30 @@ export default function UserProfilePage() {
         </div>
       )}
 
-      {!showContent && (
+      {!isMyProfile && isBlocked && (
+        <section className="mt-6 w-full max-w-3xl mx-auto px-4 lg:ml-[372px] lg:mr-0 lg:max-w-none lg:w-auto lg:mt-0 lg:px-0">
+          <div className="rounded-card border border-line bg-surface px-5 py-8 flex flex-col items-center gap-3 text-center">
+            <span className="size-12 rounded-full bg-surface-2 flex items-center justify-center">
+              <Ban className="size-5 text-ink-2" aria-hidden="true" />
+            </span>
+            <h3 className="m-0 text-[17px] font-semibold">Bloqueaste a esta cuenta</h3>
+            <p className="m-0 max-w-xs text-sm text-ink-2">
+              No ve tu perfil ni tus publicaciones y no te puede escribir. No se entera de que la bloqueaste.
+            </p>
+            <Button
+              variant="secondary"
+              onClick={() => void handleUnblock()}
+              disabled={blockActions.pending[username]}
+              className="mt-1 h-11 rounded-xl text-sm"
+            >
+              {blockActions.pending[username] ? "Desbloqueando…" : "Desbloquear"}
+            </Button>
+            {blockError && <p role="alert" className="m-0 text-xs font-semibold text-danger">{blockError}</p>}
+          </div>
+        </section>
+      )}
+
+      {!showContent && !isBlocked && (
         <section className="mt-6 w-full max-w-3xl mx-auto px-4 lg:ml-[372px] lg:mr-0 lg:max-w-none lg:w-auto lg:mt-0 lg:px-0">
           <div className="rounded-card border border-line bg-surface px-5 py-8 flex flex-col items-center gap-3 text-center">
             <span className="size-12 rounded-full bg-surface-2 flex items-center justify-center">
@@ -519,6 +608,50 @@ export default function UserProfilePage() {
             onPostCreated={handlePostCreated}
             onPickAnother={handleStartUpload}
           />
+        </>
+      )}
+      {!isMyProfile && (
+        <>
+          <ActionSheet
+            isOpen={showActions}
+            onClose={() => setShowActions(false)}
+            title={`@${profileUser.username}`}
+            actions={[
+              {
+                id: "report",
+                label: "Denunciar cuenta",
+                icon: <Flag />,
+                destructive: true,
+                onSelect: requireLogin(() => setShowReport(true)),
+              },
+              isBlocked
+                ? { id: "unblock", label: "Desbloquear", icon: <Ban />, onSelect: requireLogin(() => void handleUnblock()) }
+                : {
+                    id: "block",
+                    label: "Bloquear",
+                    icon: <Ban />,
+                    destructive: true,
+                    onSelect: requireLogin(() => { setBlockError(null); setConfirmBlock(true); }),
+                  },
+            ]}
+          />
+          <ReportSheet
+            isOpen={showReport}
+            onClose={() => setShowReport(false)}
+            target={{ targetType: "user", targetId: profileUser.id }}
+          />
+          <ConfirmModal
+            isOpen={confirmBlock}
+            onClose={() => { if (!blockActions.pending[username]) setConfirmBlock(false); }}
+            title={`¿Bloquear a @${profileUser.username}?`}
+            message="No va a ver tu perfil ni tus publicaciones, no te va a poder escribir y se dejan de seguir. No le avisamos. Lo podés desbloquear cuando quieras desde Configuración."
+            confirmText="Bloquear"
+            variant="danger"
+            isLoading={blockActions.pending[username]}
+            onConfirm={() => void handleBlock()}
+          >
+            {blockError && <p role="alert" className="mt-3 mb-0 text-xs font-semibold text-danger">{blockError}</p>}
+          </ConfirmModal>
         </>
       )}
     </div>

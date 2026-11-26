@@ -100,6 +100,13 @@ test("birthday notification tap opens the signed-in user's own profile", async (
   assert.equal(r.notificationPath({ ...data, recipient_id: "user-b" }, "user-a"), null);
   assert.equal(r.notificationPath({ ...data, type: "user.unknown" }, "user-a"), null);
   assert.equal(r.notificationChatPath(data, "user-a"), null);
+  // Solicitudes de crews temporales: abren la crew; un crew_id inválido no navega.
+  const crewId = "6f1c1d2e-3b4a-4c5d-8e9f-0a1b2c3d4e5f";
+  for (const type of ["crew.join_request", "crew.join_request.accepted", "crew.join_request.rejected"]) {
+    assert.equal(r.notificationPath({ type, crew_id: crewId, recipient_id: "user-a" }, "user-a"), `/crews/${crewId}`);
+  }
+  assert.equal(r.notificationPath({ type: "crew.join_request", crew_id: "../admin", recipient_id: "user-a" }, "user-a"), null);
+  assert.equal(r.notificationPath({ type: "crew.join_request", crew_id: crewId, recipient_id: "user-b" }, "user-a"), null);
   await r.session.dispose();
 });
 

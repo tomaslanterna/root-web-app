@@ -11,6 +11,7 @@ import Image from "next/image";
 import { RootLogo } from "@/components/ui/RootLogo";
 import { Capacitor } from "@capacitor/core";
 import { GoogleSignIn } from "@capawesome/capacitor-google-sign-in";
+import { ACCOUNT_DELETED_PARAM } from "@/hooks/useAccountDeletion";
 
 interface GoogleAuthWrapperProps {
   onSuccess: (idToken: string) => void;
@@ -95,7 +96,11 @@ function GoogleAuthWrapper({ onSuccess, onError, handleGoogleSuccess }: GoogleAu
   );
 }
 
+// Se lee de la URL sin useSearchParams para no tener que envolver la página en Suspense.
+const accountWasDeleted = () => new URLSearchParams(window.location.search).has(ACCOUNT_DELETED_PARAM);
+
 export default function LoginPage() {
+  const showDeletedNotice = React.useSyncExternalStore(subscribeNativePlatform, accountWasDeleted, () => false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const { password: passwordLogin, google: googleLogin, error, setError, isLoading } = useLogin();
@@ -160,6 +165,12 @@ export default function LoginPage() {
             La red de la música electrónica. Encontrá la fiesta, armá tu crew, salí.
           </p>
         </div>
+
+        {showDeletedNotice && (
+          <p role="status" className="mt-6 mb-0 p-3.5 rounded-control border border-line-strong bg-surface text-sm text-ink">
+            Tu cuenta fue eliminada.
+          </p>
+        )}
 
         <div className="mt-8 flex flex-col [&>div]:w-full [&>div>div]:!w-full [&>div>div]:!flex [&>div>div]:!justify-center [&>div>div>iframe]:!max-w-full">
           <GoogleAuthWrapper

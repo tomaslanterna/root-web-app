@@ -30,7 +30,8 @@ export interface EventRRPP {
 
 export interface TicketTier {
   name: string;
-  price: number;
+  /** null en los lotes sin precio (por ejemplo, canjes de bancos). */
+  price: number | null;
   currency: string;
   soldOut: boolean;
   fewRemaining: boolean;

@@ -50,7 +50,19 @@ export function notificationChatPath(data: unknown, userId: string): string | nu
 }
 
 /** Push types whose tap opens a screen in the app. Title/body come from the backend as-is. */
-export type PushNotificationType = "chat.message" | "user.birthday";
+export type PushNotificationType =
+  | "chat.message"
+  | "user.birthday"
+  | "crew.join_request"
+  | "crew.join_request.accepted"
+  | "crew.join_request.rejected";
+
+const UUID_PATTERN = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i;
+
+/** Solicitudes de crews temporales: abre la crew (quien la creó ve ahí la lista de solicitudes). */
+function crewPath(payload: Record<string, unknown>): string | null {
+  return typeof payload.crew_id === "string" && UUID_PATTERN.test(payload.crew_id) ? `/crews/${payload.crew_id}` : null;
+}
 
 export function notificationPath(data: unknown, userId: string): string | null {
   if (!data || typeof data !== "object") return null;
@@ -63,6 +75,10 @@ export function notificationPath(data: unknown, userId: string): string | null {
     case "user.birthday":
       // /profile resolves the signed-in user's current username (data.username may be stale).
       return "/profile";
+    case "crew.join_request":
+    case "crew.join_request.accepted":
+    case "crew.join_request.rejected":
+      return crewPath(payload);
     default:
       return null;
   }
