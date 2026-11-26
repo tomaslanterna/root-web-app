@@ -7,7 +7,7 @@
 		"limitsNavigationsToAppBoundDomains": true
 	},
 	"server": {
-		"url": "https://root-web-app.vercel.app",
+		"url": "https://www.estoesroot.com",
 		"cleartext": true,
 		"allowNavigation": [
 			"*"

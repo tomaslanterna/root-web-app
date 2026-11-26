@@ -11,7 +11,11 @@ try {
 
 // Local: CAP_SERVER_URL=http://<ip-de-tu-mac>:3000 en .env (o scripts cap:local / cap:prod).
 // Sin la variable apunta a producción.
-const PROD_URL = "https://root-web-app.vercel.app";
+// www directo: estoesroot.com redirige a www.estoesroot.com, así la app se ahorra esa redirección al abrir.
+const PROD_URL = "https://www.estoesroot.com";
+// Dominios de producción donde iOS conecta el puente de Capacitor (push, Apple/Google, salud...). Si se cambia el
+// dominio del server, tiene que estar acá (máximo 10).
+const APP_BOUND_DOMAINS = ["www.estoesroot.com", "estoesroot.com", "root-web-app.vercel.app"];
 const serverUrl = PROD_URL;
 const isLocal = serverUrl !== PROD_URL;
 
@@ -30,17 +34,17 @@ try {
 // para los service workers; con una URL local se quita.
 try {
   const plistPath = "ios/App/App/Info.plist";
-  const block = `\t<key>WKAppBoundDomains</key>\n\t<array>\n\t\t<string>root-web-app.vercel.app</string>\n\t</array>\n`;
+  const domains = APP_BOUND_DOMAINS.map((domain) => `\t\t<string>${domain}</string>\n`).join("");
+  const block = `\t<key>WKAppBoundDomains</key>\n\t<array>\n${domains}\t</array>\n`;
+  const existing = /\t<key>WKAppBoundDomains<\/key>\n\t<array>[\s\S]*?<\/array>\n/;
   const plist = readFileSync(plistPath, "utf8");
-  const has = plist.includes("<key>WKAppBoundDomains</key>");
+  const has = existing.test(plist);
   if (isLocal && has) {
-    writeFileSync(
-      plistPath,
-      plist.replace(
-        /\t<key>WKAppBoundDomains<\/key>\n\t<array>[\s\S]*?<\/array>\n/,
-        "",
-      ),
-    );
+    writeFileSync(plistPath, plist.replace(existing, ""));
+  } else if (!isLocal && has) {
+    // Mantiene la lista al día si cambian los dominios.
+    const updated = plist.replace(existing, block);
+    if (updated !== plist) writeFileSync(plistPath, updated);
   } else if (!isLocal && !has) {
     writeFileSync(
       plistPath,
