@@ -4,6 +4,8 @@ import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { useInterests } from "@/hooks/useInterests";
 import { InterestsSheet } from "@/components/InterestsSheet";
+import { useAuth } from "@/context/AuthContext";
+import { needsTermsAcceptance } from "@/lib/terms";
 
 /** Pantallas donde no se pregunta: el ingreso y la carga de datos obligatorios van primero. */
 const SKIP = /^\/(login|register|forgot-password|reset-password|complete-profile|kyc)/;
@@ -16,8 +18,11 @@ export function InterestsPrompt() {
   const pathname = usePathname();
   const { answered, options, genres, isSaving, saveInterests } = useInterests();
   const [dismissed, setDismissed] = useState(false);
+  const { user } = useAuth();
+  // Primero los Términos (TermsAcceptanceSheet): las dos hojas no se muestran a la vez.
+  const pendingTerms = Boolean(user && needsTermsAcceptance(user));
 
-  const open = answered === false && !dismissed && !SKIP.test(pathname);
+  const open = answered === false && !dismissed && !pendingTerms && !SKIP.test(pathname);
   if (!open) return null;
 
   return (

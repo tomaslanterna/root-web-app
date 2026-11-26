@@ -12,6 +12,7 @@ import { DanceProvider } from "@/context/DanceContext";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { CapacitorSetup } from "@/components/CapacitorSetup";
 import { ContentProtection } from "@/components/ContentProtection";
+import { TermsAcceptanceSheet } from "@/components/TermsAcceptanceSheet";
 import { ReviewReminder } from "@/components/profile/ReviewReminder";
 import { InterestsPrompt } from "@/components/InterestsPrompt";
 import { AppSplash } from "@/components/AppSplash";
@@ -71,6 +72,7 @@ export default function RootLayout({
             <AuthProvider>
               <DanceProvider>
                 <ReviewReminder />
+                <TermsAcceptanceSheet />
                 <InterestsPrompt />
                 <PushNotificationsProvider>
                   <ChatRealtimeProvider>

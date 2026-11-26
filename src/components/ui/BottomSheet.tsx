@@ -27,6 +27,11 @@ export interface BottomSheetProps {
   bodyClassName?: string;
   ariaLabel?: string;
   hideHeader?: boolean;
+  /**
+   * false: no se puede cerrar tocando afuera, arrastrando hacia abajo, con Escape, con el botón atrás ni con una X.
+   * Para decisiones obligatorias (por ejemplo, aceptar los Términos). onClose no se llama nunca.
+   */
+  dismissible?: boolean;
 }
 
 export function BottomSheet({
@@ -44,7 +49,10 @@ export function BottomSheet({
   bodyClassName,
   ariaLabel,
   hideHeader = false,
+  dismissible = true,
 }: BottomSheetProps) {
+  const noop = useCallback(() => {}, []);
+  const requestClose = dismissible ? onClose : noop;
   const [mounted, setMounted] = useState(false);
   const [shouldRender, setShouldRender] = useState(isOpen);
   const [isAnimatingIn, setIsAnimatingIn] = useState(false);
@@ -102,19 +110,19 @@ export function BottomSheet({
   }, [isOpen, getDefaultHeight]);
 
   // Manejo de tecla Escape y botón Atrás de Android/Capacitor
-  useNativeBackHandler(isOpen, onClose);
+  useNativeBackHandler(isOpen, requestClose);
 
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.stopPropagation();
-        onClose();
+        requestClose();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, requestClose]);
 
   // Bloqueo del scroll del body mientras el bottomsheet está abierto
   useEffect(() => {
@@ -206,7 +214,7 @@ export function BottomSheet({
     }
 
     // Condición de descarte: si se achicó por debajo de 75% del mínimo o hubo swipe rápido hacia abajo
-    if (finalCalculatedHeight < minHeight * 0.75 || (deltaDown > 60 && velocity > 0.45)) {
+    if (dismissible && (finalCalculatedHeight < minHeight * 0.75 || (deltaDown > 60 && velocity > 0.45))) {
       onClose();
       return;
     }
@@ -247,7 +255,7 @@ export function BottomSheet({
     >
       {/* Backdrop con desenfoque adaptado al estilo nocturno */}
       <div
-        onClick={onClose}
+        onClick={requestClose}
         aria-hidden="true"
         className={cn(
           "fixed inset-0 bg-black/75 backdrop-blur-sm transition-opacity duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
@@ -321,14 +329,16 @@ export function BottomSheet({
 
             <div className="flex items-center gap-2 shrink-0">
               {headerRight}
-              <button
-                type="button"
-                onClick={onClose}
-                aria-label="Cerrar"
-                className="size-8 sm:size-9 rounded-full bg-surface-2 border border-line text-ink-2 hover:bg-white/10 hover:text-ink transition-colors flex items-center justify-center shrink-0 cursor-pointer"
-              >
-                <X className="size-4" aria-hidden="true" />
-              </button>
+              {dismissible && (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  aria-label="Cerrar"
+                  className="size-8 sm:size-9 rounded-full bg-surface-2 border border-line text-ink-2 hover:bg-white/10 hover:text-ink transition-colors flex items-center justify-center shrink-0 cursor-pointer"
+                >
+                  <X className="size-4" aria-hidden="true" />
+                </button>
+              )}
             </div>
           </div>
         )}
