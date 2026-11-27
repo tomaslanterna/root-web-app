@@ -1,6 +1,7 @@
 import { Capacitor, type PluginListenerHandle } from "@capacitor/core";
 import { PushNotifications } from "@capacitor/push-notifications";
 import { api } from "@/lib/api";
+import type { NotificationPage, NotificationPreferences } from "@/types/notifications";
 
 export type PushState = "unsupported" | "off" | "enabling" | "enabled" | "denied" | "error";
 const installationKey = "root_push_installation";
@@ -30,7 +31,12 @@ function installationId() {
 
 const headers = (jwt: string) => ({ Authorization: `Bearer ${jwt}` });
 export async function getPushAvailability(jwt: string): Promise<boolean> {
-  const { data } = await api.get<{ enabled: boolean }>("/v1/push/status", { headers: headers(jwt), timeout: 10000, skipAuthRedirect: true });
+  const { data } = await api.get<{ enabled: boolean }>("/v1/push/status", {
+    headers: headers(jwt),
+    params: { platform: Capacitor.getPlatform() },
+    timeout: 10000,
+    skipAuthRedirect: true,
+  });
   return data.enabled;
 }
 export async function registerPushDevice(jwt: string, id: string, token: string): Promise<void> {
@@ -41,47 +47,71 @@ export async function removePushDevice(jwt: string, id: string): Promise<void> {
   await api.delete(`/v1/push/devices/${id}`, { headers: headers(jwt), timeout: 10000, skipAuthRedirect: true });
 }
 
-export function notificationChatPath(data: unknown, userId: string): string | null {
-  if (!data || typeof data !== "object") return null;
-  const payload = data as Record<string, unknown>;
-  if (payload.type !== "chat.message" || payload.recipient_id !== userId || typeof payload.chat_id !== "string") return null;
-  if (!/^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i.test(payload.chat_id)) return null;
-  return `/chat/${payload.chat_id}`;
+export async function getNotifications(offset = 0, limit = 30): Promise<NotificationPage> {
+  const { data } = await api.get<NotificationPage>("/v1/notifications", { params: { offset, limit } });
+  return data;
 }
 
-/** Push types whose tap opens a screen in the app. Title/body come from the backend as-is. */
-export type PushNotificationType =
-  | "chat.message"
-  | "user.birthday"
-  | "crew.join_request"
-  | "crew.join_request.accepted"
-  | "crew.join_request.rejected";
-
-const UUID_PATTERN = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i;
-
-/** Solicitudes de crews temporales: abre la crew (quien la creó ve ahí la lista de solicitudes). */
-function crewPath(payload: Record<string, unknown>): string | null {
-  return typeof payload.crew_id === "string" && UUID_PATTERN.test(payload.crew_id) ? `/crews/${payload.crew_id}` : null;
+export async function markNotificationRead(id: string): Promise<void> {
+  await api.patch(`/v1/notifications/${encodeURIComponent(id)}/read`);
 }
 
+export async function markAllNotificationsRead(): Promise<void> {
+  await api.post("/v1/notifications/read-all");
+}
+
+export async function getNotificationPreferences(): Promise<NotificationPreferences> {
+  const { data } = await api.get<NotificationPreferences>("/v1/users/me/notification-preferences");
+  return data;
+}
+
+export async function updateNotificationPreferences(preferences: NotificationPreferences): Promise<NotificationPreferences> {
+  const { data } = await api.put<NotificationPreferences>("/v1/users/me/notification-preferences", preferences);
+  return data;
+}
+
+const uuidPattern = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i;
+
+const isUuid = (value: unknown): value is string => typeof value === "string" && uuidPattern.test(value);
+
+/**
+ * Pantalla que abre una notificación (push o centro de notificaciones).
+ * Solo navega si la notificación es para el usuario actual y los ids son UUID válidos.
+ */
 export function notificationPath(data: unknown, userId: string): string | null {
   if (!data || typeof data !== "object") return null;
   const payload = data as Record<string, unknown>;
-  if (payload.recipient_id !== userId) return null;
-  const type = payload.type as PushNotificationType | undefined;
+  const type = payload.type;
+  if (payload.recipient_id !== userId || typeof type !== "string") return null;
   switch (type) {
     case "chat.message":
-      return notificationChatPath(payload, userId);
+      return isUuid(payload.chat_id) ? `/chat/${payload.chat_id}` : null;
     case "user.birthday":
-      // /profile resolves the signed-in user's current username (data.username may be stale).
+      // /profile resuelve el username actual del usuario (data.username puede estar desactualizado).
       return "/profile";
     case "crew.join_request":
     case "crew.join_request.accepted":
     case "crew.join_request.rejected":
-      return crewPath(payload);
-    default:
-      return null;
+      // Crews temporales: abre la crew (quien la creó ve ahí la lista de solicitudes).
+      return isUuid(payload.crew_id) ? `/crews/${payload.crew_id}` : null;
+    case "social.follow":
+      return typeof payload.username === "string" && /^[a-z0-9._-]{2,40}$/i.test(payload.username)
+        ? `/profile/${encodeURIComponent(payload.username)}?from=notifications`
+        : null;
+    case "kyc.status":
+      return "/settings";
   }
+  if (type.startsWith("event.") && isUuid(payload.event_id)) return `/events/${payload.event_id}?origin=%2Fnotifications`;
+  if (type.startsWith("post.") && isUuid(payload.post_id)) return `/posts/${payload.post_id}`;
+  if (type.startsWith("crew.") && isUuid(payload.squad_id)) return `/chat/squad/${payload.squad_id}`;
+  if (type.startsWith("community.") && isUuid(payload.community_id)) return `/communities/${payload.community_id}?origin=%2Fnotifications`;
+  if (type.startsWith("transfer.") && isUuid(payload.transfer_id)) return `/transfers/${payload.transfer_id}`;
+  return null;
+}
+
+export function notificationChatPath(data: unknown, userId: string): string | null {
+  const path = notificationPath(data, userId);
+  return path?.startsWith("/chat/") && !path.startsWith("/chat/squad/") ? path : null;
 }
 
 let currentSession: AndroidPushSession | null = null;
@@ -138,7 +168,11 @@ export class AndroidPushSession {
     this.handles.push(await PushNotifications.addListener("pushNotificationActionPerformed", ({ notification }) => {
       if (this.stopped) return;
       const path = notificationPath(notification.data, this.userId);
-      if (path) this.openChat(path);
+      if (path) {
+        const id = notification.data?.notification_id;
+        if (isUuid(id)) void markNotificationRead(id).catch(() => undefined);
+        this.openChat(path);
+      }
     }));
   }
 
@@ -165,7 +199,7 @@ export class AndroidPushSession {
         return;
       }
       if (Capacitor.getPlatform() === "android") {
-        await PushNotifications.createChannel({ id: "root_messages", name: "Mensajes", description: "Mensajes de tus chats y squads", importance: 4, visibility: 0, vibration: true });
+        await PushNotifications.createChannel({ id: "root_messages", name: "Notificaciones", description: "Mensajes, eventos y novedades de root", importance: 4, visibility: 0, vibration: true });
       }
       if (this.stopped) return;
       this.accepting = true;
