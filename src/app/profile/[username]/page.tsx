@@ -6,7 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button";
-import { Award, Ban, Check, ChevronLeft, ChevronRight, Flag, Grid3X3, Loader2, Lock, MoreHorizontal, Plus, Settings, Share2, ShieldCheck } from "lucide-react";
+import { Award, Ban, Bell, Check, ChevronLeft, ChevronRight, Flag, Grid3X3, Loader2, Lock, MoreHorizontal, Plus, Settings, Share2, ShieldCheck } from "lucide-react";
 import { SwipeBack } from "@/components/ui/SwipeBack";
 import { MOCK_POSTS } from "@/lib/mocks";
 import { CreatePhotoModal } from "@/components/profile/CreatePhotoModal";
@@ -370,6 +370,16 @@ export default function UserProfilePage() {
           >
             <MoreHorizontal className="size-5" aria-hidden="true" />
           </button>
+        )}
+        {isMyProfile && (
+          <Link
+            href="/notifications"
+            aria-label="Notificaciones"
+            title="Notificaciones"
+            className={squareButton}
+          >
+            <Bell className="size-5" aria-hidden="true" />
+          </Link>
         )}
         {isMyProfile && (
           <Link

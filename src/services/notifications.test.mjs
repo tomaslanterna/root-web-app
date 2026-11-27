@@ -110,6 +110,20 @@ test("birthday notification tap opens the signed-in user's own profile", async (
   await r.session.dispose();
 });
 
+test("generic notification deep links are type-scoped and recipient-bound", async () => {
+  const r = runtime({ platform: "ios" });
+  const eventId = "48a09314-cedb-410b-a243-e45e688fb47e";
+  assert.equal(r.notificationPath({ type: "event.today", event_id: eventId, recipient_id: "user-a" }, "user-a"), `/events/${eventId}?origin=%2Fnotifications`);
+  assert.equal(r.notificationPath({ type: "social.follow", username: "pocho", recipient_id: "user-a" }, "user-a"), "/profile/pocho?from=notifications");
+  assert.equal(r.notificationPath({ type: "event.today", event_id: eventId, recipient_id: "user-b" }, "user-a"), null);
+  assert.equal(r.notificationPath({ type: "event.today", event_id: "../settings", recipient_id: "user-a" }, "user-a"), null);
+  // Match de crew: abre el chat del squad, pero no cuenta como chat directo.
+  assert.equal(r.notificationPath({ type: "crew.match", squad_id: eventId, recipient_id: "user-a" }, "user-a"), `/chat/squad/${eventId}`);
+  assert.equal(r.notificationChatPath({ type: "crew.match", squad_id: eventId, recipient_id: "user-a" }, "user-a"), null);
+  assert.equal(r.notificationPath({ type: "kyc.status", recipient_id: "user-a" }, "user-a"), "/settings");
+  await r.session.dispose();
+});
+
 test("logout waits for in-flight registration and then revokes with the original JWT", async () => {
   let finishPut;
   const gate = new Promise(resolve => { finishPut = resolve; });
