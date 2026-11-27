@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { ProfileSkeleton } from "@/components/profile/ProfileSkeleton";
 import LoginPage from "@/app/login/page";
+import { skipPageTransition } from "@/lib/navDirection";
 
 export default function ProfileRedirectPage() {
   const router = useRouter();
@@ -12,6 +13,9 @@ export default function ProfileRedirectPage() {
   
   useEffect(() => {
     if (!isLoading && user && user.username) {
+      // Es una redirección interna (/profile → /profile/<usuario>): la entrada ya deslizó al llegar a /profile,
+      // así que esta no anima. Si no, la pantalla entraba dos veces.
+      skipPageTransition(700);
       router.replace(`/profile/${user.username}`);
     }
   }, [isLoading, user, router]);
