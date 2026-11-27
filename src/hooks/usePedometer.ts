@@ -88,9 +88,9 @@ export function usePedometer() {
       return 0;
     }
 
+    // En la web no hay sensor de pasos: no se cuenta nada (antes se inventaban pasos al azar y se
+    // mandaban al ranking). Los pasos reales salen solo de la app nativa.
     if (!Capacitor.isNativePlatform()) {
-      const simulatedDelta = Math.floor(Math.random() * 5);
-      applySensorTotal(lastStepTotalRef.current + simulatedDelta, 'WebSim');
       return pendingStepsRef.current;
     }
 

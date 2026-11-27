@@ -5,10 +5,12 @@ declare module "axios" {
   interface AxiosRequestConfig { skipAuthRedirect?: boolean }
 }
 
+// En producción la URL es obligatoria (next.config.ts corta el build si falta). La IP local queda solo para
+// desarrollo, así un deploy mal configurado no termina pegándole a una red ajena por HTTP.
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_BACKEND_API_URL ||
   process.env.BACKEND_PUBLIC_API_URL ||
-  "http://192.168.1.9:8080";
+  (process.env.NODE_ENV === "production" ? "" : "http://192.168.1.9:8080");
 
 export const api = axios.create({
   baseURL: API_BASE_URL,

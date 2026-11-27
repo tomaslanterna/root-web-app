@@ -8,9 +8,13 @@
 	},
 	"server": {
 		"url": "https://www.estoesroot.com",
-		"cleartext": true,
+		"cleartext": false,
 		"allowNavigation": [
-			"*"
+			"www.estoesroot.com",
+			"estoesroot.com",
+			"root-web-app.vercel.app",
+			"appleid.apple.com",
+			"accounts.google.com"
 		],
 		"errorPath": "error.html"
 	},

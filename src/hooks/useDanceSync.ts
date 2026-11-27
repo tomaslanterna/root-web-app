@@ -78,6 +78,10 @@ export function useDanceSync() {
       if (currentSteps === 0 && !allowZero) {
         return; // No steps, do nothing quietly
       }
+      // Fuera de la app nativa solo se crea la sesión (0 pasos): la web no tiene sensor y no suma al ranking.
+      if (currentSteps > 0 && !Capacitor.isNativePlatform()) {
+        return;
+      }
       if (isSyncingRef.current) {
         return;
       }
