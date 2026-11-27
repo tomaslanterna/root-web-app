@@ -16,6 +16,8 @@ const PROD_URL = "https://www.estoesroot.com";
 // Dominios de producción donde iOS conecta el puente de Capacitor (push, Apple/Google, salud...). Si se cambia el
 // dominio del server, tiene que estar acá (máximo 10).
 const APP_BOUND_DOMAINS = ["www.estoesroot.com", "estoesroot.com", "root-web-app.vercel.app"];
+// Además de los dominios propios, los flujos de login de Apple y Google pueden navegar a sus páginas.
+const ALLOWED_NAVIGATION = [...APP_BOUND_DOMAINS, "appleid.apple.com", "accounts.google.com"];
 const serverUrl = PROD_URL;
 const isLocal = serverUrl !== PROD_URL;
 
@@ -72,8 +74,11 @@ const config: CapacitorConfig = {
   },
   server: {
     url: serverUrl,
-    cleartext: true, // Permite conexiones HTTP (sin SSL) en el emulador
-    allowNavigation: ["*"],
+    // HTTP plano solo para una URL local de desarrollo; en producción todo va por HTTPS.
+    cleartext: isLocal,
+    // Solo los dominios propios y los de login cargan dentro de la app (con acceso a los plugins nativos).
+    // Cualquier otro link (entradas, posts, redirecciones) Capacitor lo abre en el navegador del sistema.
+    allowNavigation: ALLOWED_NAVIGATION,
     // Si el servidor no responde (sin red / mala conexión y sin copia guardada), se muestra esta pantalla local.
     errorPath: "error.html",
   },
