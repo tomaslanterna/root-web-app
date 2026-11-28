@@ -9,6 +9,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useBackNavigation } from "@/hooks/useBackNavigation";
 import { useMutation } from "@/hooks/useMutation";
 import { useEventTempCrews } from "@/hooks/useTempCrews";
+import { useCanonicalEventUrl, useEventId } from "@/hooks/useEventId";
+import { eventPath } from "@/lib/eventPath";
 import { eventsApi } from "@/services/events";
 import { tempCrewsApi } from "@/services/tempCrews";
 import { AdmittingPill, EventMiniCard, TempCrewCard } from "@/components/match/TempCrewCards";
@@ -18,10 +20,11 @@ import type { TempCrewEventRef, TempCrewSummary } from "@/types/tempCrews";
 
 /** Todas las crews temporales del evento que admiten gente. Acá se pide unirse. */
 export default function EventTempCrewsPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id: eventId } = use(params);
+  // La URL trae el UUID o el slug: el detalle se pide con lo que venga, las crews siempre con el id.
+  const { id: param } = use(params);
   const router = useRouter();
   const { user } = useAuth();
-  const goBack = useBackNavigation(`/events/${eventId}`);
+  const goBack = useBackNavigation(`/events/${param}`);
   const [event, setEvent] = useState<Event | null>(null);
   const [eventFailed, setEventFailed] = useState(false);
   const [joining, setJoining] = useState<TempCrewSummary | null>(null);
@@ -31,15 +34,18 @@ export default function EventTempCrewsPage({ params }: { params: Promise<{ id: s
 
   const { mutate: fetchEvent } = useMutation((id: string) => eventsApi.getEventById(id));
   useEffect(() => {
-    void fetchEvent(eventId)
+    void fetchEvent(param)
       .then(setEvent)
       .catch(() => setEventFailed(true));
-  }, [eventId, fetchEvent]);
+  }, [param, fetchEvent]);
+  useCanonicalEventUrl(param, event);
+  const { eventId: knownId } = useEventId(param);
+  const eventId = event?.id ?? knownId ?? "";
 
   const eventRef = useMemo<TempCrewEventRef | null>(
     () =>
       event
-        ? { id: event.id, title: event.title, date: event.date, location: event.location, cinematicBannerUrl: event.cinematicBannerUrl }
+        ? { id: event.id, slug: event.slug, title: event.title, date: event.date, location: event.location, cinematicBannerUrl: event.cinematicBannerUrl }
         : null,
     [event],
   );
@@ -97,7 +103,7 @@ export default function EventTempCrewsPage({ params }: { params: Promise<{ id: s
           <p className="py-10 text-center text-[15px] text-ink-2">No encontramos este evento.</p>
         ) : (
           <div className="flex flex-col gap-3 lg:gap-5">
-            {eventRef && <EventMiniCard event={eventRef} href={`/events/${eventId}`} className="lg:max-w-md" />}
+            {eventRef && <EventMiniCard event={eventRef} href={eventPath(eventRef)} className="lg:max-w-md" />}
             <div className="flex items-center justify-between gap-2.5 py-1">
               {status === "ready" && total > 0 ? <AdmittingPill>{total} admitiendo</AdmittingPill> : <span />}
               <span className="text-xs text-ink-3">Más lugares libres primero</span>

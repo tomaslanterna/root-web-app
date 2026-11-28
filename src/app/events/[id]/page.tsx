@@ -11,6 +11,7 @@ import {
   ChevronDown,
   ChevronLeft,
   Loader2,
+  Moon,
   Share,
 } from "lucide-react";
 import { SwipeBack } from "@/components/ui/SwipeBack";
@@ -23,7 +24,7 @@ import { EventAttendanceVote } from "@/components/ui/EventAttendanceVote";
 import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
 import { useMutation } from "@/hooks/useMutation";
-import { eventsApi } from "@/services/events";
+import { eventsApi, knownEventId } from "@/services/events";
 import type { Event, RSVPResponse } from "@/types/events";
 import { cn, copyTextToClipboard } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
@@ -33,6 +34,8 @@ import { useEventTempCrews } from "@/hooks/useTempCrews";
 import { EventTempCrewsSection, EventTempCrewsSkeleton, TEMP_CREWS_ANCHOR } from "@/components/match/EventTempCrewsSection";
 import { AdmittingPill } from "@/components/match/TempCrewCards";
 import type { TempCrewEventRef } from "@/types/tempCrews";
+import { AFTERS_ANCHOR, EventAftersSection } from "@/components/afters/EventAftersSection";
+import { useCanonicalEventUrl } from "@/hooks/useEventId";
 
 const fallbackBanner =
   "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=80&w=1200&auto=format&fit=crop";
@@ -94,7 +97,10 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     },
     {
       onSuccess: (response) => {
+        // La URL puede traer el UUID o el slug: se guarda con los dos para volver a entrar al instante.
         openedEvents.set(eventId, response);
+        openedEvents.set(response.id, response);
+        if (response.slug) openedEvents.set(response.slug, response);
         setEvent(response);
         setHasLoaded(true);
       },
@@ -105,6 +111,9 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   useEffect(() => {
     void fetchEvent(eventId).catch(() => undefined);
   }, [eventId, fetchEvent]);
+
+  // Link viejo con el UUID: la URL pasa a /events/<slug> apenas llega el evento.
+  useCanonicalEventUrl(eventId, event);
 
   const handleShare = async () => {
     if (typeof window === "undefined") return;
@@ -167,12 +176,13 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const tempCrewEvent = useMemo<TempCrewEventRef | null>(
     () =>
       event
-        ? { id: event.id, title: event.title, date: event.date, location: event.location, cinematicBannerUrl: event.cinematicBannerUrl }
+        ? { id: event.id, slug: event.slug, title: event.title, date: event.date, location: event.location, cinematicBannerUrl: event.cinematicBannerUrl }
         : null,
     [event],
   );
-  // Si el detalle del evento ya trae el resumen (`event.tempCrews`), no hay otra llamada.
-  const tempCrews = useEventTempCrews(eventId, tempCrewEvent, 3, event?.tempCrews);
+  // Si el detalle del evento ya trae el resumen (`event.tempCrews`), no hay otra llamada. Siempre con el id:
+  // la URL puede traer el slug.
+  const tempCrews = useEventTempCrews(event?.id ?? knownEventId(eventId) ?? "", tempCrewEvent, 3, event?.tempCrews);
 
   const hasLineup = useMemo(() => {
     if (!event) return false;
@@ -395,6 +405,14 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 </AdmittingPill>
               </a>
             )}
+            {event.afters && event.afters.total > 0 && (
+              <a href={`#${AFTERS_ANCHOR}`} className="rounded-full focus-visible:outline-2 focus-visible:outline-accent">
+                <span className="inline-flex items-center gap-[5px] h-7 px-2.5 rounded-full bg-surface-2 text-ink text-xs font-semibold whitespace-nowrap">
+                  <Moon className="size-[13px]" aria-hidden="true" />
+                  {event.afters.total} {event.afters.total === 1 ? "after" : "afters"}
+                </span>
+              </a>
+            )}
           </div>
           <h1 className="font-display text-[34px] md:text-5xl m-0">{event.title}</h1>
         </div>
@@ -445,6 +463,11 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           />
         ) : (
           tempCrews.showPlaceholder && <EventTempCrewsSkeleton className="mx-4 md:mx-0 mt-4 lg:col-start-2 lg:mt-6" />
+        )}
+
+        {/* Afters: vienen en el mismo detalle del evento (event.afters), sin otro request. */}
+        {event.afters && (
+          <EventAftersSection event={event} afters={event.afters} className="mx-4 md:mx-0 mt-4 lg:col-start-2 lg:mt-6" />
         )}
 
         <div className="mx-4 md:mx-0 mt-4 lg:col-start-2">

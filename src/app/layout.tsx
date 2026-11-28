@@ -6,6 +6,7 @@ import { BottomNav } from "@/components/ui/BottomNav";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { MatchProvider } from "@/context/MatchContext";
 import { AuthProvider } from "@/context/AuthContext";
+import { KycGateProvider } from "@/context/KycGateContext";
 import { ChatRealtimeProvider } from "@/context/ChatRealtimeContext";
 import { PushNotificationsProvider } from "@/context/PushNotificationsContext";
 import { DanceProvider } from "@/context/DanceContext";
@@ -70,6 +71,7 @@ export default function RootLayout({
         <GoogleOAuthProvider clientId={process.env.GOOGLE_CLIENT_ID || ""}>
           <ThemeProvider>
             <AuthProvider>
+              <KycGateProvider>
               <DanceProvider>
                 <ReviewReminder />
                 <TermsAcceptanceSheet />
@@ -100,6 +102,7 @@ export default function RootLayout({
                   </ChatRealtimeProvider>
                 </PushNotificationsProvider>
               </DanceProvider>
+              </KycGateProvider>
             </AuthProvider>
           </ThemeProvider>
         </GoogleOAuthProvider>

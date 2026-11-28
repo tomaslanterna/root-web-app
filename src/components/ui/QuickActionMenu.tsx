@@ -1,93 +1,96 @@
 "use client";
 
 import * as React from "react";
-import { X, Image, Users, Sparkles } from "lucide-react";
-import Link from "next/link";
+import { createPortal } from "react-dom";
+import { useRouter } from "next/navigation";
+import { CalendarPlus, ChevronRight, Image, Moon, Users, X } from "lucide-react";
 import { useNativeBackHandler } from "@/hooks/useNativeBack";
+import { useRequireKyc } from "@/hooks/useRequireKyc";
+import { cn } from "@/lib/utils";
+import { getOverlayRoot } from "@/components/ui/Modal";
 
 interface QuickActionMenuProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const ACTIONS = [
-  {
-    title: "Nueva Publicación",
-    description: "Comparte fotos, tracks o sets con la comunidad",
-    icon: Image,
-    href: "/create/post",
-    badge: "Feed",
-  },
-  {
-    title: "Nueva Comunidad RRPP",
-    description: "Crea tu grupo de listas, accesos y beneficio",
-    icon: Users,
-    href: "/communities",
-    badge: "Social",
-  },
+interface QuickAction {
+  title: string;
+  description: string;
+  icon: typeof Image;
+  href: string;
+  /** Pide identidad verificada (subir afters y mandar eventos). */
+  needsKyc?: boolean;
+  isNew?: boolean;
+}
+
+const ACTIONS: QuickAction[] = [
+  { title: "Nueva publicación", description: "Fotos, tracks o sets para la comunidad", icon: Image, href: "/create/post" },
+  { title: "Subir un after", description: "Para seguir después de una fiesta", icon: Moon, href: "/afters/new", needsKyc: true, isNew: true },
+  { title: "Mandanos tu evento", description: "Lo revisamos y lo sumamos a root", icon: CalendarPlus, href: "/events/submit", needsKyc: true, isNew: true },
+  { title: "Nueva comunidad RRPP", description: "Tu grupo de listas, accesos y beneficios", icon: Users, href: "/communities" },
 ];
 
+/** Menú "+": ¿Qué querés subir? Hoja inferior en mobile y diálogo centrado desde sm. */
 export function QuickActionMenu({ isOpen, onClose }: QuickActionMenuProps) {
+  const router = useRouter();
+  const requireKyc = useRequireKyc();
   useNativeBackHandler(isOpen, onClose);
   if (!isOpen) return null;
+  // Fuera del árbol de la página (que tiene transform): así queda arriba de la barra inferior.
+  const overlayRoot = getOverlayRoot();
+  if (!overlayRoot) return null;
 
-  return (
-    <div role="dialog" aria-modal="true" aria-label="Acciones rápidas" className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-neutral-950/80 backdrop-blur-2xl animate-fade-in">
-      <div
-        className="fixed inset-0"
-        onClick={onClose}
-        aria-hidden="true"
-      />
+  const open = (action: QuickAction) => {
+    onClose();
+    if (action.needsKyc) requireKyc(() => router.push(action.href));
+    else router.push(action.href);
+  };
 
-      <div className="relative w-full max-w-md bg-[#0B0D10]/95 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 shadow-2xl space-y-6 z-10 animate-fade-in overflow-hidden text-white">
-        {/* Glow accent element */}
-        <div className="absolute -top-24 -right-24 w-48 h-48 bg-[#D4FF00]/10 rounded-full blur-3xl pointer-events-none" />
+  return createPortal(
+    <div role="dialog" aria-modal="true" aria-labelledby="quick-actions-title" className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center sm:p-4 bg-black/70 animate-fade-in">
+      <div className="fixed inset-0" onClick={onClose} aria-hidden="true" />
 
-        <div className="flex items-center justify-between border-b border-white/10 pb-4">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-[#D4FF00]" />
-            <h2 className="text-lg font-black uppercase tracking-tight text-white">Acciones Rápidas</h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition-colors active:scale-90"
-          >
-            <X className="w-5 h-5" />
+      <div className="relative z-10 w-full max-w-md px-4 pt-2.5 pb-[calc(1.75rem+var(--root-safe-bottom))] rounded-t-[28px] sm:rounded-hero sm:pb-5 bg-surface border-t sm:border border-line-strong flex flex-col gap-3.5 text-ink shadow-[0_24px_48px_rgba(0,0,0,0.6)]">
+        <span aria-hidden="true" className="self-center w-10 h-[5px] rounded-full bg-white/15 sm:hidden" />
+        <div className="flex items-center justify-between">
+          <h2 id="quick-actions-title" className="font-display text-[22px] m-0">¿Qué querés subir?</h2>
+          <button type="button" onClick={onClose} aria-label="Cerrar" className="size-11 rounded-full bg-surface-2 border border-line-strong flex items-center justify-center hover:bg-[#23272D] transition-colors">
+            <X className="size-5" aria-hidden="true" />
           </button>
         </div>
 
-        <div className="grid grid-cols-1 gap-3">
+        <ul className="m-0 p-0 list-none flex flex-col gap-2.5">
           {ACTIONS.map((action) => {
             const Icon = action.icon;
             return (
-              <Link
-                key={action.title}
-                href={action.href}
-                onClick={onClose}
-                className="group flex items-center justify-between p-3.5 rounded-2xl bg-[#14171F] hover:bg-[#D4FF00] hover:text-neutral-950 border border-white/10 hover:border-[#D4FF00] transition-all duration-200 active:scale-[0.98]"
-              >
-                <div className="flex items-center gap-3.5">
-                  <div className="p-2.5 rounded-xl bg-white/10 group-hover:bg-neutral-950 text-[#D4FF00] group-hover:text-[#D4FF00] border border-white/10 shadow-2xs transition-colors">
-                    <Icon className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold uppercase tracking-wide text-white group-hover:text-neutral-950">
+              <li key={action.title}>
+                <button
+                  type="button"
+                  onClick={() => open(action)}
+                  className={cn(
+                    "w-full flex items-center gap-3.5 p-3.5 rounded-card border text-left transition-colors active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-accent",
+                    action.isNew ? "bg-accent/[0.06] border-accent/30 hover:bg-accent/10" : "bg-bg/40 border-line hover:bg-surface-2",
+                  )}
+                >
+                  <span className={cn("size-11 shrink-0 rounded-control flex items-center justify-center", action.isNew ? "bg-accent text-on-accent" : "bg-surface-2 text-ink")}>
+                    <Icon className="size-5" aria-hidden="true" />
+                  </span>
+                  <span className="flex-1 min-w-0 flex flex-col gap-[3px]">
+                    <span className="font-semibold inline-flex gap-2 items-center">
                       {action.title}
-                    </h3>
-                    <p className="text-xs text-neutral-400 group-hover:text-neutral-900 font-medium">
-                      {action.description}
-                    </p>
-                  </div>
-                </div>
-                <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-white/10 group-hover:bg-neutral-950/20 text-neutral-300 group-hover:text-neutral-950 transition-colors">
-                  {action.badge}
-                </span>
-              </Link>
+                      {action.isNew && <span className="label-mono text-[9px] text-on-accent bg-accent px-1.5 py-0.5 rounded-md">Nuevo</span>}
+                    </span>
+                    <span className="text-[13px] text-ink-2">{action.description}</span>
+                  </span>
+                  <ChevronRight className="size-[18px] text-ink-3 shrink-0" aria-hidden="true" />
+                </button>
+              </li>
             );
           })}
-        </div>
+        </ul>
       </div>
-    </div>
+    </div>,
+    overlayRoot,
   );
 }
-

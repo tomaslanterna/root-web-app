@@ -7,6 +7,7 @@ import { Clock, Music, ChevronRight } from "lucide-react";
 import { useDanceContext } from "@/context/DanceContext";
 import { parseEventRealDate } from "@/hooks/useDanceSync";
 import { stopLiveActivity, supportsLiveActivity, syncLiveActivity } from "@/lib/liveActivity";
+import { eventPath } from "@/lib/eventPath";
 
 function formatStartHour(rawDate: string | Date): string {
   const parsed = parseEventRealDate(rawDate);
@@ -210,7 +211,7 @@ export function LiveEventBanner({
         ? "dancing"
         : "started_away";
 
-  const targetHref = mode === "dancing" ? "/dance-ranker" : `/events/${liveEvent.id}`;
+  const targetHref = mode === "dancing" ? "/dance-ranker" : eventPath(liveEvent);
   const imageUrl =
     liveEvent.bannerUrl ||
     (liveEvent as { cinematicBannerUrl?: string }).cinematicBannerUrl ||

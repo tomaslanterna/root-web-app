@@ -55,13 +55,27 @@ export type PushNotificationType =
   | "user.birthday"
   | "crew.join_request"
   | "crew.join_request.accepted"
-  | "crew.join_request.rejected";
+  | "crew.join_request.rejected"
+  | "after.join_request"
+  | "after.join_request.accepted"
+  | "after.join_request.rejected"
+  | "after.notice"
+  | "event_submission.published"
+  | "event_submission.rejected";
 
 const UUID_PATTERN = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i;
 
 /** Solicitudes de crews temporales: abre la crew (quien la creó ve ahí la lista de solicitudes). */
 function crewPath(payload: Record<string, unknown>): string | null {
   return typeof payload.crew_id === "string" && UUID_PATTERN.test(payload.crew_id) ? `/crews/${payload.crew_id}` : null;
+}
+
+/** Afters: abre el detalle (el host ve ahí las solicitudes). El push nunca trae la dirección. */
+function afterPath(payload: Record<string, unknown>): string | null {
+  // data.url viene armado por el backend; solo se acepta si es exactamente /afters/<uuid>.
+  if (typeof payload.url === "string" && /^\/afters\/[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i.test(payload.url)) return payload.url;
+  const id = typeof payload.after_id === "string" ? payload.after_id : payload.id;
+  return typeof id === "string" && UUID_PATTERN.test(id) ? `/afters/${id}` : null;
 }
 
 export function notificationPath(data: unknown, userId: string): string | null {
@@ -79,6 +93,14 @@ export function notificationPath(data: unknown, userId: string): string | null {
     case "crew.join_request.accepted":
     case "crew.join_request.rejected":
       return crewPath(payload);
+    case "after.join_request":
+    case "after.join_request.accepted":
+    case "after.join_request.rejected":
+    case "after.notice":
+      return afterPath(payload);
+    case "event_submission.published":
+    case "event_submission.rejected":
+      return "/events/submissions";
     default:
       return null;
   }

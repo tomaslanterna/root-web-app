@@ -20,6 +20,7 @@ import { useDiscoverTempCrews, useMyTempCrews } from "@/hooks/useTempCrews";
 import { EventMiniCard, TempCrewCard, TemporalTag, formatTempCrewEventDate } from "@/components/match/TempCrewCards";
 import { JoinTempCrewSheet } from "@/components/match/TempCrewSheets";
 import type { TempCrewSummary } from "@/types/tempCrews";
+import { eventPath } from "@/lib/eventPath";
 
 /** Crews temporales agrupadas por evento, en el orden en que llegan. */
 function groupByEvent(crews: TempCrewSummary[]) {
@@ -374,7 +375,7 @@ export default function MatchPage() {
                         ...group.event,
                         location: `${group.event.location} · ${group.crews.length} ${group.crews.length === 1 ? "crew" : "crews"}`,
                       }}
-                      href={`/events/${group.event.id}/crews`}
+                      href={eventPath(group.event, "crews")}
                       className="bg-surface"
                     />
                     <div className="flex flex-col gap-2.5 lg:grid lg:grid-cols-2 lg:gap-3">
@@ -384,7 +385,7 @@ export default function MatchPage() {
                     </div>
                     {group.crews.length > 2 && (
                       <Link
-                        href={`/events/${group.event.id}/crews`}
+                        href={eventPath(group.event, "crews")}
                         className="h-11 rounded-control bg-surface-2 border border-line-strong text-sm font-semibold flex items-center justify-center hover:bg-[#23272D] transition-colors"
                       >
                         Ver las {group.crews.length} crews de este evento

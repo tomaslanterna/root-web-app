@@ -1,4 +1,6 @@
 import { api } from "@/lib/api";
+import { aftersDemo, isAftersDemo } from "@/services/aftersDemo";
+import { isEventUuid } from "@/lib/eventPath";
 import type { Event, EventAttendee, EventComment, EventListResponse, EventRSVPStatus, PaginatedResponse, RSVPResponse } from "@/types/events";
 
 type EventQuery = Record<string, string | number | boolean | undefined>;
@@ -22,14 +24,36 @@ export interface EventLiveRankingResponse {
   data: EventLiveRankingEntry[];
 }
 
+/** slug → id de los eventos ya pedidos: las subpáginas (/events/<slug>/afters) no repiten el pedido del detalle. */
+const idsBySlug = new Map<string, string>();
+
+function rememberEventSlug(event: Pick<Event, "id" | "slug"> | null | undefined) {
+  if (event?.id && event.slug) idsBySlug.set(event.slug.toLowerCase(), event.id);
+}
+
+/** El id ya conocido para lo que viene en la URL (UUID o slug), sin ir a la red. */
+export function knownEventId(idOrSlug: string): string | null {
+  if (isEventUuid(idOrSlug)) return idOrSlug;
+  return idsBySlug.get(idOrSlug.toLowerCase()) ?? null;
+}
+
 export const eventsApi = {
+  /** El id del evento para lo que viene en la URL. Con un slug desconocido pide el detalle. */
+  resolveEventId: async (idOrSlug: string): Promise<string> => {
+    return knownEventId(idOrSlug) ?? (await eventsApi.getEventById(idOrSlug)).id;
+  },
+
   getEvents: async (params?: EventQuery): Promise<EventListResponse> => {
     const { data } = await api.get<EventListResponse>("/v1/events", { params });
     return data;
   },
 
+  /** `id` puede ser el UUID o el slug (/events/danzeria-presenta-greggio): el backend acepta los dos. */
   getEventById: async (id: string): Promise<Event> => {
-    const { data } = await api.get<Event>(`/v1/events/${id}`);
+    const { data } = await api.get<Event>(`/v1/events/${encodeURIComponent(id)}`);
+    rememberEventSlug(data);
+    // Modo de ejemplo de afters: se suma el resumen que el backend va a mandar en esta misma respuesta.
+    if (isAftersDemo() && data && !data.afters) return { ...data, afters: await aftersDemo.embedForEvent(data) };
     return data;
   },
 

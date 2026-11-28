@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { AdmittingPill, TempCrewLaneCard, TempCrewLaneEnd } from "@/components/match/TempCrewCards";
 import { AlreadyInEventCrewModal, CreateTempCrewSheet, JoinTempCrewSheet } from "@/components/match/TempCrewSheets";
 import type { TempCrewEventRef, TempCrewSummary } from "@/types/tempCrews";
+import { eventPath } from "@/lib/eventPath";
 
 export const TEMP_CREWS_ANCHOR = "crews-para-ir";
 const SECTION_BACKGROUND = "linear-gradient(180deg, rgba(212,255,0,0.07), rgba(212,255,0,0) 140px), #0F1114";
@@ -56,7 +57,7 @@ export function EventTempCrewsSection({ event, crews, total, viewerCrewId, onCha
     }
     setJoining(crew);
   };
-  const listHref = `/events/${event.id}/crews`;
+  const listHref = eventPath(event, "crews");
   const lane = crews.slice(0, LANE_MAX);
 
   const openCreate = () => {

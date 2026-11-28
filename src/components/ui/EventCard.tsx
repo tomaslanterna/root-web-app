@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import type { Event } from "@/types/events";
 import { cn, isValidImageUrl } from "@/lib/utils";
 import { parseEventRealDate } from "@/hooks/useDanceSync";
+import { eventPath } from "@/lib/eventPath";
 
 interface EventCardProps {
   event: Event;
@@ -73,7 +74,7 @@ export function EventCard({
 
   const effectiveLoading = loading ?? (priority ? "eager" : "lazy");
   const priceLabel = formatEventPrice(event);
-  const href = `/events/${event.id}?origin=${pathname}`;
+  const href = `${eventPath(event)}?origin=${pathname}`;
 
   if (variant === "list") {
     return (

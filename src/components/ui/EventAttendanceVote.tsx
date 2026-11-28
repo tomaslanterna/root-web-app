@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, LogIn } from "lucide-react";
+import { LogIn } from "lucide-react";
+import { DancerFigureIcon } from "@/components/ui/DancerIcon";
 import { useAuth } from "@/context/AuthContext";
 import { useDanceContext } from "@/context/DanceContext";
 import { useMutation } from "@/hooks/useMutation";
@@ -95,7 +96,7 @@ export function EventAttendanceVote({
               : "bg-surface-2 text-ink border border-line-strong hover:bg-[#23272D]",
           )}
         >
-          <Check className="size-[18px]" strokeWidth={2.4} aria-hidden="true" />
+          <DancerFigureIcon className="size-[18px]" strokeWidth={2.2} aria-hidden="true" />
           Voy
         </button>
         {showNotGoing && <button

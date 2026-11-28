@@ -10,6 +10,7 @@ import {
 } from "@/components/events/EventLiveRankingModal";
 import { useDanceContext } from "@/context/DanceContext";
 import { eventsApi } from "@/services/events";
+import { useCanonicalEventUrl, useEventId } from "@/hooks/useEventId";
 import type { Event } from "@/types/events";
 
 export default function EventLiveRankingPage({
@@ -17,21 +18,25 @@ export default function EventLiveRankingPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = use(params);
+  // La URL trae el UUID o el slug; el ranking y el chequeo de "estás acá" van con el id.
+  const { id: param } = use(params);
   const router = useRouter();
   const { liveEvent, isAtVenue, attendanceConfirmed } = useDanceContext();
   const [event, setEvent] = useState<Event | null>(null);
+  const { eventId: knownId } = useEventId(param);
+  const id = event?.id ?? knownId ?? "";
 
   const isUserAtThisEvent = Boolean(
-    liveEvent?.id === id && (isAtVenue || attendanceConfirmed),
+    id && liveEvent?.id === id && (isAtVenue || attendanceConfirmed),
   );
 
   useEffect(() => {
     eventsApi
-      .getEventById(id)
+      .getEventById(param)
       .then((res) => setEvent(res))
       .catch(() => undefined);
-  }, [id]);
+  }, [param]);
+  useCanonicalEventUrl(param, event);
 
   if (!isUserAtThisEvent) {
     return (
@@ -46,7 +51,7 @@ export default function EventLiveRankingPage({
             El ranking de pasos en tiempo real se abre cuando estás en el predio del evento.
           </p>
           <Link
-            href={`/events/${id}`}
+            href={`/events/${param}`}
             className="mt-2 min-h-11 px-5 rounded-control bg-accent text-on-accent text-sm font-semibold flex items-center hover:bg-accent-hover transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             Volver al evento

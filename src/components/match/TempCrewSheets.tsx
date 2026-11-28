@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useId, useState, type ReactNode } from "react";
+import { useId, useState } from "react";
 import { Check, Lock, Minus, Plus, Send, Users } from "lucide-react";
 import Link from "next/link";
-import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Modal } from "@/components/ui/Modal";
+import { ResponsiveSheet } from "@/components/ui/ResponsiveSheet";
 import { Button } from "@/components/ui/Button";
 import { useMutation } from "@/hooks/useMutation";
 import { tempCrewsApi } from "@/services/tempCrews";
@@ -18,50 +18,6 @@ import {
   type TempCrewEventRef,
   type TempCrewSummary,
 } from "@/types/tempCrews";
-
-/** true desde 1024 px: en escritorio las hojas se muestran como diálogo centrado. */
-function useIsDesktop() {
-  const [isDesktop, setIsDesktop] = useState(false);
-  useEffect(() => {
-    const query = window.matchMedia("(min-width: 1024px)");
-    const update = () => setIsDesktop(query.matches);
-    update();
-    query.addEventListener("change", update);
-    return () => query.removeEventListener("change", update);
-  }, []);
-  return isDesktop;
-}
-
-function ResponsiveSheet({
-  isOpen,
-  onClose,
-  title,
-  children,
-  footer,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  title: string;
-  children: ReactNode;
-  footer: ReactNode;
-}) {
-  const isDesktop = useIsDesktop();
-  if (isDesktop) {
-    return (
-      <Modal isOpen={isOpen} onClose={onClose} title={title} size="lg" footer={footer}>
-        {children}
-      </Modal>
-    );
-  }
-  return (
-    <BottomSheet isOpen={isOpen} onClose={onClose} title={title} maxHeightRatio={0.94} initialHeight={760}>
-      <div className="px-5 pt-2 pb-[calc(1rem+var(--root-safe-bottom))] flex flex-col gap-5">
-        {children}
-        <div className="sticky bottom-0 -mx-5 px-5 pt-3 pb-1 bg-surface border-t border-line flex flex-col gap-2">{footer}</div>
-      </div>
-    </BottomSheet>
-  );
-}
 
 const fieldClass =
   "w-full rounded-control border border-line-strong bg-bg px-3.5 text-[15px] text-ink placeholder:text-ink-3 focus:outline-none focus:border-accent";

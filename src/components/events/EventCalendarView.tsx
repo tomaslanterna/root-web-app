@@ -20,6 +20,7 @@ import type { Event } from "@/types/events";
 import { EventCard } from "@/components/ui/EventCard";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { parseEventRealDate } from "@/hooks/useDanceSync";
+import { eventPath } from "@/lib/eventPath";
 
 interface EventCalendarViewProps {
   events: Event[];
@@ -435,7 +436,7 @@ export function EventCalendarView({ events }: EventCalendarViewProps) {
               return (
                 <Link
                   key={ev.id}
-                  href={`/events/${ev.id}?origin=/events`}
+                  href={`${eventPath(ev)}?origin=/events`}
                   className="group relative flex items-stretch gap-3 sm:gap-4 p-2.5 sm:p-3 rounded-card bg-surface-2 border border-line hover:border-line-strong hover:bg-surface-2/80 transition-all duration-200 shadow-sm active:scale-[0.99]"
                 >
                   {/* IMAGEN A LA IZQUIERDA (Poster / Thumbnail) */}

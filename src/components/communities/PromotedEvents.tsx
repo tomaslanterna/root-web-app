@@ -21,6 +21,7 @@ import { CommunityManageEventsModal } from "./CommunityManageEventsModal";
 import { useCommunityPromotedEvents } from "@/hooks/useCommunities";
 import { parseEventRealDate } from "@/hooks/useDanceSync";
 import type { Event } from "@/types/events";
+import { eventPath } from "@/lib/eventPath";
 
 interface PromotedEventsProps {
   communityId: string;
@@ -245,7 +246,7 @@ export function PromotedEvents({
                         </button>
                       )}
 
-                      <Link href={`/events/${event.id}`}>
+                      <Link href={eventPath(event)}>
                         <Button variant="primary" size="sm" className="h-9 px-3 gap-1 text-xs">
                           <span>Ver Evento</span>
                           <ExternalLink className="h-3 w-3" />

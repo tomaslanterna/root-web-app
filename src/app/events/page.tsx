@@ -15,7 +15,9 @@
    Loader2,
    MapPin,
    MessageSquare,
+   Moon,
    Music,
+   Plus,
    RefreshCw,
    Search,
    Tag,
@@ -43,6 +45,10 @@ import { TabIndicator } from "@/components/ui/TabIndicator";
  import { useEventsInbox } from "@/context/FeedInboxContext";
  import { useMatchedFontSize } from "@/hooks/useMatchedFontSize";
  import type { Event, EventFilters, EventListResponse } from "@/types/events";
+ import { useAftersList, useTonightAfters } from "@/hooks/useAfters";
+ import { useRequireKyc } from "@/hooks/useRequireKyc";
+ import { isAftersStripTime } from "@/lib/afters";
+ import { AftersFilterResults, SubmitEventCta, TonightAftersStrip } from "@/components/afters/AftersFeed";
 
  const pageSize = 10;
  const emptyFilters: EventFilters = {
@@ -280,6 +286,8 @@ import { TabIndicator } from "@/components/ui/TabIndicator";
    const [showFilters, setShowFilters] = useState(false);
    const [viewMode, setViewMode] = useState<EventView>("grid");
    const [showGoingOnly, setShowGoingOnly] = useState(false);
+   // Filtro Afters: muestra solo afters (agrupados por noche), nunca mezclados con la grilla de eventos.
+   const [showAfters, setShowAfters] = useState(false);
    const [sortBy, setSortBy] = useState<"date" | "popular">("date");
    const [isWhenOpen, setIsWhenOpen] = useState(false);
    const [isGenreOpen, setIsGenreOpen] = useState(false);
@@ -377,7 +385,8 @@ import { TabIndicator } from "@/components/ui/TabIndicator";
        observer?.disconnect();
        if (frame) cancelAnimationFrame(frame);
      };
-   }, [featuredEvents.length]);
+     // showAfters oculta los destacados: se vuelve a medir para que el espaciador no deje un hueco.
+   }, [featuredEvents.length, showAfters]);
 
    const [headerHeight, setHeaderHeight] = useState<number>(0);
 
@@ -567,6 +576,36 @@ import { TabIndicator } from "@/components/ui/TabIndicator";
      return visibleEvents;
    }, [events, sortBy, showGoingOnly]);
 
+   // Afters: la franja de esta noche (18:00 a 12:00) y la lista del filtro. Ubicación NO los filtra: elige
+   // departamentos ("Montevideo") y la zona de un after es un barrio escrito a mano ("Pocitos").
+   const requireKyc = useRequireKyc();
+   const [isAftersHour] = useState(() => isAftersStripTime());
+   const tonightAfters = useTonightAfters(isAftersHour && !showAfters && !debouncedQuery);
+   const aftersList = useAftersList(
+     {
+       from: appliedFilters.startDate ? localDayToISO(appliedFilters.startDate, false) : undefined,
+       until: appliedFilters.endDate ? localDayToISO(appliedFilters.endDate, true) : undefined,
+       limit: 50,
+     },
+     showAfters,
+   );
+   const visibleAfters = useMemo(
+     () =>
+       showGoingOnly
+         ? aftersList.afters.filter((after) => after.viewerStatus === "host" || after.viewerStatus === "accepted" || after.viewerStatus === "going")
+         : aftersList.afters,
+     [aftersList.afters, showGoingOnly],
+   );
+   const showTonightStrip =
+     !showAfters && isAftersHour && !debouncedQuery && tonightAfters.status === "ready" && tonightAfters.afters.length > 0;
+   const openAftersFilter = () => {
+     setShowAfters(true);
+     setIsWhenOpen(false);
+     setIsGenreOpen(false);
+     setIsDatesOpen(false);
+     window.scrollTo({ top: 0, behavior: "smooth" });
+   };
+
    // Agrupación cronológica para la vista de Agenda / Lista
    const chronologicalGroups = useMemo(() => {
      return groupEventsChronologically(displayEvents);
@@ -599,6 +638,7 @@ import { TabIndicator } from "@/components/ui/TabIndicator";
      setTemporalPreset("all");
      setSortBy("date");
      setShowGoingOnly(false);
+     setShowAfters(false);
      setSearchQuery("");
      setIsWhenOpen(false);
      setIsGenreOpen(false);
@@ -783,6 +823,17 @@ import { TabIndicator } from "@/components/ui/TabIndicator";
            </h1>
 
            <div className="flex items-center gap-2 shrink-0">
+             <button
+               type="button"
+               aria-label="Subir"
+               onClick={(event) => {
+                 event.stopPropagation();
+                 setIsMenuOpen(true);
+               }}
+               className="shrink-0 size-11 flex items-center justify-center rounded-control bg-surface border border-line text-ink hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-accent transition-colors"
+             >
+               <Plus className="size-5" aria-hidden="true" />
+             </button>
              <SearchButton />
              <button
                type="button"
@@ -1028,7 +1079,7 @@ import { TabIndicator } from "@/components/ui/TabIndicator";
              style={{ top: headerHeight }}
              className="sticky z-30 -mx-4 px-4 md:-mx-6 md:px-6 bg-bg/95 backdrop-blur-md !mt-0 !mb-0"
            >
-             {showFeaturedTitle && (
+             {showFeaturedTitle && !showAfters && (
                <section aria-labelledby="events-featured" className="pt-4 md:pt-6 pb-4">
                  <h2
                    id="events-featured"
@@ -1104,6 +1155,46 @@ import { TabIndicator } from "@/components/ui/TabIndicator";
                    className="relative z-20 w-6 h-full rounded-full flex items-center justify-center text-accent hover:bg-white/10 active:scale-90 transition-transform touch-manipulation"
                    title="Quitar filtro voy!"
                    aria-label="Quitar filtro voy!"
+                 >
+                   <X className="size-3 pointer-events-none" aria-hidden="true" />
+                 </button>
+               )}
+             </div>
+
+             {/* Filtro Afters: solo afters próximos o en curso, agrupados por noche. */}
+             <div
+               className={cn(
+                 "shrink-0 h-8 md:h-8.5 flex items-center rounded-full border transition-colors select-none text-xs",
+                 showAfters
+                   ? "bg-accent/12 text-accent border-accent/40"
+                   : "border-white/10 bg-surface text-ink hover:bg-surface-2",
+               )}
+             >
+               <button
+                 type="button"
+                 aria-pressed={showAfters}
+                 onClick={() => (showAfters ? setShowAfters(false) : openAftersFilter())}
+                 className={cn(
+                   "root-logo-type h-full flex items-center gap-1.5 text-[11px] tracking-[-0.04em] focus-visible:outline-2 focus-visible:outline-accent rounded-full",
+                   showAfters ? "pl-2.5 pr-1" : "px-2.5",
+                 )}
+               >
+                 <Moon aria-hidden="true" className={cn("size-3.5 shrink-0", showAfters ? "text-accent" : "text-ink-2")} />
+                 Afters
+               </button>
+               {showAfters && (
+                 <button
+                   type="button"
+                   onPointerDown={(e) => e.stopPropagation()}
+                   onTouchStart={(e) => e.stopPropagation()}
+                   onClick={(e) => {
+                     e.preventDefault();
+                     e.stopPropagation();
+                     setShowAfters(false);
+                   }}
+                   className="relative z-20 w-6 h-full rounded-full flex items-center justify-center text-accent hover:bg-white/10 active:scale-90 transition-transform touch-manipulation"
+                   title="Quitar filtro Afters"
+                   aria-label="Quitar filtro Afters"
                  >
                    <X className="size-3 pointer-events-none" aria-hidden="true" />
                  </button>
@@ -1435,6 +1526,11 @@ import { TabIndicator } from "@/components/ui/TabIndicator";
            {/* Espaciador dinámico que recupera la altura colapsada */}
            <div ref={collapseSpacerRef} aria-hidden="true" className="!my-0 !p-0" />
 
+           {/* Afters de esta noche: solo de 18:00 a 12:00 y si hay; nunca dentro de la grilla de eventos. */}
+           {showTonightStrip && (
+             <TonightAftersStrip afters={tonightAfters.afters} total={tonightAfters.total} onSeeAll={openAftersFilter} />
+           )}
+
            {/* Filtros del listado: voy!, ¿Cuándo?, Ubicación y vista */}
            {/* Título de sección y selector de layout */}
            <div className="flex items-center justify-between gap-3 pt-2">
@@ -1442,8 +1538,27 @@ import { TabIndicator } from "@/components/ui/TabIndicator";
                ref={sectionTitleRef}
                className="font-display text-[22px] md:text-[28px] m-0 truncate min-w-0"
              >
-               {sortBy === "popular" ? "Más convocados" : "Próximos eventos"}
+               {showAfters ? "Afters" : sortBy === "popular" ? "Más convocados" : "Próximos eventos"}
              </h2>
+
+             {showAfters ? (
+               <div className="flex items-center gap-3 shrink-0">
+                 {aftersList.status === "ready" && (
+                   <span className="text-[13px] text-ink-2">
+                     <span className="num-mono text-ink">{visibleAfters.length}</span> próximos
+                   </span>
+                 )}
+                 <Button
+                   variant="secondary"
+                   size="sm"
+                   onClick={() => requireKyc(() => router.push("/afters/new"))}
+                   className="hidden lg:inline-flex"
+                 >
+                   <Plus className="size-4" aria-hidden="true" /> Subir un after
+                 </Button>
+               </div>
+             ) : (
+               <>
 
                  <SegmentedControl
                    label="Vista"
@@ -1477,6 +1592,8 @@ import { TabIndicator } from "@/components/ui/TabIndicator";
                      </button>
                    ))}
                  </div>
+               </>
+             )}
            </div>
 
            {/* Chips de Filtros Activos */}
@@ -1560,7 +1677,14 @@ import { TabIndicator } from "@/components/ui/TabIndicator";
            )}
 
            {/* Listado de Eventos (Skeleton, Error o Vistas) */}
-           {!hasLoaded || (isLoadingEvents && events.length === 0) ? (
+           {showAfters ? (
+             <AftersFilterResults
+               afters={visibleAfters}
+               status={aftersList.status}
+               onRetry={() => void aftersList.reload()}
+               onlyGoing={showGoingOnly}
+             />
+           ) : !hasLoaded || (isLoadingEvents && events.length === 0) ? (
              viewMode === "calendar" ? (
                <div className="rounded-card border border-line bg-surface p-5 space-y-4 animate-pulse">
                  <div className="h-8 w-48 rounded-full bg-white/10" />
@@ -1671,11 +1795,14 @@ import { TabIndicator } from "@/components/ui/TabIndicator";
            )}
 
            {/* Loader de Scroll Infinito */}
-           {isLoadingEvents && events.length > 0 && (
+           {!showAfters && isLoadingEvents && events.length > 0 && (
              <RootLoader size="xs" ariaLabel="Cargando más eventos" className="pt-6 pb-2" />
            )}
 
-           <div ref={sentinelRef} className="h-6 w-full pointer-events-none" />
+           {!showAfters && <div ref={sentinelRef} className="h-6 w-full pointer-events-none" />}
+
+           {/* Al final de la lista: mandar un evento para revisión. */}
+           {!showAfters && hasLoaded && !hasMore && displayEvents.length > 0 && <SubmitEventCta />}
          </div>
        </PullToRefresh>
 

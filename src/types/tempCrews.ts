@@ -15,6 +15,8 @@ export interface TempCrewPerson {
 
 export interface TempCrewEventRef {
   id: string;
+  /** Para la URL (/events/<slug>). Si no viene, el link usa el id. */
+  slug?: string | null;
   title: string;
   date: string;
   location: string;

@@ -54,6 +54,18 @@ export const usersApi = {
     return data;
   },
 
+  /**
+   * Si la identidad de la cuenta ya está verificada, según el perfil público. La sesión guarda el valor del login
+   * y puede quedar vieja si la verificación se aprobó después. No cierra la sesión si falla.
+   */
+  getKycStatus: async (username: string): Promise<boolean> => {
+    const { data } = await api.get<{ isKycVerified?: boolean }>(`/v1/users/${encodeURIComponent(username)}`, {
+      skipAuthRedirect: true,
+      timeout: 8000,
+    });
+    return Boolean(data?.isKycVerified);
+  },
+
   /** Sigue al perfil o, si es privado, le manda una solicitud. Devuelve el estado resultante. */
   followUser: async (username: string): Promise<FollowStatus> => {
     const { data } = await api.post<{ status?: string }>(`/v1/users/${username}/follow`);

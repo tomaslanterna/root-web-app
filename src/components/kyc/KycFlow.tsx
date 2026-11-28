@@ -10,6 +10,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { SwipeBack } from '@/components/ui/SwipeBack';
 import { cn } from '@/lib/utils';
+import { kycReturnPath } from '@/lib/kycRedirect';
 
 type Step = 'INTRO' | 'FACE' | 'DOC_FRONT' | 'DOC_BACK' | 'PROCESSING' | 'RESULT';
 
@@ -19,7 +20,7 @@ const STATUS_STARTING_REAR = 'Iniciando cámara trasera...';
 
 export default function KycFlow() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, token, login } = useAuth();
   const [step, setStep] = useState<Step>('INTRO');
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [result, setResult] = useState<{ status: 'APPROVED' | 'REJECTED'; message: string } | null>(null);
@@ -81,6 +82,8 @@ export default function KycFlow() {
     {
       onSuccess: (data) => {
         if (data.status === 'APPROVED') {
+           // La sesión guarda isKycVerified del login: se actualiza para no volver a pedir la verificación.
+           if (user && token) login(token, { ...user, isKycVerified: true });
            setResult({ status: 'APPROVED', message: 'Identidad verificada con éxito' });
         } else {
            setResult({ status: 'REJECTED', message: data.reason || 'Tu identidad no pudo ser verificada.' });
@@ -305,6 +308,9 @@ export default function KycFlow() {
     else router.replace('/profile');
   };
 
+  // ?redirect= con una ruta interna: al aprobarse vuelve a la pantalla desde la que se pidió verificar.
+  const returnPath = typeof window !== 'undefined' ? kycReturnPath(window.location.search) : null;
+
   const stepNumber = step === 'FACE' ? 1 : step === 'DOC_FRONT' ? 2 : step === 'DOC_BACK' ? 3 : null;
   const docPreview = step === 'DOC_FRONT' ? docFrontPreview : docBackPreview;
 
@@ -513,8 +519,8 @@ export default function KycFlow() {
               </div>
 
               {result?.status === 'APPROVED' ? (
-                <Button type="button" size="full" onClick={() => (window.location.href = '/profile')}>
-                  Ir a mi perfil
+                <Button type="button" size="full" onClick={() => (window.location.href = returnPath ?? '/profile')}>
+                  {returnPath ? 'Continuar' : 'Ir a mi perfil'}
                 </Button>
               ) : (
                 <div className="flex flex-col gap-3 w-full">
