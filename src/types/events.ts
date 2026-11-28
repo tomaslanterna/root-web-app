@@ -1,4 +1,5 @@
 import type { TempCrewsEventSummary } from "@/types/tempCrews";
+import type { AftersEventSummary } from "@/types/afters";
 
 export type EventRSVPStatus = "going" | "not_going";
 
@@ -39,6 +40,8 @@ export interface TicketTier {
 
 export interface Event {
   id: string;
+  /** Para la URL (/events/<slug>). Si no viene, el link usa el id. */
+  slug?: string | null;
   title: string;
   producerId?: string;
   date: string;
@@ -68,6 +71,8 @@ export interface Event {
   createdAt: string;
   /** Solo en el detalle: resumen de crews temporales (si el backend lo incluye). */
   tempCrews?: TempCrewsEventSummary | null;
+  /** Solo en el detalle: afters del evento, en la misma consulta (sin otro request). */
+  afters?: AftersEventSummary | null;
 }
 
 export interface EventAttendee {

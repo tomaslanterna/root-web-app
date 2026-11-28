@@ -107,6 +107,21 @@ test("birthday notification tap opens the signed-in user's own profile", async (
   }
   assert.equal(r.notificationPath({ type: "crew.join_request", crew_id: "../admin", recipient_id: "user-a" }, "user-a"), null);
   assert.equal(r.notificationPath({ type: "crew.join_request", crew_id: crewId, recipient_id: "user-b" }, "user-a"), null);
+  // Afters: abren el detalle (con after_id o id); un id inválido no navega. Envíos de eventos: Mis envíos.
+  const afterId = "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d";
+  for (const type of ["after.join_request", "after.join_request.accepted", "after.join_request.rejected", "after.notice"]) {
+    assert.equal(r.notificationPath({ type, after_id: afterId, recipient_id: "user-a" }, "user-a"), `/afters/${afterId}`);
+    assert.equal(r.notificationPath({ type, id: afterId, recipient_id: "user-a" }, "user-a"), `/afters/${afterId}`);
+  }
+  assert.equal(r.notificationPath({ type: "after.notice", after_id: "../../admin", recipient_id: "user-a" }, "user-a"), null);
+  // data.url del backend solo se usa si es exactamente /afters/<uuid>; si no, se arma desde after_id.
+  assert.equal(r.notificationPath({ type: "after.notice", url: `/afters/${afterId}`, recipient_id: "user-a" }, "user-a"), `/afters/${afterId}`);
+  assert.equal(r.notificationPath({ type: "after.notice", url: "//evil.com/afters", after_id: afterId, recipient_id: "user-a" }, "user-a"), `/afters/${afterId}`);
+  assert.equal(r.notificationPath({ type: "after.notice", url: "https://evil.com", recipient_id: "user-a" }, "user-a"), null);
+  assert.equal(r.notificationPath({ type: "after.notice", after_id: afterId, recipient_id: "user-b" }, "user-a"), null);
+  for (const type of ["event_submission.published", "event_submission.rejected"]) {
+    assert.equal(r.notificationPath({ type, id: afterId, submission_id: afterId, url: "/events/submissions", recipient_id: "user-a" }, "user-a"), "/events/submissions");
+  }
   await r.session.dispose();
 });
 

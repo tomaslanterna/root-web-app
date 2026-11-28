@@ -23,6 +23,7 @@ import {
   LifeBuoy,
   Ban,
   Trash2,
+  CalendarPlus,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useMutation } from '@/hooks/useMutation';
@@ -311,6 +312,23 @@ export default function SettingsPage() {
               <div>
                 <span className="font-bold text-ink block text-[15px]">Usuarios bloqueados</span>
                 <span className="text-xs text-ink-2">Cuentas que no te ven ni te pueden escribir</span>
+              </div>
+            </div>
+            <ChevronRight className="size-5 text-ink-3" />
+          </Link>
+
+          {/* Mandanos tu evento: los envíos y su estado. */}
+          <Link
+            href="/events/submissions"
+            className="w-full flex items-center justify-between p-4.5 hover:bg-surface-2 transition-colors text-left"
+          >
+            <div className="flex items-center gap-3.5">
+              <div className="p-2.5 bg-accent/10 rounded-control text-accent shrink-0">
+                <CalendarPlus className="size-5" />
+              </div>
+              <div>
+                <span className="font-bold text-ink block text-[15px]">Mandanos tu evento</span>
+                <span className="text-xs text-ink-2">Tus envíos y su estado de revisión</span>
               </div>
             </div>
             <ChevronRight className="size-5 text-ink-3" />

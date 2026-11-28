@@ -26,6 +26,7 @@ import { AdmittingPill, EventMiniCard, TempCrewRequestCard, TemporalTag, freeSpo
 import { JoinTempCrewSheet } from "@/components/match/TempCrewSheets";
 import { copyTextToClipboard } from "@/lib/utils";
 import type { TempCrewDetailExtras, TempCrewSummary } from "@/types/tempCrews";
+import { eventPath } from "@/lib/eventPath";
 
 interface LeaderboardEntry {
   userId: string;
@@ -422,7 +423,7 @@ export default function CrewDetailPage() {
 
         {temp && (
           <>
-            <EventMiniCard event={temp.event} href={`/events/${temp.event.id}`} className="mt-4" />
+            <EventMiniCard event={temp.event} href={eventPath(temp.event)} className="mt-4" />
             {temp.plan && <p className="mt-3 mb-0 text-sm leading-normal text-ink-2 break-words">{temp.plan}</p>}
             {isMember && (
               <Link
@@ -763,7 +764,7 @@ export default function CrewDetailPage() {
                     return (
                       <Link
                         key={ev.id}
-                        href={`/events/${ev.id}`}
+                        href={eventPath(ev)}
                         className="flex items-center gap-3 p-3 rounded-card bg-surface border border-line hover:bg-surface-2 transition-colors"
                       >
                         <span
